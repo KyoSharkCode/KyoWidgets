@@ -121,22 +121,23 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
     <form class="card opts" id="fSpotify" onsubmit="return false">
       <div class="grupo"><h3>Estilo</h3>
         <div class="f"><span>Temporada</span><div class="chips" data-radio="tema" data-val="octubre:🎃 Halloween,marea:🌊 Normal"></div></div>
-        <div class="f"><span>Forma</span><div class="chips" data-radio="forma" data-val="pildora:Píldora,tarjeta:Tarjeta"></div></div>
-        <div class="f"><span>Fondo</span><div class="chips" data-radio="fondo" data-val="si:Con fondo,no:Sin fondo (solo texto con contorno)"></div></div>
-        <div class="f"><span>Letra del título</span><div class="chips" data-radio="fuente" data-val="fredoka:Redondeada,cherry:Cherry Bomb,chakra:Tecno"></div></div>
+        <div class="f"><span>Diseño</span><div class="chips" data-radio="diseno" data-val="vinilo:💿 Vinilo,polaroid:📸 Polaroid,casete:📼 Casete,entrada:🎟️ Entrada"></div></div>
+        <div class="f" data-si="diseno=vinilo"><span>Forma</span><div class="chips" data-radio="forma" data-val="pildora:Píldora,tarjeta:Tarjeta"></div></div>
+        <div class="f" data-si="diseno=vinilo"><span>Fondo</span><div class="chips" data-radio="fondo" data-val="si:Con fondo,no:Sin fondo (solo texto con contorno)"></div></div>
+        <div class="f"><span>Letra del título</span><div class="chips" data-radio="fuente" data-val="auto:Automática,fredoka:Redondeada,cherry:Cherry Bomb,chakra:Tecno"></div></div>
         <div class="f"><span>Tamaño</span><div class="chips" data-radio="escala" data-val="0.75:Pequeño,1:Normal,1.25:Grande,1.5:Muy grande"></div></div>
       </div>
       <div class="grupo"><h3>Colores</h3>
         <div class="chips"><label><input type="checkbox" name="colores"> Usar mis propios colores</label></div>
         <div class="colores off" data-colores>
           <label>Acento<input type="color" name="acento" value="#ff8a2b"></label>
-          <label>Borde<input type="color" name="borde" value="#9b6bff"></label>
+          <label>Borde / pegatina<input type="color" name="borde" value="#9b6bff"></label>
           <label>Caja<input type="color" name="caja" value="#0e0a24"></label>
           <label>Texto<input type="color" name="texto" value="#f5f3fb"></label>
         </div>
       </div>
       <div class="grupo"><h3>Qué se ve</h3>
-        <div class="chips" data-check="ver" data-val="disco:Disco y portada,etiqueta:Etiqueta,artista:Artista,sonar:Barra sonar,tiempo:Tiempos"></div>
+        <div class="chips" data-check="ver" data-val="portada:Portada,etiqueta:Etiqueta,artista:Artista,progreso:Progreso,tiempo:Tiempos"></div>
         <label class="f"><span>Texto de la etiqueta</span><input type="text" name="etiqueta" value="Sonando ahora" maxlength="30"></label>
       </div>
       <div class="grupo"><h3>Comportamiento</h3>
@@ -226,7 +227,8 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 
   // ---------- Widgets: tamaño base y valores por defecto ----------
   const W = {
-    spotify: { w: 720, h: 180, def: { tema: 'octubre', forma: 'pildora', fondo: 'si', fuente: 'fredoka', escala: '1', modo: 'siempre', anim: 'rebote', ver: ['disco', 'etiqueta', 'artista', 'sonar', 'tiempo'] },
+    spotify: { w: 720, h: 180, tam: { vinilo: [720, 180], polaroid: [640, 200], casete: [620, 210], entrada: [640, 190] },
+      def: { diseno: 'vinilo', tema: 'octubre', forma: 'pildora', fondo: 'si', fuente: 'auto', escala: '1', modo: 'siempre', anim: 'rebote', ver: ['portada', 'etiqueta', 'artista', 'progreso', 'tiempo'] },
       pruebas: [['cancion', '🎵 Probar cambio de canción']] },
     fortnite: { w: 760, h: 250, def: { tema: 'octubre', forma: 'tarjeta', escala: '1', cuenta: 'epic', ventana: 'season', hoy: 'si', celebrar: 'si', stats: ['wins', 'kills', 'kd', 'matches'] },
       pruebas: [['victoria', '🏆 Probar victoria'], ['bajas', '⚔️ Probar bajas']] }
@@ -274,7 +276,7 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
   function url(id, demo) {
     const o = estadoForm(id), d = W[id].def, p = new URLSearchParams();
     const set = (k, v) => { if (v !== undefined && v !== '' && v !== d[k]) p.set(k, v); };
-    ['tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'cuenta', 'ventana', 'hoy', 'celebrar'].forEach(k => { if (k in o) set(k, o[k]); });
+    ['diseno', 'tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'cuenta', 'ventana', 'hoy', 'celebrar'].forEach(k => { if (k in o) set(k, o[k]); });
     if (o.colores) ['acento', 'borde', 'caja', 'texto'].forEach(k => p.set(k, (o[k] || '').replace('#', '')));
     if (id === 'spotify') {
       const ocultar = d.ver.filter(v => !(o.ver || []).includes(v));
@@ -299,7 +301,8 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
     guardar('kyo_estudio_' + id, JSON.stringify(o));
     $$('[data-si]', panel).forEach(el => { const [k, v] = el.dataset.si.split('='); el.hidden = o[k] !== v; });
     $('[data-colores]', panel).classList.toggle('off', !o.colores);
-    const esc = Number(o.escala || 1), w = Math.ceil(W[id].w * esc), h = Math.ceil(W[id].h * esc);
+    const base = (W[id].tam && W[id].tam[o.diseno]) || [W[id].w, W[id].h];
+    const esc = Number(o.escala || 1), w = Math.ceil(base[0] * esc), h = Math.ceil(base[1] * esc);
     $('[data-w]', panel).textContent = w; $('[data-h]', panel).textContent = h;
     $('.url input', panel).value = url(id, false);
     const demo = $('input[name="datos-' + id + '"]:checked', panel).value === 'demo';
@@ -316,6 +319,10 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 
   Object.keys(W).forEach(id => {
     let prev = null; try { prev = JSON.parse(leer('kyo_estudio_' + id) || 'null'); } catch (e) {}
+    if (prev && id === 'spotify' && !prev.diseno) { // ajustes guardados antes de los 4 diseños
+      prev.ver = (prev.ver || []).map(v => v === 'disco' ? 'portada' : v === 'sonar' ? 'progreso' : v);
+      if (prev.fuente === 'fredoka') prev.fuente = 'auto';
+    }
     aplicarForm(id, Object.assign({}, W[id].def, id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' }, prev || {}));
     const panel = $('[data-panel="' + id + '"]');
     panel.addEventListener('change', () => actualizar(id));
