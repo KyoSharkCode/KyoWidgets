@@ -3,68 +3,414 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KyoWidgets</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Fredoka:wght@500;600;700&display=swap">
+<title>Kyo Estudio</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Fredoka:wght@500;600;700&family=Chakra+Petch:wght@600;700&display=swap">
+<script src="config.js"></script>
 <style>
-:root{--bg:#0a0720;--card:#15103a;--line:rgba(184,149,255,.25);--acc:#FF8A2B;--pur:#B895FF;--txt:#F5F3FB;--sub:#d8d2f3}
+:root{
+  --bg:#0a0720; --panel:#120d33; --panel2:#0e0a2a; --line:rgba(184,149,255,.22); --line2:rgba(184,149,255,.4);
+  --acc:#FF8A2B; --acc2:#6FE3F0; --pur:#9B6BFF; --txt:#F5F3FB; --dim:#cfc7ef; --faint:#958dbd; --ok:#4ade80; --bad:#ff8fa3;
+}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--txt);font-family:"Fredoka",system-ui,sans-serif;padding:28px 18px 60px}
-.w{max-width:980px;margin:0 auto;display:grid;gap:18px}
-h1{font-family:"Cherry Bomb One",sans-serif;font-weight:400;font-size:44px;margin:0}
-p{margin:0;color:var(--sub);line-height:1.5}
-.card{background:var(--card);border-radius:20px;padding:18px;box-shadow:0 0 0 1px var(--line);display:grid;gap:12px}
-.row{display:flex;flex-wrap:wrap;gap:12px}
-label{display:grid;gap:4px;font-size:14px;color:var(--sub)}
-input,select{font:inherit;background:#0e0a2a;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:170px}
-code{display:block;background:#0e0a2a;border-radius:10px;padding:10px 12px;word-break:break-all;color:#ffd08a}
-button{font:600 15px "Fredoka",sans-serif;background:var(--acc);color:#1a0d05;border:0;border-radius:999px;padding:8px 18px;cursor:pointer}
-iframe{width:100%;border:0;border-radius:14px;background:repeating-conic-gradient(#1a1440 0 25%,#221a52 0 50%) 0 0/24px 24px}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;background:radial-gradient(900px 500px at 90% -10%,rgba(155,107,255,.18),transparent 60%),radial-gradient(700px 400px at -10% 110%,rgba(255,138,43,.1),transparent 60%),var(--bg);
+  color:var(--txt);font-family:"Fredoka",system-ui,sans-serif;font-size:15px;padding:0 18px 60px}
+.w{max-width:1180px;margin:0 auto}
+header{display:flex;align-items:center;gap:14px;padding:22px 0 16px;flex-wrap:wrap}
+header h1{margin:0;font-family:"Cherry Bomb One","Fredoka",sans-serif;font-weight:400;font-size:38px;line-height:1;-webkit-text-stroke:6px #0a0720;paint-order:stroke fill}
+header h1 span{color:var(--acc)}
+header small{color:var(--faint);font-weight:600}
+.estado-pill{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:7px;font:700 12.5px "Chakra Petch",monospace;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:999px;background:var(--panel2);box-shadow:0 0 0 1px var(--line);color:var(--dim)}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.pill.ok i{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.pill.bad i{background:var(--bad)}
+nav.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+nav.tabs button{font:600 15px "Fredoka",sans-serif;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:9px 18px;cursor:pointer}
+nav.tabs button[aria-selected="true"]{background:var(--acc);border-color:var(--acc);color:#1a0d05}
+nav.tabs button:focus-visible,.btn:focus-visible,.chips label:focus-within{outline:2px solid var(--acc2);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:18px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px}
+.opts{display:flex;flex-direction:column;gap:16px}
+.grupo{display:flex;flex-direction:column;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.grupo:last-child{border-bottom:0;padding-bottom:0}
+.grupo h3{margin:0;font:700 12px "Chakra Petch",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
+.f > span{display:block;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips label{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13.5px;font-weight:600;cursor:pointer;user-select:none;color:var(--dim)}
+.chips label:has(input:checked){border-color:var(--acc);background:rgba(255,138,43,.12);color:#fff}
+.chips input{accent-color:var(--acc);margin:0}
+.chips input[type=radio]{position:absolute;opacity:0;width:0;height:0}
+input[type=text],input[type=number]{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--acc2)}
+.colores{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.colores label{display:grid;gap:4px;font-size:12px;color:var(--faint);text-align:center}
+.colores input[type=color]{width:100%;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);padding:3px;cursor:pointer}
+.colores.off{opacity:.4;pointer-events:none}
+.nota{font-size:12.5px;color:var(--faint);line-height:1.45;margin:0}
+.fila2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prev{position:sticky;top:14px;display:flex;flex-direction:column;gap:12px}
+.stage{position:relative;border-radius:16px;overflow:hidden;min-height:260px;display:flex;align-items:center;justify-content:center;padding:16px;border:1px solid var(--line)}
+.stage.juego{background:linear-gradient(135deg,#1d3b2a 0%,#2c4a33 35%,#3b3a2a 65%,#20303f 100%)}
+.stage.oscuro{background:#07051a}
+.stage.claro{background:linear-gradient(135deg,#e9e4f7,#c7d6ee)}
+.stage.escena{background:radial-gradient(260px 260px at 78% 30%,#ff9a3c 0,#d9531a 38%,transparent 40%),linear-gradient(180deg,#1a1150,#2a1f5c 60%,#0c0a2e)}
+.stage::after{content:attr(data-lbl);position:absolute;right:10px;bottom:8px;font-size:11px;font-weight:700;color:rgba(255,255,255,.6)}
+.stage.claro::after{color:rgba(0,0,0,.45)}
+.frame{overflow:hidden;flex-shrink:0}
+.frame iframe{border:0;background:transparent;display:block;transform-origin:0 0}
+.acciones{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{font:600 14px "Fredoka",sans-serif;border:1px solid var(--line2);background:transparent;color:var(--dim);border-radius:999px;padding:8px 16px;cursor:pointer}
+.btn:hover{border-color:var(--acc);color:#fff}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#1a0d05}
+.btn.pri:hover{box-shadow:0 0 16px rgba(255,138,43,.5)}
+.btn.spot{background:#1ed760;border-color:#1ed760;color:#06260f}
+.url{display:flex;gap:8px}
+.url input{flex:1;min-width:0;font:600 12px ui-monospace,Menlo,Consolas,monospace;background:var(--panel2);color:#ffd08a;border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.pasos{margin:0;padding-left:20px;line-height:1.7;color:var(--dim);font-size:14px}
+.pasos b{color:#fff}
+.con{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.con .card{display:flex;flex-direction:column;gap:12px}
+.con h2{margin:0;font-family:"Cherry Bomb One",sans-serif;font-weight:400;font-size:26px}
+.estado{display:flex;align-items:center;gap:10px;font-weight:600}
+.estado i{width:12px;height:12px;border-radius:50%;background:var(--faint)}
+.estado.ok i{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.estado.bad i{background:var(--bad)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,140%);background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:12px 18px;font-weight:600;box-shadow:0 10px 40px rgba(0,0,0,.5);transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .25s;opacity:0;visibility:hidden;z-index:50;max-width:calc(100% - 32px)}
+.toast.on{transform:translate(-50%,0);opacity:1;visibility:visible}
+/* Puerta de acceso */
+#puerta{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:18px;background:rgba(7,5,26,.96)}
+#puerta form{width:380px;max-width:100%;display:grid;gap:14px;text-align:center}
+#puerta h2{margin:0;font-family:"Cherry Bomb One",sans-serif;font-weight:400;font-size:34px}
+#puerta p{margin:0;color:var(--dim)}
+#puerta .err{color:var(--bad);min-height:1.3em;font-weight:600}
+[hidden]{display:none!important}
+@media (max-width:860px){.grid{grid-template-columns:1fr}.prev{position:static}.colores{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
-<div class="w">
-  <h1>KyoWidgets</h1>
-  <p>Generador de enlaces para OBS. Elige el widget, ajusta las opciones y copia la URL en una Fuente de navegador.</p>
-  <div class="card">
-    <div class="row">
-      <label>Widget<select id="wid"><option value="spotify">Música (Spotify) · 720×180</option><option value="fortnite">Fortnite · 760×250</option></select></label>
-      <label>Estilo<select id="tema"><option value="octubre">Halloween</option><option value="marea">Normal</option></select></label>
-      <label>Vista previa<select id="demo"><option value="1">Con datos de ejemplo</option><option value="0">Con mis datos reales</option></select></label>
-    </div>
-    <div class="row" id="opSp">
-      <label>Cuándo se ve<select id="modo"><option value="siempre">Siempre (mientras suena)</option><option value="cambio">Solo al cambiar de canción</option></select></label>
-      <label>Segundos visible (modo cambio)<input id="seg" type="number" value="12" min="3"></label>
-      <label>Fondo<select id="fondo"><option value="si">Con fondo</option><option value="no">Sin fondo</option></select></label>
-    </div>
-    <div class="row" id="opFn" hidden>
-      <label>Nombre de Epic<input id="nombre" placeholder="TuNombreEpic"></label>
-      <label>Cuenta<select id="cuenta"><option value="epic">Epic (PC)</option><option value="psn">PlayStation</option><option value="xbl">Xbox</option></select></label>
-      <label>Periodo<select id="ventana"><option value="season">Temporada</option><option value="lifetime">Histórico</option></select></label>
-      <label>Código de creador<input id="codigo" value="KYOSUMI"></label>
-      <label>Fila "Hoy"<select id="hoy"><option value="si">Sí</option><option value="no">No</option></select></label>
-    </div>
-    <code id="url"></code>
-    <div class="row"><button type="button" id="copiar">Copiar enlace para OBS</button></div>
-    <iframe id="prev" height="260" title="Vista previa del widget"></iframe>
-  </div>
+
+<div id="puerta">
+  <form class="card" id="formPuerta">
+    <h2>Kyo Estudio 🦈</h2>
+    <p>Escribe tu código de acceso<br><small style="color:var(--faint)">(es tu <b>KYO_SETUP_KEY</b> de Supabase)</small></p>
+    <input type="text" id="codigo" autocomplete="current-password" aria-label="Código de acceso" style="-webkit-text-security:disc;text-align:center">
+    <button class="btn pri" type="submit">Entrar</button>
+    <div class="err" id="errPuerta" role="alert"></div>
+  </form>
 </div>
+
+<div class="w">
+  <header>
+    <h1>Kyo <span>Estudio</span></h1>
+    <small>Personaliza tus widgets y copia el enlace para OBS</small>
+    <div class="estado-pill"><span class="pill" id="pSpot"><i></i>Spotify</span><span class="pill" id="pFn"><i></i>Fortnite</span></div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="spotify" aria-selected="true">🎵 Música</button>
+    <button role="tab" data-tab="fortnite" aria-selected="false">🏆 Fortnite</button>
+    <button role="tab" data-tab="conexiones" aria-selected="false">🔌 Conexiones</button>
+  </nav>
+
+  <!-- ===================== MÚSICA ===================== -->
+  <section data-panel="spotify" class="grid">
+    <form class="card opts" id="fSpotify" onsubmit="return false">
+      <div class="grupo"><h3>Estilo</h3>
+        <div class="f"><span>Temporada</span><div class="chips" data-radio="tema" data-val="octubre:🎃 Halloween,marea:🌊 Normal"></div></div>
+        <div class="f"><span>Forma</span><div class="chips" data-radio="forma" data-val="pildora:Píldora,tarjeta:Tarjeta"></div></div>
+        <div class="f"><span>Fondo</span><div class="chips" data-radio="fondo" data-val="si:Con fondo,no:Sin fondo (solo texto con contorno)"></div></div>
+        <div class="f"><span>Letra del título</span><div class="chips" data-radio="fuente" data-val="fredoka:Redondeada,cherry:Cherry Bomb,chakra:Tecno"></div></div>
+        <div class="f"><span>Tamaño</span><div class="chips" data-radio="escala" data-val="0.75:Pequeño,1:Normal,1.25:Grande,1.5:Muy grande"></div></div>
+      </div>
+      <div class="grupo"><h3>Colores</h3>
+        <div class="chips"><label><input type="checkbox" name="colores"> Usar mis propios colores</label></div>
+        <div class="colores off" data-colores>
+          <label>Acento<input type="color" name="acento" value="#ff8a2b"></label>
+          <label>Borde<input type="color" name="borde" value="#9b6bff"></label>
+          <label>Caja<input type="color" name="caja" value="#0e0a24"></label>
+          <label>Texto<input type="color" name="texto" value="#f5f3fb"></label>
+        </div>
+      </div>
+      <div class="grupo"><h3>Qué se ve</h3>
+        <div class="chips" data-check="ver" data-val="disco:Disco y portada,etiqueta:Etiqueta,artista:Artista,sonar:Barra sonar,tiempo:Tiempos"></div>
+        <label class="f"><span>Texto de la etiqueta</span><input type="text" name="etiqueta" value="Sonando ahora" maxlength="30"></label>
+      </div>
+      <div class="grupo"><h3>Comportamiento</h3>
+        <div class="f"><span>Cuándo aparece</span><div class="chips" data-radio="modo" data-val="siempre:Siempre (mientras suena),cambio:Solo al cambiar de canción"></div></div>
+        <label class="f" data-si="modo=cambio"><span>Segundos visible</span><input type="number" name="segundos" value="12" min="3" max="120"></label>
+        <div class="f"><span>Animación</span><div class="chips" data-radio="anim" data-val="rebote:Rebote,deslizar:Deslizar,ninguna:Ninguna"></div></div>
+      </div>
+    </form>
+    <div class="prev" data-prev="spotify"></div>
+  </section>
+
+  <!-- ===================== FORTNITE ===================== -->
+  <section data-panel="fortnite" class="grid" hidden>
+    <form class="card opts" id="fFortnite" onsubmit="return false">
+      <div class="grupo"><h3>Tu cuenta</h3>
+        <div class="fila2">
+          <label class="f"><span>Nombre de Epic</span><input type="text" name="nombre" placeholder="TuNombreEpic"></label>
+          <label class="f"><span>Título (opcional)</span><input type="text" name="titulo" placeholder="Igual que el nombre"></label>
+        </div>
+        <div class="f"><span>Plataforma</span><div class="chips" data-radio="cuenta" data-val="epic:PC / Epic,psn:PlayStation,xbl:Xbox"></div></div>
+        <div class="f"><span>Periodo</span><div class="chips" data-radio="ventana" data-val="season:Temporada,lifetime:Histórico"></div></div>
+      </div>
+      <div class="grupo"><h3>Estilo</h3>
+        <div class="f"><span>Temporada</span><div class="chips" data-radio="tema" data-val="octubre:🎃 Halloween,marea:🌊 Normal"></div></div>
+        <div class="f"><span>Forma</span><div class="chips" data-radio="forma" data-val="tarjeta:Tarjeta,pildora:Píldora"></div></div>
+        <div class="f"><span>Tamaño</span><div class="chips" data-radio="escala" data-val="0.75:Pequeño,1:Normal,1.25:Grande,1.5:Muy grande"></div></div>
+      </div>
+      <div class="grupo"><h3>Colores</h3>
+        <div class="chips"><label><input type="checkbox" name="colores"> Usar mis propios colores</label></div>
+        <div class="colores off" data-colores>
+          <label>Acento<input type="color" name="acento" value="#ff8a2b"></label>
+          <label>Borde<input type="color" name="borde" value="#9b6bff"></label>
+          <label>Caja<input type="color" name="caja" value="#0e0a24"></label>
+          <label>Texto<input type="color" name="texto" value="#f5f3fb"></label>
+        </div>
+      </div>
+      <div class="grupo"><h3>Estadísticas</h3>
+        <div class="chips" data-check="stats" data-val="wins:Victorias,kills:Bajas,kd:K/D,matches:Partidas,winrate:% victorias,top10:Top 10"></div>
+        <p class="nota">La primera marcada sale destacada. Máximo 6.</p>
+        <div class="f"><span>Fila "Hoy"</span><div class="chips" data-radio="hoy" data-val="si:Mostrar,no:Ocultar"></div></div>
+        <label class="f"><span>Código de creador (vacío = no se muestra)</span><input type="text" name="codigo" value="KYOSUMI" maxlength="20"></label>
+      </div>
+      <div class="grupo"><h3>Celebraciones</h3>
+        <div class="f"><span>Al ganar o hacer bajas</span><div class="chips" data-radio="celebrar" data-val="si:Celebrar,no:No celebrar"></div></div>
+        <label class="f" data-si="celebrar=si"><span>Texto de victoria</span><input type="text" name="victoria" value="¡VICTORIA!" maxlength="24"></label>
+      </div>
+    </form>
+    <div class="prev" data-prev="fortnite"></div>
+  </section>
+
+  <!-- ===================== CONEXIONES ===================== -->
+  <section data-panel="conexiones" class="con" hidden>
+    <div class="card">
+      <h2>🎵 Spotify</h2>
+      <div class="estado" id="eSpot"><i></i><span>Comprobando…</span></div>
+      <p class="nota" id="nSpot"></p>
+      <div class="acciones"><button class="btn spot" type="button" id="btnSpot">Conectar Spotify</button><button class="btn" type="button" data-refrescar>Comprobar de nuevo</button></div>
+      <p class="nota">Se conecta una sola vez. El permiso se guarda en tu Supabase, en una tabla privada.</p>
+    </div>
+    <div class="card">
+      <h2>🏆 Fortnite</h2>
+      <div class="estado" id="eFn"><i></i><span>Sin probar</span></div>
+      <p class="nota" id="nFn">Escribe tu nombre de Epic en la pestaña Fortnite y pulsa "Probar".</p>
+      <div class="acciones"><button class="btn pri" type="button" id="btnFn">Probar Fortnite</button></div>
+      <p class="nota">Necesita el secreto <b>FORTNITE_API_KEY</b> en Supabase y tus estadísticas públicas en el juego.</p>
+    </div>
+    <div class="card">
+      <h2>🔐 Acceso</h2>
+      <p class="nota">Este navegador recuerda tu código. Si usas otro ordenador te lo volverá a pedir.</p>
+      <div class="acciones"><button class="btn" type="button" id="btnSalir">Olvidar código en este navegador</button></div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
 <script>
-const $ = id => document.getElementById(id);
-function url(demo) {
-  const w = $('wid').value, p = new URLSearchParams({ tema: $('tema').value });
-  if (w === 'spotify') { p.set('modo', $('modo').value); p.set('segundos', $('seg').value); p.set('fondo', $('fondo').value); }
-  else { p.set('nombre', $('nombre').value || 'TuNombreEpic'); p.set('cuenta', $('cuenta').value); p.set('ventana', $('ventana').value); if ($('codigo').value) p.set('codigo', $('codigo').value); p.set('hoy', $('hoy').value); }
-  if (demo) p.set('demo', '1');
-  return new URL('overlays/' + w + '.html?' + p, location.href).href;
-}
-function upd() {
-  $('opSp').hidden = $('wid').value !== 'spotify'; $('opFn').hidden = $('wid').value !== 'fortnite';
-  $('url').textContent = url(false);
-  $('prev').src = url($('demo').value === '1');
-}
-document.querySelectorAll('select,input').forEach(e => e.addEventListener('change', upd));
-$('copiar').onclick = () => navigator.clipboard.writeText(url(false)).then(() => { $('copiar').textContent = '¡Copiado!'; setTimeout(() => $('copiar').textContent = 'Copiar enlace para OBS', 1500); });
-upd();
+(function () {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const K = window.KYO || {};
+  const FN = (n) => (K.SUPABASE_URL || '') + '/functions/v1/' + n;
+  const HDR = { apikey: K.SUPABASE_ANON_KEY || '', Authorization: 'Bearer ' + (K.SUPABASE_ANON_KEY || '') };
+  const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+  const leer = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  function toast(t, ms = 3200) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), ms); }
+
+  // ---------- Widgets: tamaño base y valores por defecto ----------
+  const W = {
+    spotify: { w: 720, h: 180, def: { tema: 'octubre', forma: 'pildora', fondo: 'si', fuente: 'fredoka', escala: '1', modo: 'siempre', anim: 'rebote', ver: ['disco', 'etiqueta', 'artista', 'sonar', 'tiempo'] },
+      pruebas: [['cancion', '🎵 Probar cambio de canción']] },
+    fortnite: { w: 760, h: 250, def: { tema: 'octubre', forma: 'tarjeta', escala: '1', cuenta: 'epic', ventana: 'season', hoy: 'si', celebrar: 'si', stats: ['wins', 'kills', 'kd', 'matches'] },
+      pruebas: [['victoria', '🏆 Probar victoria'], ['bajas', '⚔️ Probar bajas']] }
+  };
+
+  // Construye chips a partir de data-radio / data-check
+  $$('[data-radio],[data-check]').forEach(box => {
+    const radio = box.dataset.radio, name = radio || box.dataset.check;
+    box.innerHTML = box.dataset.val.split(',').map(p => { const [v, l] = p.split(':'); return '<label><input type="' + (radio ? 'radio' : 'checkbox') + '" name="' + name + '" value="' + v + '">' + l + '</label>'; }).join('');
+  });
+
+  // Vista previa (misma idea que el generador de SharkTracker)
+  Object.keys(W).forEach(id => {
+    const p = $('[data-prev="' + id + '"]');
+    p.innerHTML = '<div class="card" style="display:flex;flex-direction:column;gap:12px">' +
+      '<div class="chips" data-bg><label><input type="radio" name="bg-' + id + '" value="juego" checked>Sobre juego</label><label><input type="radio" name="bg-' + id + '" value="escena">Escena octubre</label><label><input type="radio" name="bg-' + id + '" value="oscuro">Oscuro</label><label><input type="radio" name="bg-' + id + '" value="claro">Claro</label></div>' +
+      '<div class="stage juego" data-lbl="Vista previa"><div class="frame"><iframe title="Vista previa del widget"></iframe></div></div>' +
+      '<div class="acciones"><div class="chips"><label><input type="radio" name="datos-' + id + '" value="demo" checked>Datos de ejemplo</label><label><input type="radio" name="datos-' + id + '" value="real">Mis datos reales</label></div></div>' +
+      '<div class="acciones">' + W[id].pruebas.map(([a, l]) => '<button class="btn" type="button" data-test="' + a + '">' + l + '</button>').join('') + '</div>' +
+      '<div class="url"><input readonly aria-label="Enlace para OBS"><button class="btn pri" type="button" data-copy>Copiar enlace</button></div>' +
+      '<ol class="pasos"><li>En OBS: <b>+ Fuente → Navegador</b>.</li><li>Pega el enlace. <b>Ancho <span data-w></span></b> · <b>Alto <span data-h></span></b>.</li><li>Colócalo donde quieras: el fondo ya es transparente.</li></ol></div>';
+  });
+
+  function estadoForm(id) {
+    const f = $('#f' + id[0].toUpperCase() + id.slice(1));
+    const o = {};
+    $$('input', f).forEach(i => {
+      if (i.type === 'radio') { if (i.checked) o[i.name] = i.value; }
+      else if (i.type === 'checkbox') { if (i.name === 'colores') o.colores = i.checked; else { o[i.name] = o[i.name] || []; if (i.checked) o[i.name].push(i.value); } }
+      else o[i.name] = i.value;
+    });
+    return o;
+  }
+  function aplicarForm(id, o) {
+    const f = $('#f' + id[0].toUpperCase() + id.slice(1));
+    $$('input', f).forEach(i => {
+      if (!(i.name in o)) return;
+      const v = o[i.name];
+      if (i.type === 'radio') i.checked = i.value === v;
+      else if (i.type === 'checkbox') i.checked = i.name === 'colores' ? !!v : (v || []).includes(i.value);
+      else i.value = v;
+    });
+  }
+
+  function url(id, demo) {
+    const o = estadoForm(id), d = W[id].def, p = new URLSearchParams();
+    const set = (k, v) => { if (v !== undefined && v !== '' && v !== d[k]) p.set(k, v); };
+    ['tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'cuenta', 'ventana', 'hoy', 'celebrar'].forEach(k => { if (k in o) set(k, o[k]); });
+    if (o.colores) ['acento', 'borde', 'caja', 'texto'].forEach(k => p.set(k, (o[k] || '').replace('#', '')));
+    if (id === 'spotify') {
+      const ocultar = d.ver.filter(v => !(o.ver || []).includes(v));
+      if (ocultar.length) p.set('ocultar', ocultar.join(','));
+      if (o.etiqueta && o.etiqueta !== 'Sonando ahora') p.set('etiqueta', o.etiqueta);
+      if (o.modo === 'cambio') p.set('segundos', o.segundos || 12);
+    } else {
+      p.set('nombre', o.nombre || 'TuNombreEpic');
+      if (o.titulo) p.set('titulo', o.titulo);
+      const st = (o.stats || []).slice(0, 6); if (st.join() !== d.stats.join()) p.set('stats', st.join(',') || 'wins');
+      p.set('codigo', o.codigo || '');
+      if (o.celebrar !== 'no' && o.victoria && o.victoria !== '¡VICTORIA!') p.set('victoria', o.victoria);
+    }
+    if (demo) p.set('demo', '1');
+    const s = p.toString();
+    return new URL('overlays/' + id + '.html' + (s ? '?' + s : ''), location.href).href;
+  }
+
+  const ultimo = {};
+  function actualizar(id) {
+    const panel = $('[data-panel="' + id + '"]'), o = estadoForm(id);
+    guardar('kyo_estudio_' + id, JSON.stringify(o));
+    $$('[data-si]', panel).forEach(el => { const [k, v] = el.dataset.si.split('='); el.hidden = o[k] !== v; });
+    $('[data-colores]', panel).classList.toggle('off', !o.colores);
+    const esc = Number(o.escala || 1), w = Math.ceil(W[id].w * esc), h = Math.ceil(W[id].h * esc);
+    $('[data-w]', panel).textContent = w; $('[data-h]', panel).textContent = h;
+    $('.url input', panel).value = url(id, false);
+    const demo = $('input[name="datos-' + id + '"]:checked', panel).value === 'demo';
+    const src = url(id, demo);
+    const stage = $('.stage', panel);
+    stage.className = 'stage ' + $('input[name="bg-' + id + '"]:checked', panel).value;
+    const ifr = $('iframe', panel);
+    ifr.width = w; ifr.height = h;
+    const k = Math.min(1, (stage.clientWidth - 32) / w);
+    ifr.style.transform = k < 1 ? 'scale(' + k + ')' : '';
+    $('.frame', panel).style.width = Math.floor(w * k) + 'px'; $('.frame', panel).style.height = Math.floor(h * k) + 'px';
+    if (ultimo[id] !== src) { ultimo[id] = src; ifr.src = src; }
+  }
+
+  Object.keys(W).forEach(id => {
+    let prev = null; try { prev = JSON.parse(leer('kyo_estudio_' + id) || 'null'); } catch (e) {}
+    aplicarForm(id, Object.assign({}, W[id].def, id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' }, prev || {}));
+    const panel = $('[data-panel="' + id + '"]');
+    panel.addEventListener('change', () => actualizar(id));
+    panel.addEventListener('input', e => { if (e.target.type === 'text' || e.target.type === 'number' || e.target.type === 'color') { clearTimeout(panel.t); panel.t = setTimeout(() => actualizar(id), 400); } });
+    panel.addEventListener('click', async e => {
+      const t = e.target.closest('[data-test]');
+      if (t) $('iframe', panel).contentWindow.postMessage({ type: 'kyo-test', accion: t.dataset.test }, '*');
+      const c = e.target.closest('[data-copy]');
+      if (c) {
+        const inp = $('.url input', panel);
+        try { await navigator.clipboard.writeText(inp.value); } catch (err) { inp.select(); document.execCommand && document.execCommand('copy'); }
+        c.textContent = '✓ Copiado'; setTimeout(() => c.textContent = 'Copiar enlace', 1800);
+      }
+    });
+  });
+  window.addEventListener('resize', () => Object.keys(W).forEach(id => { if (!$('[data-panel="' + id + '"]').hidden) actualizar(id); }));
+
+  // ---------- Pestañas ----------
+  function tab(n) {
+    $$('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === n ? 'true' : 'false'));
+    $$('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== n);
+    if (W[n]) actualizar(n); else comprobarSpotify();
+  }
+  $$('nav.tabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.tab)));
+
+  // ---------- Conexiones ----------
+  function pintarEstado(el, ok, txt) { el.classList.toggle('ok', ok === true); el.classList.toggle('bad', ok === false); if (el.querySelector('span')) el.querySelector('span').textContent = txt; else el.lastChild.textContent = txt; }
+  async function comprobarSpotify() {
+    try {
+      const r = await fetch(FN('spotify-auth') + '?estado=1');
+      const d = await r.json();
+      const ok = !!d.conectado;
+      pintarEstado($('#eSpot'), ok, ok ? 'Conectado' : 'Sin conectar');
+      pintarEstado($('#pSpot'), ok, 'Spotify');
+      $('#nSpot').textContent = !d.secretos ? 'Faltan secretos en Supabase (SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET o KYO_SETUP_KEY).'
+        : !d.tabla ? 'Falta ejecutar el archivo 01_setup.sql en el SQL Editor.'
+        : ok ? 'Conectado desde ' + new Date(d.desde).toLocaleString('es') + '.' : 'Pulsa "Conectar Spotify" y acepta en la ventana de Spotify.';
+      $('#btnSpot').textContent = ok ? 'Volver a conectar' : 'Conectar Spotify';
+    } catch (e) {
+      pintarEstado($('#eSpot'), false, 'No responde');
+      pintarEstado($('#pSpot'), false, 'Spotify');
+      $('#nSpot').textContent = 'No encuentro la función spotify-auth. ¿Está creada con ese nombre y con "Verify JWT" desactivado?';
+    }
+  }
+  $('#btnSpot').addEventListener('click', () => {
+    const volver = location.href.split('#')[0];
+    location.href = FN('spotify-auth') + '?clave=' + encodeURIComponent(leer('kyo_codigo') || '') + '&volver=' + encodeURIComponent(volver);
+  });
+  $('[data-refrescar]').addEventListener('click', comprobarSpotify);
+  $('#btnFn').addEventListener('click', async () => {
+    const o = estadoForm('fortnite');
+    if (!o.nombre) { tab('fortnite'); toast('Escribe tu nombre de Epic primero'); return; }
+    pintarEstado($('#eFn'), null, 'Probando…');
+    try {
+      const r = await fetch(FN('fortnite-stats') + '?' + new URLSearchParams({ nombre: o.nombre, cuenta: o.cuenta || 'epic', ventana: o.ventana || 'season' }), { headers: HDR });
+      const d = await r.json();
+      const msg = { privado: 'Tus estadísticas son privadas: actívalas en Fortnite (Ajustes › Cuenta y privacidad).', no_encontrado: 'No encuentro ese nombre de Epic en esa plataforma.', clave_invalida: 'La clave FORTNITE_API_KEY no es válida.', falta_nombre: 'Falta el nombre.' };
+      if (d.ok) { pintarEstado($('#eFn'), true, 'Funciona'); $('#nFn').textContent = d.nombre + ': ' + d.total.wins + ' victorias y ' + d.total.kills + ' bajas (' + (d.ventana === 'lifetime' ? 'histórico' : 'temporada') + ').'; pintarEstado($('#pFn'), true, 'Fortnite'); }
+      else { pintarEstado($('#eFn'), false, 'Error'); $('#nFn').textContent = msg[d.error] || ('Respuesta: ' + (d.error || r.status)); pintarEstado($('#pFn'), false, 'Fortnite'); }
+    } catch (e) { pintarEstado($('#eFn'), false, 'No responde'); $('#nFn').textContent = 'No encuentro la función fortnite-stats.'; }
+  });
+  $('#btnSalir').addEventListener('click', () => { try { localStorage.removeItem('kyo_codigo'); } catch (e) {} location.reload(); });
+
+  // Vuelta de Spotify: #spotify=ok o #spotify=error-...
+  const h = decodeURIComponent(location.hash || '');
+  if (h.startsWith('#spotify=')) {
+    const v = h.slice(9);
+    const txt = { 'ok': '¡Spotify conectado! 🦈', 'error-cancelado': 'Cancelaste el permiso en Spotify.', 'error-clave': 'El código de acceso no coincide con KYO_SETUP_KEY.', 'error-spotify': 'Spotify no aceptó la conexión: revisa que la Redirect URI de tu app sea exacta.', 'error-tabla': 'No se pudo guardar: ejecuta 01_setup.sql en Supabase.' }[v] || v;
+    history.replaceState(null, '', location.pathname + location.search);
+    setTimeout(() => { tab('conexiones'); toast(txt, 5000); }, 300);
+  }
+
+  // ---------- Puerta de acceso ----------
+  async function verificar(c) {
+    if (!K.SUPABASE_URL || /TU-PROYECTO/.test(K.SUPABASE_URL)) return { ok: false, msg: 'Rellena config.js con tu Project URL y la anon key.' };
+    try {
+      const r = await fetch(FN('spotify-auth') + '?verificar=1&clave=' + encodeURIComponent(c));
+      const d = await r.json();
+      if (d.error === 'falta_KYO_SETUP_KEY') return { ok: false, msg: 'Falta el secreto KYO_SETUP_KEY en Supabase.' };
+      return { ok: !!d.ok, msg: d.ok ? '' : 'Código incorrecto.' };
+    } catch (e) { return { ok: false, msg: 'No encuentro la función spotify-auth (¿creada y con "Verify JWT" desactivado?).' }; }
+  }
+  function entrar() { $('#puerta').hidden = true; actualizar('spotify'); comprobarSpotify(); }
+  $('#formPuerta').addEventListener('submit', async e => {
+    e.preventDefault();
+    const c = $('#codigo').value.trim(); if (!c) return;
+    $('#errPuerta').textContent = 'Comprobando…';
+    const r = await verificar(c);
+    if (r.ok) { guardar('kyo_codigo', c); $('#errPuerta').textContent = ''; entrar(); }
+    else $('#errPuerta').textContent = r.msg;
+  });
+  const guardado = leer('kyo_codigo');
+  if (guardado) verificar(guardado).then(r => { if (r.ok) entrar(); else $('#errPuerta').textContent = r.msg; });
+  else $('#codigo').focus();
+})();
 </script>
 </body>
 </html>

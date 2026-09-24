@@ -3,32 +3,43 @@
 <head>
 <meta charset="utf-8">
 <title>Kyo · Música</title>
+<meta name="robots" content="noindex">
 <!--
-  KyoWidgets · Música (Spotify) · Fuente de navegador para OBS: 720 x 180
-  Parámetros opcionales al final de la URL:
-    ?tema=octubre | marea          (Halloween o Normal)
-    &modo=siempre | cambio          (siempre visible, o solo al cambiar de canción)
-    &segundos=12                    (modo cambio: cuánto se queda visible)
-    &fondo=si | no                  (píldora con fondo, o solo texto con contorno)
-    &demo=1                         (canciones de ejemplo, sin conectar nada)
+  KyoWidgets · Música (Spotify) · Fuente de navegador para OBS.
+  Tamaño base 720 x 180 (multiplícalo por "escala"). La URL la arma Kyo Estudio.
+  Parámetros:
+    tema       octubre | marea
+    escala     0.6 … 2
+    fondo      si | no              forma  pildora | tarjeta
+    acento, borde, caja, texto      colores en hex sin # (vacío = los del tema)
+    fuente     fredoka | cherry | chakra   (título de la canción)
+    etiqueta   texto de arriba ("Sonando ahora")
+    ocultar    disco,etiqueta,artista,sonar,tiempo   (lista separada por comas)
+    modo       siempre | cambio     segundos  (modo cambio)
+    anim       deslizar | rebote | ninguna
+    demo       1 = canciones de ejemplo
 -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Fredoka:wght@600;700&family=Chakra+Petch:wght@600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Fredoka:wght@600;700&family=Chakra+Petch:wght@600;700&display=swap">
 <script src="../config.js"></script>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;background:transparent;overflow:hidden}
+html,body{margin:0;background:transparent!important;overflow:hidden}
 #w{
   --fondo:rgba(10,16,48,.9); --borde:#6FE3F0; --glow:rgba(111,227,240,.45); --acento:#6FE3F0; --txt:#F5F3FB; --sub:#C9E6F2; --contorno:#0A1030;
-  --g1:#1a1f55; --g2:#2B2F7A; --g3:#3A7BD5; --g4:#6FE3F0;
+  --g1:#1a1f55; --g2:#2B2F7A; --g3:#3A7BD5; --g4:#6FE3F0; --radio:999px 44px 44px 999px;
   position:absolute;left:10px;top:10px;width:700px;height:160px;
-  display:flex;align-items:center;gap:22px;padding:14px 30px 14px 14px;border-radius:999px 44px 44px 999px;
+  display:flex;align-items:center;gap:22px;padding:14px 30px 14px 14px;border-radius:var(--radio);
   font-family:"Fredoka",system-ui,sans-serif;color:var(--txt);
   transition:opacity .6s ease,transform .6s cubic-bezier(.34,1.56,.64,1)
 }
 #w.octubre{--fondo:rgba(14,10,36,.92);--borde:#9B6BFF;--glow:rgba(155,107,255,.5);--acento:#FF8A2B;--sub:#e3d9ff;--contorno:#0a0720;--g1:#1a1150;--g2:#2a1f5c;--g3:#9B6BFF;--g4:#FF8A2B}
+#w.tarjeta{--radio:28px}
 #w.con-fondo{background:var(--fondo);box-shadow:0 0 0 4px var(--borde),0 0 28px var(--glow)}
 #w.sin-fondo .txt>*{-webkit-text-stroke:6px var(--contorno);paint-order:stroke fill}
 #w.oculto{opacity:0;transform:translateY(40px) scale(.94)}
+#w.anim-ninguna{transition:opacity .3s}
+#w.anim-ninguna.oculto{transform:none}
+#w.anim-deslizar.oculto{transform:translateX(-60px)}
 .disco{position:relative;flex:none;width:132px;height:132px;border-radius:50%;
   background:repeating-radial-gradient(circle at 50% 50%,#0b0b18 0 3px,#171730 3px 5px);
   box-shadow:0 0 0 5px var(--contorno),0 0 0 9px var(--borde),0 0 22px var(--glow)}
@@ -44,15 +55,20 @@ html,body{margin:0;background:transparent;overflow:hidden}
 .eq i:nth-child(2){animation-delay:-.3s}.eq i:nth-child(3){animation-delay:-.6s}.eq i:nth-child(4){animation-delay:-.15s}
 #w.sonando .eq i{animation-play-state:running}
 .marco{overflow:hidden;white-space:nowrap;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
-.titulo{display:inline-block;font-weight:700;font-size:36px;line-height:1.15;padding-right:40px}
+.titulo{display:inline-block;font-weight:700;font-size:36px;line-height:1.15;padding:0 40px 0 2px}
+.f-cherry .titulo{font-family:"Cherry Bomb One","Fredoka",sans-serif;font-weight:400;font-size:34px}
+.f-chakra .titulo{font-family:"Chakra Petch",monospace;font-size:34px}
 .titulo.largo{animation:desliza var(--t,12s) linear infinite}
 .artista{font-weight:600;font-size:22px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sonar{display:flex;align-items:flex-end;gap:3px;height:26px;margin-top:6px}
 .sonar span{flex:1;min-width:2px;border-radius:2px;background:var(--acento);opacity:.25;transition:opacity .3s}
 .sonar span.on{opacity:1;box-shadow:0 0 6px var(--acento)}
 .tiempo{display:flex;justify-content:space-between;font-family:"Chakra Petch",monospace;font-weight:600;font-size:14px;color:var(--sub);margin-top:2px;font-variant-numeric:tabular-nums}
+.sin-disco .disco,.sin-etiqueta .etq,.sin-artista .artista,.sin-sonar .sonar,.sin-tiempo .tiempo{display:none}
+#w.sin-disco{padding-left:30px;border-radius:44px}
 .entra .disco{animation:discoIn .8s cubic-bezier(.34,1.56,.64,1)}
 .entra .txt{animation:txtIn .6s cubic-bezier(.22,1,.36,1)}
+.anim-ninguna.entra .disco,.anim-ninguna.entra .txt{animation:none}
 @keyframes gira{to{transform:rotate(360deg)}}
 @keyframes eq{0%,100%{height:25%}50%{height:100%}}
 @keyframes desliza{0%,15%{transform:translateX(0)}85%,100%{transform:translateX(var(--d,-200px))}}
@@ -74,22 +90,31 @@ html,body{margin:0;background:transparent;overflow:hidden}
 <script>
 (function () {
   const q = new URLSearchParams(location.search);
-  const tema = q.get('tema') || 'octubre';
-  const modo = q.get('modo') || 'siempre';
-  const seg = Math.max(3, Number(q.get('segundos')) || 12);
-  const demo = q.get('demo') === '1';
-  const w = document.getElementById('w');
-  w.classList.add(tema === 'marea' ? 'marea' : 'octubre', q.get('fondo') === 'no' ? 'sin-fondo' : 'con-fondo');
-
   const $ = id => document.getElementById(id);
-  const N = 44;
-  const barras = [];
+  const w = $('w');
+  const hex = v => /^[0-9a-f]{3,8}$/i.test(v || '') ? '#' + v : null;
+
+  // --- Personalización ---
+  const tema = q.get('tema') === 'marea' ? 'marea' : 'octubre';
+  const modo = q.get('modo') === 'cambio' ? 'cambio' : 'siempre';
+  const seg = Math.max(3, Number(q.get('segundos')) || 12);
+  const etiqueta = q.get('etiqueta') || 'Sonando ahora';
+  w.classList.add(tema, q.get('fondo') === 'no' ? 'sin-fondo' : 'con-fondo', 'f-' + (q.get('fuente') || 'fredoka'), 'anim-' + (q.get('anim') || 'rebote'));
+  if (q.get('forma') === 'tarjeta') w.classList.add('tarjeta');
+  (q.get('ocultar') || '').split(',').filter(Boolean).forEach(k => w.classList.add('sin-' + k));
+  const esc = Math.min(2, Math.max(0.5, Number(q.get('escala')) || 1));
+  if (esc !== 1) document.documentElement.style.zoom = esc;
+  [['acento', '--acento'], ['borde', '--borde'], ['caja', '--fondo'], ['texto', '--txt']].forEach(([k, v]) => { const c = hex(q.get(k)); if (c) w.style.setProperty(v, c); });
+  if (hex(q.get('borde'))) w.style.setProperty('--glow', hex(q.get('borde')) + '77');
+  $('etq').textContent = etiqueta;
+
+  // --- Barra tipo sonar ---
+  const N = 44, barras = [];
   for (let i = 0; i < N; i++) { const s = document.createElement('span'); $('sonar').appendChild(s); barras.push(s); }
 
   let actual = null, base = 0, baseAt = 0, playing = false, ocultarT = null;
   const fmt = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
-
-  function semilla(txt) { let h = 7; for (const c of txt) h = (h * 31 + c.charCodeAt(0)) >>> 0; return () => ((h = (h * 1103515245 + 12345) >>> 0) / 4294967296); }
+  const semilla = txt => { let h = 7; for (const c of txt) h = (h * 31 + c.charCodeAt(0)) >>> 0; return () => ((h = (h * 1103515245 + 12345) >>> 0) / 4294967296); };
 
   function mostrar(v) { clearTimeout(ocultarT); w.classList.remove('oculto'); if (v === 'cambio') ocultarT = setTimeout(() => w.classList.add('oculto'), seg * 1000); }
   function ocultar() { clearTimeout(ocultarT); w.classList.add('oculto'); }
@@ -114,15 +139,14 @@ html,body{margin:0;background:transparent;overflow:hidden}
     const cambio = !actual || actual.id !== d.id || actual.title !== d.title;
     playing = !!d.playing;
     w.classList.toggle('sonando', playing);
-    $('etq').textContent = playing ? 'Sonando ahora' : 'En pausa';
+    $('etq').textContent = playing ? etiqueta : 'En pausa';
     base = d.progress_ms || 0; baseAt = Date.now();
     actual = d;
     if (cambio) { pintarCancion(d); mostrar(modo); }
-    else if (modo === 'siempre') { if (playing) mostrar('siempre'); }
+    else if (modo === 'siempre' && playing) mostrar('siempre');
     if (!playing && modo === 'siempre') { clearTimeout(ocultarT); ocultarT = setTimeout(ocultar, 4000); }
   }
 
-  // Avanza la barra entre consulta y consulta
   setInterval(() => {
     if (!actual) return;
     const dur = actual.duration_ms || 1;
@@ -131,6 +155,15 @@ html,body{margin:0;background:transparent;overflow:hidden}
     const on = Math.round(N * p / dur);
     barras.forEach((b, i) => b.classList.toggle('on', i < on));
   }, 250);
+
+  // --- Datos ---
+  const EJ = [
+    { id: 'a', title: 'Marea de medianoche', artist: 'Artista de ejemplo', duration_ms: 214000 },
+    { id: 'b', title: 'Un título de canción bastante largo para ver cómo se desliza', artist: 'Otra artista', duration_ms: 187000 },
+    { id: 'c', title: 'Luna calabaza', artist: 'Banda de prueba', duration_ms: 241000 }
+  ];
+  let k = 0;
+  const ejemplo = () => { const s = EJ[k++ % EJ.length]; recibir(Object.assign({ ok: true, playing: true, progress_ms: 30000 + Math.random() * 60000, cover: null }, s)); };
 
   async function consultar() {
     try {
@@ -142,16 +175,14 @@ html,body{margin:0;background:transparent;overflow:hidden}
     } catch (e) { console.warn('Kyo música: sin conexión', e); }
   }
 
-  if (demo) {
-    const ej = [
-      { id: 'a', title: 'Marea de medianoche', artist: 'Artista de ejemplo', duration_ms: 214000 },
-      { id: 'b', title: 'Un título de canción bastante largo para ver cómo se desliza', artist: 'Otra artista', duration_ms: 187000 },
-      { id: 'c', title: 'Luna calabaza', artist: 'Banda de prueba', duration_ms: 241000 }
-    ];
-    let k = 0;
-    const next = () => { const s = ej[k++ % ej.length]; recibir(Object.assign({ ok: true, playing: true, progress_ms: 30000, cover: null }, s)); };
-    next(); setInterval(next, 15000);
-  } else { consultar(); setInterval(consultar, 5000); }
+  // Botones "Probar" de Kyo Estudio
+  window.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'kyo-test') return;
+    if (e.data.accion === 'cancion') ejemplo();
+  });
+
+  if (q.get('demo') === '1') { ejemplo(); setInterval(ejemplo, 15000); }
+  else { consultar(); setInterval(consultar, 5000); }
 })();
 </script>
 </body>

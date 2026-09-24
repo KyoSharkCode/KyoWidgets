@@ -4,6 +4,7 @@ Widgets con datos en vivo para el stream de **KyoSumiVT**:
 
 | Widget | Archivo | Tamaño en OBS | De dónde saca los datos |
 |---|---|---|---|
+| **Kyo Estudio** | `index.html` | — | Web para personalizar los widgets y copiar el enlace para OBS |
 | Música (Spotify) | `overlays/spotify.html` | 720 × 180 | Tu cuenta de Spotify |
 | Fortnite | `overlays/fortnite.html` | 760 × 250 | fortnite-api.com (no oficial, clave gratis) |
 
@@ -46,7 +47,7 @@ Crea **tres** funciones con estos nombres exactos, pegando el `index.ts` de cada
 
 | Nombre | Archivo | Verify JWT |
 |---|---|---|
-| `spotify-auth` | `supabase/functions/spotify-auth/index.ts` | **Desactivado** ⚠️ |
+| `spotify-auth` | `supabase/functions/spotify-auth/index.ts` | **Desactivado** ⚠️ (también la usa el Estudio para el código de acceso) |
 | `spotify-now-playing` | `supabase/functions/spotify-now-playing/index.ts` | Activado |
 | `fortnite-stats` | `supabase/functions/fortnite-stats/index.ts` | Activado |
 
@@ -57,18 +58,20 @@ Crea **tres** funciones con estos nombres exactos, pegando el `index.ts` de cada
 2. **Redirect URI** (exacta): `https://TU-PROYECTO.supabase.co/functions/v1/spotify-auth`
 3. API: marca **Web API**. Guarda.
 4. En *Settings* copia **Client ID** y **Client secret** a los Secrets de Supabase.
-5. Conecta tu cuenta abriendo en el navegador:
-   `https://TU-PROYECTO.supabase.co/functions/v1/spotify-auth?clave=TU_KYO_SETUP_KEY`
-   Acepta en Spotify y verás **"¡Spotify conectado!"**. Solo se hace una vez.
+5. Conecta tu cuenta desde **Kyo Estudio** (paso 7): pestaña **Conexiones › Conectar Spotify**. Solo se hace una vez.
 
 ## 6. Clave de Fortnite
 1. dash.fortnite-api.com › inicia sesión › *Account* › copia tu **API key** en `FORTNITE_API_KEY`.
 2. En Fortnite: *Ajustes › Cuenta y privacidad* › activa **mostrar estadísticas públicas** (si no, la API no puede leerlas).
 
-## 7. Subir y usar en OBS
+## 7. Kyo Estudio
 1. Guarda `config.js` con tus dos valores › GitHub Desktop › **Commit** › **Push**.
-2. Abre `https://TU-USUARIO.github.io/KyoWidgets/` › elige widget y opciones › **Copiar enlace para OBS**.
-3. OBS › Fuente › Navegador › pega la URL › tamaño de la tabla de arriba.
+2. Abre `https://TU-USUARIO.github.io/KyoWidgets/`. Te pedirá un **código de acceso**: es tu `KYO_SETUP_KEY`. El navegador lo recuerda.
+3. **Conexiones**: conecta Spotify y prueba Fortnite. Los puntos de arriba a la derecha se ponen en verde cuando todo va bien.
+4. **Música / Fortnite**: personaliza (estilo, forma, colores, tamaño, qué se ve, textos, animación…) mirando la vista previa. Puedes probar con datos de ejemplo o con tus datos reales, y sobre distintos fondos.
+5. **Copiar enlace** › OBS › Fuente › Navegador › pega el enlace y pon el ancho y alto que indica el Estudio.
+
+El Estudio recuerda tus ajustes en este navegador. Si cambias algo, vuelve a copiar el enlace y pégalo en la fuente de OBS.
 
 ### Opciones rápidas (al final de la URL)
 - Música: `?tema=octubre|marea` · `&modo=siempre|cambio` · `&segundos=12` · `&fondo=si|no` · `&demo=1`

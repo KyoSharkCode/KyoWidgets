@@ -3,27 +3,29 @@
 <head>
 <meta charset="utf-8">
 <title>Kyo · Fortnite</title>
+<meta name="robots" content="noindex">
 <!--
-  KyoWidgets · Estadísticas de Fortnite · Fuente de navegador para OBS: 760 x 250
-  Parámetros al final de la URL:
-    ?nombre=TuNombreEpic            (OBLIGATORIO, tu nombre en Epic)
-    &cuenta=epic | psn | xbl
-    &ventana=season | lifetime      (temporada actual o histórico)
-    &tema=octubre | marea
-    &codigo=KYOSUMI                 (muestra tu código de creador; vacío = no)
-    &hoy=si | no                    (fila con lo conseguido en el stream de hoy)
-    &cada=90                        (segundos entre actualizaciones, mínimo 60)
-    &reset=1                        (pone a cero el "hoy" al cargar)
-    &demo=1                         (datos de ejemplo)
+  KyoWidgets · Estadísticas de Fortnite · Fuente de navegador para OBS.
+  Tamaño base 760 x 250 (multiplícalo por "escala"). La URL la arma Kyo Estudio.
+  Parámetros:
+    nombre     tu nombre de Epic (obligatorio)      cuenta  epic | psn | xbl
+    ventana    season | lifetime                    titulo  texto en lugar del nombre
+    tema       octubre | marea                      escala  0.6 … 2
+    forma      tarjeta | pildora                    acento, borde, caja, texto  (hex sin #)
+    stats      wins,kills,kd,matches,winrate,top10  (las que se muestran, en orden)
+    codigo     KYOSUMI (vacío = no se muestra)       hoy     si | no
+    celebrar   si | no      victoria  texto de la celebración
+    cada       segundos entre actualizaciones (mín. 60)   reset  1 = "hoy" a cero
+    demo       1 = datos de ejemplo
 -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Fredoka:wght@600;700&family=Chakra+Petch:wght@600;700&display=swap">
 <script src="../config.js"></script>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;background:transparent;overflow:hidden}
+html,body{margin:0;background:transparent!important;overflow:hidden}
 #w{
   --fondo:rgba(10,16,48,.9); --borde:#6FE3F0; --glow:rgba(111,227,240,.45); --acento:#6FE3F0; --oro:#F4C542; --txt:#F5F3FB; --sub:#C9E6F2; --contorno:#0A1030; --tile:rgba(43,47,122,.55);
-  position:absolute;left:12px;top:12px;width:736px;padding:16px 20px 16px;border-radius:30px;
+  position:absolute;left:12px;top:12px;width:736px;padding:16px 20px 16px;border-radius:var(--radio,30px);
   background:var(--fondo);box-shadow:0 0 0 4px var(--borde),0 0 28px var(--glow);
   font-family:"Fredoka",system-ui,sans-serif;color:var(--txt);display:grid;gap:12px
 }
@@ -35,7 +37,8 @@ html,body{margin:0;background:transparent;overflow:hidden}
 .pill.nivel{color:var(--oro);box-shadow:0 0 0 2px var(--oro)}
 .codigo{margin-left:auto;flex:none;font-family:"Fredoka",sans-serif;font-weight:700;font-size:16px;padding:6px 14px;border-radius:999px;background:var(--acento);color:var(--contorno)}
 .codigo b{font-family:"Cherry Bomb One",sans-serif;font-weight:400;letter-spacing:.02em}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stats{display:grid;grid-template-columns:repeat(var(--n,4),1fr);gap:10px}
+#w.pildora{--radio:70px;padding-inline:34px}
 .st{position:relative;padding:10px 12px 10px;border-radius:18px;background:var(--tile);text-align:center;overflow:hidden}
 .st .v{font-family:"Chakra Petch",monospace;font-weight:700;font-size:38px;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--txt)}
 .st .l{font-family:"Chakra Petch",monospace;font-weight:600;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--sub)}
@@ -65,12 +68,7 @@ html,body{margin:0;background:transparent;overflow:hidden}
     <span class="pill nivel" id="nivel" hidden></span>
     <span class="codigo" id="codigo" hidden>Código: <b id="codigoTxt"></b></span>
   </div>
-  <div class="stats">
-    <div class="st dest" id="s-wins"><div class="v" id="wins">0</div><div class="l">Victorias</div></div>
-    <div class="st" id="s-kills"><div class="v" id="kills">0</div><div class="l">Bajas</div></div>
-    <div class="st" id="s-kd"><div class="v" id="kd">0.00</div><div class="l">K/D</div></div>
-    <div class="st" id="s-matches"><div class="v" id="matches">0</div><div class="l">Partidas</div></div>
-  </div>
+  <div class="stats" id="stats"></div>
   <div class="hoy" id="hoy"><span class="t">Hoy</span><span><b id="hW">0</b> victorias</span><span><b id="hK">0</b> bajas</span><span><b id="hM">0</b> partidas</span></div>
   <div class="aviso" id="aviso"></div>
 </div>
@@ -86,6 +84,19 @@ html,body{margin:0;background:transparent;overflow:hidden}
   const demo = q.get('demo') === '1';
   const w = $('w');
   w.classList.add(tema === 'marea' ? 'marea' : 'octubre');
+  const hex = v => /^[0-9a-f]{3,8}$/i.test(v || '') ? '#' + v : null;
+  if (q.get('forma') === 'pildora') w.classList.add('pildora');
+  const esc = Math.min(2, Math.max(0.5, Number(q.get('escala')) || 1));
+  if (esc !== 1) document.documentElement.style.zoom = esc;
+  [['acento', '--acento'], ['borde', '--borde'], ['caja', '--fondo'], ['texto', '--txt']].forEach(([k, v]) => { const c = hex(q.get(k)); if (c) w.style.setProperty(v, c); });
+  if (hex(q.get('borde'))) w.style.setProperty('--glow', hex(q.get('borde')) + '77');
+  const celebrar = q.get('celebrar') !== 'no';
+  const textoVictoria = q.get('victoria') || '¡VICTORIA!';
+  const titulo = q.get('titulo') || '';
+  const DEF = { wins: 'Victorias', kills: 'Bajas', kd: 'K/D', matches: 'Partidas', winrate: '% Victorias', top10: 'Top 10' };
+  const LISTA = (q.get('stats') || 'wins,kills,kd,matches').split(',').filter(k => DEF[k]).slice(0, 6);
+  w.style.setProperty('--n', LISTA.length || 1);
+  $('stats').innerHTML = LISTA.map((k, i) => '<div class="st' + (i === 0 ? ' dest' : '') + '" id="s-' + k + '"><div class="v" id="' + k + '">0</div><div class="l">' + DEF[k] + '</div></div>').join('');
   if (q.get('hoy') === 'no') w.classList.add('sin-hoy');
   $('ventana').textContent = ventana === 'lifetime' ? 'Histórico' : 'Temporada';
   if (q.get('codigo')) { $('codigo').hidden = false; $('codigoTxt').textContent = q.get('codigo'); }
@@ -126,19 +137,22 @@ html,body{margin:0;background:transparent;overflow:hidden}
       return;
     }
     const t = d.total;
-    $('nombre').textContent = d.nombre;
+    $('nombre').textContent = titulo || d.nombre;
     if (d.nivel != null) { $('nivel').hidden = false; $('nivel').textContent = 'Nv. ' + d.nivel; }
-    if (!prev) {
-      $('wins').textContent = num(t.wins); $('kills').textContent = num(t.kills); $('kd').textContent = Number(t.kd).toFixed(2); $('matches').textContent = num(t.matches);
-    } else {
-      if (t.wins !== prev.wins) { contar($('wins'), prev.wins, t.wins); saltar('s-wins'); if (t.wins > prev.wins) { aviso('¡VICTORIA!'); destellos(); } }
-      if (t.kills !== prev.kills) { contar($('kills'), prev.kills, t.kills); saltar('s-kills'); if (t.kills > prev.kills && t.wins === prev.wins) aviso('+' + (t.kills - prev.kills) + ' bajas', true); }
-      if (t.kd !== prev.kd) { contar($('kd'), prev.kd, t.kd, true); saltar('s-kd'); }
-      if (t.matches !== prev.matches) { contar($('matches'), prev.matches, t.matches); saltar('s-matches'); }
+    const val = { wins: t.wins, kills: t.kills, kd: Number(t.kd) || 0, matches: t.matches, winrate: Number(t.winRate) || 0, top10: t.top10 || 0 };
+    const dec = k => k === 'kd' || k === 'winrate';
+    LISTA.forEach(k => {
+      const el = $(k); if (!el) return;
+      if (!prev) { el.textContent = dec(k) ? val[k].toFixed(k === 'kd' ? 2 : 1) : num(val[k]); return; }
+      if (val[k] !== prev[k]) { contar(el, prev[k], val[k], dec(k)); saltar('s-' + k); }
+    });
+    if (prev && celebrar) {
+      if (val.wins > prev.wins) { aviso(textoVictoria); destellos(); }
+      else if (val.kills > prev.kills) aviso('+' + (val.kills - prev.kills) + ' bajas', true);
     }
     if (!baseHoy) { baseHoy = { fecha, wins: t.wins, kills: t.kills, matches: t.matches }; try { localStorage.setItem(hoyKey, JSON.stringify(baseHoy)); } catch (e) {} }
     $('hoy').innerHTML = '<span class="t">Hoy</span><span><b>' + num(t.wins - baseHoy.wins) + '</b> victorias</span><span><b>' + num(t.kills - baseHoy.kills) + '</b> bajas</span><span><b>' + num(t.matches - baseHoy.matches) + '</b> partidas</span>';
-    prev = { wins: t.wins, kills: t.kills, kd: t.kd, matches: t.matches };
+    prev = val;
   }
 
   async function consultar() {
@@ -151,11 +165,19 @@ html,body{margin:0;background:transparent;overflow:hidden}
     } catch (e) { console.warn('Kyo Fortnite: sin conexión', e); }
   }
 
+  // Datos de ejemplo y botones "Probar" de Kyo Estudio
+  const D = { ok: true, nombre: nombre || 'KyoSumiVT', nivel: 87, total: { wins: 42, kills: 1310, kd: 2.41, matches: 586, winRate: 7.2, top10: 131 } };
+  const recalc = () => { D.total.kd = +(D.total.kills / Math.max(1, D.total.matches - D.total.wins)).toFixed(2); D.total.winRate = +(D.total.wins / D.total.matches * 100).toFixed(1); pintar(JSON.parse(JSON.stringify(D))); };
+  window.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'kyo-test') return;
+    if (!prev) pintar(JSON.parse(JSON.stringify(D)));
+    if (e.data.accion === 'victoria') { D.total.matches++; D.total.wins++; D.total.top10++; D.total.kills += 4; recalc(); }
+    if (e.data.accion === 'bajas') { D.total.kills += 3; recalc(); }
+  });
   if (demo) {
-    const d = { ok: true, nombre: nombre || 'KyoSumiVT', nivel: 87, total: { wins: 42, kills: 1310, kd: 2.41, matches: 586 } };
-    pintar(JSON.parse(JSON.stringify(d)));
+    pintar(JSON.parse(JSON.stringify(D)));
     let n = 0;
-    setInterval(() => { n++; d.total.matches++; d.total.kills += 1 + (n % 4); if (n % 3 === 0) d.total.wins++; d.total.kd = +(d.total.kills / Math.max(1, d.total.matches - d.total.wins)).toFixed(2); pintar(JSON.parse(JSON.stringify(d))); }, 6000);
+    setInterval(() => { n++; D.total.matches++; D.total.kills += 1 + (n % 4); if (n % 3 === 0) { D.total.wins++; D.total.top10++; } recalc(); }, 8000);
   } else { consultar(); setInterval(consultar, cada * 1000); }
 })();
 </script>
