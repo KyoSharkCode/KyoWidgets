@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Kyo · Fortnite</title>
+<!--
+  KyoWidgets · Estadísticas de Fortnite · Fuente de navegador para OBS: 760 x 250
+  Parámetros al final de la URL:
+    ?nombre=TuNombreEpic            (OBLIGATORIO, tu nombre en Epic)
+    &cuenta=epic | psn | xbl
+    &ventana=season | lifetime      (temporada actual o histórico)
+    &tema=octubre | marea
+    &codigo=KYOSUMI                 (muestra tu código de creador; vacío = no)
+    &hoy=si | no                    (fila con lo conseguido en el stream de hoy)
+    &cada=90                        (segundos entre actualizaciones, mínimo 60)
+    &reset=1                        (pone a cero el "hoy" al cargar)
+    &demo=1                         (datos de ejemplo)
+-->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Fredoka:wght@600;700&family=Chakra+Petch:wght@600;700&display=swap">
+<script src="../config.js"></script>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;overflow:hidden}
+#w{
+  --fondo:rgba(10,16,48,.9); --borde:#6FE3F0; --glow:rgba(111,227,240,.45); --acento:#6FE3F0; --oro:#F4C542; --txt:#F5F3FB; --sub:#C9E6F2; --contorno:#0A1030; --tile:rgba(43,47,122,.55);
+  position:absolute;left:12px;top:12px;width:736px;padding:16px 20px 16px;border-radius:30px;
+  background:var(--fondo);box-shadow:0 0 0 4px var(--borde),0 0 28px var(--glow);
+  font-family:"Fredoka",system-ui,sans-serif;color:var(--txt);display:grid;gap:12px
+}
+#w.octubre{--fondo:rgba(14,10,36,.92);--borde:#9B6BFF;--glow:rgba(155,107,255,.5);--acento:#FF8A2B;--sub:#e3d9ff;--contorno:#0a0720;--tile:rgba(42,31,92,.7)}
+.cab{display:flex;align-items:center;gap:12px;min-width:0}
+.nombre{font-family:"Cherry Bomb One","Fredoka",sans-serif;font-size:34px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:.1em .15em;
+  -webkit-text-stroke:7px var(--contorno);paint-order:stroke fill;min-width:0}
+.pill{flex:none;font-family:"Chakra Petch",monospace;font-weight:700;font-size:15px;letter-spacing:.12em;text-transform:uppercase;padding:5px 12px;border-radius:999px;background:var(--tile);color:var(--sub);box-shadow:0 0 0 2px var(--borde)}
+.pill.nivel{color:var(--oro);box-shadow:0 0 0 2px var(--oro)}
+.codigo{margin-left:auto;flex:none;font-family:"Fredoka",sans-serif;font-weight:700;font-size:16px;padding:6px 14px;border-radius:999px;background:var(--acento);color:var(--contorno)}
+.codigo b{font-family:"Cherry Bomb One",sans-serif;font-weight:400;letter-spacing:.02em}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.st{position:relative;padding:10px 12px 10px;border-radius:18px;background:var(--tile);text-align:center;overflow:hidden}
+.st .v{font-family:"Chakra Petch",monospace;font-weight:700;font-size:38px;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--txt)}
+.st .l{font-family:"Chakra Petch",monospace;font-weight:600;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--sub)}
+.st.dest .v{color:var(--acento);text-shadow:0 0 14px var(--glow)}
+.st.salta{animation:salta .9s cubic-bezier(.34,1.56,.64,1)}
+.hoy{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-weight:700;font-size:19px;color:var(--sub)}
+.hoy .t{font-family:"Chakra Petch",monospace;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--acento)}
+.hoy b{color:var(--txt);font-variant-numeric:tabular-nums}
+.sin-hoy .hoy{display:none}
+.aviso{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;white-space:nowrap;
+  font-family:"Cherry Bomb One","Fredoka",sans-serif;font-size:64px;color:var(--oro);-webkit-text-stroke:10px var(--contorno);paint-order:stroke fill;
+  filter:drop-shadow(0 6px 0 var(--contorno)) drop-shadow(0 0 24px var(--glow));z-index:5}
+.aviso.go{animation:aviso 3.2s cubic-bezier(.34,1.56,.64,1) forwards}
+.aviso.chico{font-size:38px;color:var(--acento);-webkit-text-stroke:7px var(--contorno)}
+.err{font-size:17px;color:var(--sub)}
+.spark{position:absolute;width:34px;height:34px;pointer-events:none;z-index:4;animation:spark 1.5s ease-out forwards}
+@keyframes salta{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:none}}
+@keyframes aviso{0%{transform:translate(-50%,-50%) scale(.5);opacity:0}12%{transform:translate(-50%,-50%) scale(1.05);opacity:1}80%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-70%) scale(.95);opacity:0}}
+@keyframes spark{0%{transform:translate(0,0) scale(.3) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1) rotate(120deg);opacity:0}}
+</style>
+</head>
+<body>
+<div id="w">
+  <div class="cab">
+    <span class="nombre" id="nombre">—</span>
+    <span class="pill" id="ventana">Temporada</span>
+    <span class="pill nivel" id="nivel" hidden></span>
+    <span class="codigo" id="codigo" hidden>Código: <b id="codigoTxt"></b></span>
+  </div>
+  <div class="stats">
+    <div class="st dest" id="s-wins"><div class="v" id="wins">0</div><div class="l">Victorias</div></div>
+    <div class="st" id="s-kills"><div class="v" id="kills">0</div><div class="l">Bajas</div></div>
+    <div class="st" id="s-kd"><div class="v" id="kd">0.00</div><div class="l">K/D</div></div>
+    <div class="st" id="s-matches"><div class="v" id="matches">0</div><div class="l">Partidas</div></div>
+  </div>
+  <div class="hoy" id="hoy"><span class="t">Hoy</span><span><b id="hW">0</b> victorias</span><span><b id="hK">0</b> bajas</span><span><b id="hM">0</b> partidas</span></div>
+  <div class="aviso" id="aviso"></div>
+</div>
+<script>
+(function () {
+  const q = new URLSearchParams(location.search);
+  const $ = id => document.getElementById(id);
+  const tema = q.get('tema') || 'octubre';
+  const nombre = q.get('nombre') || '';
+  const cuenta = q.get('cuenta') || 'epic';
+  const ventana = q.get('ventana') === 'lifetime' ? 'lifetime' : 'season';
+  const cada = Math.max(60, Number(q.get('cada')) || 90);
+  const demo = q.get('demo') === '1';
+  const w = $('w');
+  w.classList.add(tema === 'marea' ? 'marea' : 'octubre');
+  if (q.get('hoy') === 'no') w.classList.add('sin-hoy');
+  $('ventana').textContent = ventana === 'lifetime' ? 'Histórico' : 'Temporada';
+  if (q.get('codigo')) { $('codigo').hidden = false; $('codigoTxt').textContent = q.get('codigo'); }
+
+  // "Hoy": se guarda en OBS lo que tenías al empezar el día
+  const hoyKey = 'kyo_fn_' + nombre.toLowerCase() + '_' + ventana;
+  const fecha = new Date().toLocaleDateString('es');
+  let baseHoy = null;
+  try { const b = JSON.parse(localStorage.getItem(hoyKey) || 'null'); if (b && b.fecha === fecha && q.get('reset') !== '1') baseHoy = b; } catch (e) {}
+
+  let prev = null;
+  const num = n => Number(n || 0).toLocaleString('es');
+
+  function contar(el, desde, hasta, dec) {
+    const t0 = performance.now(), dur = 900;
+    const paso = t => { const p = Math.min(1, (t - t0) / dur), v = desde + (hasta - desde) * (1 - Math.pow(1 - p, 3));
+      el.textContent = dec ? v.toFixed(2) : num(Math.round(v)); if (p < 1) requestAnimationFrame(paso); };
+    requestAnimationFrame(paso);
+  }
+  function saltar(id) { const e = $(id); e.classList.remove('salta'); void e.offsetWidth; e.classList.add('salta'); }
+  function aviso(txt, chico) { const a = $('aviso'); a.textContent = txt; a.className = 'aviso' + (chico ? ' chico' : ''); void a.offsetWidth; a.classList.add('go'); }
+  function destellos() {
+    const col = getComputedStyle(w).getPropertyValue('--oro').trim();
+    for (let i = 0; i < 16; i++) {
+      const s = document.createElement('span'); s.className = 'spark';
+      s.innerHTML = '<svg viewBox="0 0 100 100"><path d="M50 0 C53 38 62 47 100 50 C62 53 53 62 50 100 C47 62 38 53 0 50 C38 47 47 38 50 0Z" fill="' + (i % 3 ? col : '#F5F3FB') + '"/></svg>';
+      s.style.left = (20 + Math.random() * 60) + '%'; s.style.top = (30 + Math.random() * 30) + '%';
+      s.style.setProperty('--dx', (Math.random() * 300 - 150) + 'px'); s.style.setProperty('--dy', (Math.random() * -140 - 20) + 'px');
+      s.style.animationDelay = (Math.random() * .3) + 's'; w.appendChild(s); setTimeout(() => s.remove(), 2000);
+    }
+  }
+
+  function pintar(d) {
+    if (!d || !d.ok) {
+      const msg = { privado: 'Tus estadísticas son privadas. Actívalas en Fortnite: Ajustes > Cuenta y privacidad.', no_encontrado: 'No encuentro ese nombre de Epic.', falta_nombre: 'Falta ?nombre=TuNombreEpic en la URL.', clave_invalida: 'La clave FORTNITE_API_KEY no es válida.' }[d && d.error] || 'Sin datos por ahora.';
+      $('nombre').textContent = nombre || '—';
+      if (!prev) $('hoy').innerHTML = '<span class="err">' + msg + '</span>';
+      return;
+    }
+    const t = d.total;
+    $('nombre').textContent = d.nombre;
+    if (d.nivel != null) { $('nivel').hidden = false; $('nivel').textContent = 'Nv. ' + d.nivel; }
+    if (!prev) {
+      $('wins').textContent = num(t.wins); $('kills').textContent = num(t.kills); $('kd').textContent = Number(t.kd).toFixed(2); $('matches').textContent = num(t.matches);
+    } else {
+      if (t.wins !== prev.wins) { contar($('wins'), prev.wins, t.wins); saltar('s-wins'); if (t.wins > prev.wins) { aviso('¡VICTORIA!'); destellos(); } }
+      if (t.kills !== prev.kills) { contar($('kills'), prev.kills, t.kills); saltar('s-kills'); if (t.kills > prev.kills && t.wins === prev.wins) aviso('+' + (t.kills - prev.kills) + ' bajas', true); }
+      if (t.kd !== prev.kd) { contar($('kd'), prev.kd, t.kd, true); saltar('s-kd'); }
+      if (t.matches !== prev.matches) { contar($('matches'), prev.matches, t.matches); saltar('s-matches'); }
+    }
+    if (!baseHoy) { baseHoy = { fecha, wins: t.wins, kills: t.kills, matches: t.matches }; try { localStorage.setItem(hoyKey, JSON.stringify(baseHoy)); } catch (e) {} }
+    $('hoy').innerHTML = '<span class="t">Hoy</span><span><b>' + num(t.wins - baseHoy.wins) + '</b> victorias</span><span><b>' + num(t.kills - baseHoy.kills) + '</b> bajas</span><span><b>' + num(t.matches - baseHoy.matches) + '</b> partidas</span>';
+    prev = { wins: t.wins, kills: t.kills, kd: t.kd, matches: t.matches };
+  }
+
+  async function consultar() {
+    try {
+      const K = window.KYO || {};
+      const u = new URL(K.SUPABASE_URL + '/functions/v1/fortnite-stats');
+      u.search = new URLSearchParams({ nombre, cuenta, ventana }).toString();
+      const r = await fetch(u, { headers: { apikey: K.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + K.SUPABASE_ANON_KEY } });
+      pintar(await r.json());
+    } catch (e) { console.warn('Kyo Fortnite: sin conexión', e); }
+  }
+
+  if (demo) {
+    const d = { ok: true, nombre: nombre || 'KyoSumiVT', nivel: 87, total: { wins: 42, kills: 1310, kd: 2.41, matches: 586 } };
+    pintar(JSON.parse(JSON.stringify(d)));
+    let n = 0;
+    setInterval(() => { n++; d.total.matches++; d.total.kills += 1 + (n % 4); if (n % 3 === 0) d.total.wins++; d.total.kd = +(d.total.kills / Math.max(1, d.total.matches - d.total.wins)).toFixed(2); pintar(JSON.parse(JSON.stringify(d))); }, 6000);
+  } else { consultar(); setInterval(consultar, cada * 1000); }
+})();
+</script>
+</body>
+</html>
