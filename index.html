@@ -162,21 +162,22 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
       </div>
       <div class="grupo"><h3>Estilo</h3>
         <div class="f"><span>Temporada</span><div class="chips" data-radio="tema" data-val="octubre:🎃 Halloween,marea:🌊 Normal"></div></div>
-        <div class="f"><span>Forma</span><div class="chips" data-radio="forma" data-val="tarjeta:Tarjeta,pildora:Píldora"></div></div>
+        <div class="f"><span>Diseño</span><div class="chips" data-radio="diseno" data-val="marcador:🏆 Marcador,insignias:🎖️ Insignias,credencial:🪪 Credencial,cinta:🎀 Cinta compacta"></div></div>
+        <div class="f"><span>Movimiento</span><div class="chips" data-radio="mover" data-val="si:Balanceo suave,no:Quieto"></div></div>
         <div class="f"><span>Tamaño</span><div class="chips" data-radio="escala" data-val="0.75:Pequeño,1:Normal,1.25:Grande,1.5:Muy grande"></div></div>
       </div>
       <div class="grupo"><h3>Colores</h3>
         <div class="chips"><label><input type="checkbox" name="colores"> Usar mis propios colores</label></div>
         <div class="colores off" data-colores>
           <label>Acento<input type="color" name="acento" value="#ff8a2b"></label>
-          <label>Borde<input type="color" name="borde" value="#9b6bff"></label>
+          <label>Borde / pegatina<input type="color" name="borde" value="#9b6bff"></label>
           <label>Caja<input type="color" name="caja" value="#0e0a24"></label>
           <label>Texto<input type="color" name="texto" value="#f5f3fb"></label>
         </div>
       </div>
       <div class="grupo"><h3>Estadísticas</h3>
         <div class="chips" data-check="stats" data-val="wins:Victorias,kills:Bajas,kd:K/D,matches:Partidas,winrate:% victorias,top10:Top 10"></div>
-        <p class="nota">La primera marcada sale destacada. Máximo 6.</p>
+        <p class="nota">Salen en este orden; la primera va destacada. Máximo 6 (la Cinta compacta enseña las 4 primeras).</p>
         <div class="f"><span>Fila "Hoy"</span><div class="chips" data-radio="hoy" data-val="si:Mostrar,no:Ocultar"></div></div>
         <label class="f"><span>Código de creador (vacío = no se muestra)</span><input type="text" name="codigo" value="KYOSUMI" maxlength="20"></label>
       </div>
@@ -230,7 +231,8 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
     spotify: { w: 720, h: 180, tam: { vinilo: [720, 180], polaroid: [640, 200], casete: [620, 210], entrada: [640, 190] },
       def: { diseno: 'vinilo', tema: 'octubre', forma: 'pildora', fondo: 'si', fuente: 'auto', escala: '1', modo: 'siempre', anim: 'rebote', ver: ['portada', 'etiqueta', 'artista', 'progreso', 'tiempo'] },
       pruebas: [['cancion', '🎵 Probar cambio de canción']] },
-    fortnite: { w: 760, h: 250, def: { tema: 'octubre', forma: 'tarjeta', escala: '1', cuenta: 'epic', ventana: 'season', hoy: 'si', celebrar: 'si', stats: ['wins', 'kills', 'kd', 'matches'] },
+    fortnite: { w: 760, h: 250, tam: { marcador: [760, 250], insignias: [760, 250], credencial: [760, 250], cinta: [760, 170] },
+      def: { diseno: 'marcador', mover: 'si', tema: 'octubre', escala: '1', cuenta: 'epic', ventana: 'season', hoy: 'si', celebrar: 'si', stats: ['wins', 'kills', 'kd', 'matches'] },
       pruebas: [['victoria', '🏆 Probar victoria'], ['bajas', '⚔️ Probar bajas']] }
   };
 
@@ -276,7 +278,7 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
   function url(id, demo) {
     const o = estadoForm(id), d = W[id].def, p = new URLSearchParams();
     const set = (k, v) => { if (v !== undefined && v !== '' && v !== d[k]) p.set(k, v); };
-    ['diseno', 'tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'cuenta', 'ventana', 'hoy', 'celebrar'].forEach(k => { if (k in o) set(k, o[k]); });
+    ['diseno', 'tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'mover', 'cuenta', 'ventana', 'hoy', 'celebrar'].forEach(k => { if (k in o) set(k, o[k]); });
     if (o.colores) ['acento', 'borde', 'caja', 'texto'].forEach(k => p.set(k, (o[k] || '').replace('#', '')));
     if (id === 'spotify') {
       const ocultar = d.ver.filter(v => !(o.ver || []).includes(v));

@@ -6,100 +6,221 @@
 <meta name="robots" content="noindex">
 <!--
   KyoWidgets · Estadísticas de Fortnite · Fuente de navegador para OBS.
-  Tamaño base 760 x 250 (multiplícalo por "escala"). La URL la arma Kyo Estudio.
+  La URL la arma Kyo Estudio. Tamaños base (multiplícalos por "escala"):
+    marcador 760x250 · insignias 760x250 · credencial 760x250 · cinta 760x170
   Parámetros:
+    diseno     marcador | insignias | credencial | cinta
     nombre     tu nombre de Epic (obligatorio)      cuenta  epic | psn | xbl
     ventana    season | lifetime                    titulo  texto en lugar del nombre
-    tema       octubre | marea                      escala  0.6 … 2
-    forma      tarjeta | pildora                    acento, borde, caja, texto  (hex sin #)
-    stats      wins,kills,kd,matches,winrate,top10  (las que se muestran, en orden)
+    tema       octubre | marea                      escala  0.5 … 2
+    acento, borde, caja, texto  (hex sin #; "borde" = borde de la pegatina)
+    stats      wins,kills,kd,matches,winrate,top10  (en orden; la cinta usa las 4 primeras)
     codigo     KYOSUMI (vacío = no se muestra)       hoy     si | no
     celebrar   si | no      victoria  texto de la celebración
+    mover      si | no  (balanceo suave)
     cada       segundos entre actualizaciones (mín. 60)   reset  1 = "hoy" a cero
     demo       1 = datos de ejemplo
 -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Fredoka:wght@600;700&family=Chakra+Petch:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Fredoka:wght@500;600;700&family=Chakra+Petch:wght@600;700&display=swap">
 <script src="../config.js"></script>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;background:transparent!important;overflow:hidden}
-#w{
-  --fondo:rgba(10,16,48,.9); --borde:#6FE3F0; --glow:rgba(111,227,240,.45); --acento:#6FE3F0; --oro:#F4C542; --txt:#F5F3FB; --sub:#C9E6F2; --contorno:#0A1030; --tile:rgba(43,47,122,.55);
-  position:absolute;left:12px;top:12px;width:736px;padding:16px 20px 16px;border-radius:var(--radio,30px);
-  background:var(--fondo);box-shadow:0 0 0 4px var(--borde),0 0 28px var(--glow);
-  font-family:"Fredoka",system-ui,sans-serif;color:var(--txt);display:grid;gap:12px
-}
-#w.octubre{--fondo:rgba(14,10,36,.92);--borde:#9B6BFF;--glow:rgba(155,107,255,.5);--acento:#FF8A2B;--sub:#e3d9ff;--contorno:#0a0720;--tile:rgba(42,31,92,.7)}
-.cab{display:flex;align-items:center;gap:12px;min-width:0}
-.nombre{font-family:"Cherry Bomb One","Fredoka",sans-serif;font-size:34px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:.1em .15em;
-  -webkit-text-stroke:7px var(--contorno);paint-order:stroke fill;min-width:0}
-.pill{flex:none;font-family:"Chakra Petch",monospace;font-weight:700;font-size:15px;letter-spacing:.12em;text-transform:uppercase;padding:5px 12px;border-radius:999px;background:var(--tile);color:var(--sub);box-shadow:0 0 0 2px var(--borde)}
-.pill.nivel{color:var(--oro);box-shadow:0 0 0 2px var(--oro)}
-.codigo{margin-left:auto;flex:none;font-family:"Fredoka",sans-serif;font-weight:700;font-size:16px;padding:6px 14px;border-radius:999px;background:var(--acento);color:var(--contorno)}
-.codigo b{font-family:"Cherry Bomb One",sans-serif;font-weight:400;letter-spacing:.02em}
-.stats{display:grid;grid-template-columns:repeat(var(--n,4),1fr);gap:10px}
-#w.pildora{--radio:70px;padding-inline:34px}
-.st{position:relative;padding:10px 12px 10px;border-radius:18px;background:var(--tile);text-align:center;overflow:hidden}
-.st .v{font-family:"Chakra Petch",monospace;font-weight:700;font-size:38px;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--txt)}
-.st .l{font-family:"Chakra Petch",monospace;font-weight:600;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--sub)}
-.st.dest .v{color:var(--acento);text-shadow:0 0 14px var(--glow)}
-.st.salta{animation:salta .9s cubic-bezier(.34,1.56,.64,1)}
-.hoy{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-weight:700;font-size:19px;color:var(--sub)}
-.hoy .t{font-family:"Chakra Petch",monospace;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--acento)}
-.hoy b{color:var(--txt);font-variant-numeric:tabular-nums}
-.sin-hoy .hoy{display:none}
-.aviso{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;white-space:nowrap;
-  font-family:"Cherry Bomb One","Fredoka",sans-serif;font-size:64px;color:var(--oro);-webkit-text-stroke:10px var(--contorno);paint-order:stroke fill;
-  filter:drop-shadow(0 6px 0 var(--contorno)) drop-shadow(0 0 24px var(--glow));z-index:5}
-.aviso.go{animation:aviso 3.2s cubic-bezier(.34,1.56,.64,1) forwards}
-.aviso.chico{font-size:38px;color:var(--acento);-webkit-text-stroke:7px var(--contorno)}
-.err{font-size:17px;color:var(--sub)}
-.spark{position:absolute;width:34px;height:34px;pointer-events:none;z-index:4;animation:spark 1.5s ease-out forwards}
-@keyframes salta{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:none}}
-@keyframes aviso{0%{transform:translate(-50%,-50%) scale(.5);opacity:0}12%{transform:translate(-50%,-50%) scale(1.05);opacity:1}80%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-70%) scale(.95);opacity:0}}
-@keyframes spark{0%{transform:translate(0,0) scale(.3) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1) rotate(120deg);opacity:0}}
+body{width:760px;height:250px;position:relative;font-family:"Fredoka",system-ui,sans-serif}
+body.b-cinta{height:170px}
+#w{--a:#FF8A2B;--b:#9B6BFF;--c:#1a1240;--t:#F5F3FB;--s:#e3d9ff;--o:#0a0720;--p:#fff;--oro:#F4C542;position:absolute;inset:0;color:var(--t)}
+#w.marea{--a:#6FE3F0;--b:#3A7BD5;--c:#0f1a4a;--s:#C9E6F2;--o:#0A1030}
+.pega{box-shadow:0 0 0 6px var(--p),0 0 0 11px var(--o),0 11px 0 11px var(--o)}
+.titulo{font-family:"Cherry Bomb One",sans-serif;font-weight:400;line-height:1.1;color:var(--t);-webkit-text-stroke:6px var(--o);paint-order:stroke fill;padding:0 .1em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.chip{display:inline-block;flex:none;font:700 12px "Chakra Petch",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--o);background:var(--a);padding:3px 10px;border-radius:999px}
+.chip.oro{background:var(--oro)}
+.n{font-family:"Chakra Petch",monospace;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.05;color:var(--t)}
+.l{font:700 12px "Chakra Petch",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--s)}
+.ic{width:1em;height:1em;flex:none}
+.bump{animation:bump .8s cubic-bezier(.34,1.56,.64,1)}
+@keyframes bump{0%{scale:1}40%{scale:1.18}100%{scale:1}}
+@keyframes boing{0%,100%{transform:rotate(var(--r,-2deg))}50%{transform:rotate(calc(var(--r,-2deg) + 1deg)) translateY(-3px)}}
+.mueve{animation:boing 4.5s ease-in-out infinite}
+.quieto .mueve{animation:none;transform:rotate(var(--r,0deg))}
+.sin-hoy [data-hoy]{display:none!important}
+.sin-cod [data-cod]{display:none!important}
+.sin-nivel [data-nivel]{display:none!important}
+.sin-datos [data-hoy]{visibility:hidden}
+
+/* ¡VICTORIA! y avisos */
+.pop{position:absolute;left:50%;top:50%;z-index:9;white-space:nowrap;pointer-events:none;opacity:0;
+  font-family:"Cherry Bomb One",sans-serif;font-size:64px;line-height:1;color:var(--oro);-webkit-text-stroke:9px var(--o);paint-order:stroke fill;
+  filter:drop-shadow(4px 0 0 var(--p)) drop-shadow(-4px 0 0 var(--p)) drop-shadow(0 4px 0 var(--p)) drop-shadow(0 -4px 0 var(--p)) drop-shadow(0 7px 0 var(--o));
+  transform:translate(-50%,-50%) rotate(-7deg) scale(.3)}
+.pop.chico{font-size:40px;color:var(--a);-webkit-text-stroke:7px var(--o)}
+.pop.go{animation:pop 2.8s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) rotate(-7deg) scale(.3)}14%{opacity:1;transform:translate(-50%,-50%) rotate(-7deg) scale(1.1)}24%{transform:translate(-50%,-50%) rotate(-7deg) scale(1)}82%{opacity:1;transform:translate(-50%,-50%) rotate(-7deg) scale(1)}100%{opacity:0;transform:translate(-50%,-75%) rotate(-7deg) scale(.95)}}
+.chispa{position:absolute;width:30px;height:30px;z-index:8;pointer-events:none;animation:chispa 1.4s ease-out forwards}
+@keyframes chispa{0%{transform:translate(0,0) scale(.3) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1) rotate(120deg);opacity:0}}
+.msg{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);z-index:7;max-width:92%;background:var(--p);color:var(--o);font:600 15px/1.3 "Fredoka",sans-serif;padding:6px 14px;border-radius:12px;box-shadow:0 0 0 3px var(--o);text-align:center}
+
+/* 1 · Marcador */
+.d-marcador .caja{position:absolute;left:34px;top:40px;width:690px;padding:14px 20px 16px;background:var(--c);border-radius:30px;display:grid;gap:12px;--r:-1deg}
+.d-marcador .cab{display:flex;align-items:center;gap:10px;min-width:0;padding-right:170px}
+.d-marcador .titulo{font-size:32px}
+.d-marcador .cod{position:absolute;right:-6px;top:-22px;transform:rotate(5deg);background:var(--a);color:var(--o);font:700 15px "Fredoka",sans-serif;padding:6px 14px;border-radius:12px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 0 0 5px var(--p),0 0 0 9px var(--o),0 7px 0 9px var(--o)}
+.d-marcador .cod b{font-family:"Cherry Bomb One",sans-serif;font-weight:400;font-size:18px}
+.d-marcador .tiles{display:grid;grid-template-columns:repeat(var(--k,4),minmax(0,1fr));gap:14px}
+.d-marcador .tile{background:rgba(255,255,255,.07);border-radius:18px;padding:8px 6px 10px;text-align:center;box-shadow:inset 0 0 0 2px rgba(255,255,255,.08);min-width:0}
+.d-marcador .tile .n{font-size:calc(36px - var(--k,4) * 1px - (var(--k,4) - 4) * 3px)}
+.d-marcador .tile .l{display:flex;gap:6px;justify-content:center;align-items:center;font-size:12px;white-space:nowrap}
+.d-marcador .tile .l .ic{color:var(--a);font-size:15px}
+.d-marcador .tile.top{background:var(--a);transform:rotate(-3deg);box-shadow:0 0 0 5px var(--p),0 0 0 9px var(--o)}
+.d-marcador .tile.top .n,.d-marcador .tile.top .l,.d-marcador .tile.top .l .ic{color:var(--o)}
+.muchas.d-marcador .tile .l{font-size:10px;letter-spacing:.06em;gap:3px}
+.muchas.d-marcador .tile .l .ic{font-size:12px}
+.muchas.d-marcador .tiles{gap:10px}
+.d-marcador .hoy{display:flex;gap:14px;align-items:center;font-weight:700;color:var(--s);font-size:16px}
+.d-marcador .hoy b{color:var(--t);font-family:"Chakra Petch",monospace}
+
+/* 2 · Insignias */
+.d-insignias .tab{position:absolute;left:36px;top:22px;display:flex;align-items:center;gap:10px;max-width:420px;background:var(--c);border-radius:999px;padding:6px 20px 6px 8px;--r:-3deg}
+.d-insignias .nv{flex:none;width:44px;height:44px;border-radius:50%;background:var(--oro);color:var(--o);display:grid;place-content:center;text-align:center;font:700 17px/1 "Chakra Petch",monospace;box-shadow:0 0 0 3px var(--o)}
+.d-insignias .nv small{display:block;font-size:9px;letter-spacing:.1em}
+.d-insignias .tab .titulo{font-size:28px}
+.d-insignias .tab .chip{margin-left:2px}
+.d-insignias .cod{position:absolute;right:40px;top:28px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--a);color:var(--o);font:700 14px "Fredoka",sans-serif;padding:6px 14px;border-radius:12px;box-shadow:0 0 0 5px var(--p),0 0 0 9px var(--o),0 7px 0 9px var(--o);--r:4deg}
+.d-insignias .cod b{font-family:"Cherry Bomb One",sans-serif;font-weight:400;font-size:17px}
+.d-insignias .fila{position:absolute;left:40px;right:40px;top:92px;height:140px;display:flex;justify-content:space-around;align-items:center}
+.d-insignias .bad{position:relative;flex:none;width:var(--bs,128px);height:var(--bs,128px);border-radius:50%;background:var(--c);display:grid;place-content:center;justify-items:center;text-align:center;gap:1px}
+.d-insignias .bad .ic{font-size:calc(var(--bs,128px) * .19);color:var(--a)}
+.d-insignias .bad .n{font-size:calc(var(--bs,128px) * .25)}
+.d-insignias .bad .l{font-size:calc(var(--bs,128px) * .082);letter-spacing:.1em}
+.d-insignias .mas{position:absolute;right:-8px;top:-6px;background:var(--a);color:var(--o);font:700 13px "Chakra Petch",monospace;padding:3px 8px;border-radius:999px;box-shadow:0 0 0 4px var(--p),0 0 0 7px var(--o)}
+.d-insignias .mas:empty{display:none}
+
+/* 3 · Credencial */
+.d-credencial .caja{position:absolute;left:44px;top:32px;width:672px;height:190px;background:var(--c);border-radius:24px;--r:1.2deg}
+.d-credencial .banda{position:relative;height:34px;background:var(--a);border-radius:24px 24px 0 0;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font:700 12px "Chakra Petch",monospace;letter-spacing:.2em;color:var(--o);text-transform:uppercase}
+.d-credencial .ranura{position:absolute;left:50%;top:11px;width:64px;height:12px;margin-left:-32px;border-radius:6px;background:var(--o)}
+.d-credencial .cuerpo{display:grid;grid-template-columns:112px minmax(0,1fr) 230px;gap:18px;padding:12px 22px;height:156px;align-items:center}
+.d-credencial .foto{width:108px;height:118px;background:#fff;border-radius:10px;padding:7px 7px 20px;transform:rotate(-4deg);box-shadow:0 5px 0 var(--o)}
+.d-credencial .foto div{width:100%;height:100%;border-radius:5px;background:linear-gradient(135deg,var(--b),var(--a));display:grid;place-items:center;color:#fff}
+.d-credencial .foto .ic{font-size:50px;filter:drop-shadow(0 3px 0 var(--o))}
+.d-credencial .medio{min-width:0;display:grid;gap:6px}
+.d-credencial .titulo{font-size:30px}
+.d-credencial .fila{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:700;color:var(--s);font-size:15px}
+.d-credencial .fila b{color:var(--t);font-family:"Chakra Petch",monospace}
+.d-credencial .barras{display:inline-grid;gap:2px;justify-items:start;background:var(--p);border-radius:8px;padding:5px 10px 4px;width:max-content;max-width:100%;transform:rotate(-1.5deg)}
+.d-credencial .barras i{display:block;width:170px;max-width:100%;height:22px;background:repeating-linear-gradient(90deg,var(--o) 0 2px,transparent 2px 4px,var(--o) 4px 7px,transparent 7px 8px,var(--o) 8px 9px,transparent 9px 12px,var(--o) 12px 15px,transparent 15px 17px)}
+.d-credencial .barras span{font:700 11px "Chakra Petch",monospace;letter-spacing:.16em;color:var(--o);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.d-credencial .lista{display:grid;gap:5px}
+.d-credencial .lista div{display:flex;align-items:baseline;gap:6px}
+.d-credencial .lista .l{font-size:12px;white-space:nowrap}
+.d-credencial .lista i{flex:1;border-bottom:2px dotted rgba(255,255,255,.25);transform:translateY(-4px)}
+.d-credencial .lista .n{font-size:22px}
+.d-credencial .lista.muchas{gap:1px}
+.d-credencial .lista.muchas .n{font-size:18px}
+.d-credencial .holo{position:absolute;left:-20px;bottom:-20px;z-index:2;width:54px;height:54px;border-radius:50%;background:conic-gradient(#ff8ad8,#ffd76b,#8affc1,#7fd2ff,#c79bff,#ff8ad8);display:grid;place-items:center;color:#fff;font-size:24px;box-shadow:0 0 0 4px var(--p),0 0 0 7px var(--o);animation:giro 9s linear infinite}
+.quieto .d-credencial .holo,.quieto .holo{animation:none}
+@keyframes giro{to{transform:rotate(360deg)}}
+
+/* 4 · Cinta compacta */
+.d-cinta .caja{position:absolute;left:18px;top:52px;width:724px;height:84px;background:var(--c);border-radius:999px;display:flex;align-items:center;gap:12px;padding:0 18px 0 14px;--r:-1deg}
+.d-cinta .av{flex:none;width:50px;height:50px;border-radius:50%;background:var(--a);color:var(--o);display:grid;place-items:center;box-shadow:0 0 0 3px var(--o)}
+.d-cinta .av .ic{font-size:27px}
+.d-cinta .titulo{font-size:23px;flex:0 1 130px}
+.d-cinta .sep{flex:none;width:3px;height:44px;border-radius:3px;background:rgba(255,255,255,.14)}
+.d-cinta .stats{display:flex;gap:10px;flex:1;min-width:0;justify-content:space-between}
+.d-cinta .it{display:flex;align-items:center;gap:5px;min-width:0}
+.d-cinta .it .ic{font-size:18px;color:var(--a)}
+.d-cinta .it .n{font-size:21px}
+.d-cinta .it .l{display:block;font-size:9px;letter-spacing:.06em;white-space:nowrap}
+.d-cinta .cod{flex:none;max-width:130px;background:var(--a);color:var(--o);border-radius:12px;padding:3px 12px 5px;text-align:center;transform:rotate(4deg);box-shadow:0 0 0 4px var(--p),0 0 0 7px var(--o)}
+.d-cinta .cod small{display:block;font:700 9px "Chakra Petch",monospace;letter-spacing:.16em;text-transform:uppercase}
+.d-cinta .cod b{display:block;font-family:"Cherry Bomb One",sans-serif;font-weight:400;font-size:17px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d-cinta .washi{position:absolute;width:84px;height:26px;background:color-mix(in srgb,var(--a) 60%,#fff);opacity:.85;border-radius:2px}
+.d-cinta .washi.c1{left:-14px;top:-14px;transform:rotate(-14deg)}
+.d-cinta .washi.c2{right:-14px;bottom:-12px;transform:rotate(-12deg)}
+.d-cinta .hoy{position:absolute;left:92px;top:-30px;transform:rotate(-3deg);background:var(--p);color:var(--o);font:700 13px "Fredoka",sans-serif;padding:3px 12px;border-radius:999px;box-shadow:0 0 0 3px var(--o);white-space:nowrap}
+.d-cinta .hoy b{font-family:"Chakra Petch",monospace}
+.d-cinta .pop{font-size:56px}
 </style>
 </head>
 <body>
-<div id="w">
-  <div class="cab">
-    <span class="nombre" id="nombre">—</span>
-    <span class="pill" id="ventana">Temporada</span>
-    <span class="pill nivel" id="nivel" hidden></span>
-    <span class="codigo" id="codigo" hidden>Código: <b id="codigoTxt"></b></span>
-  </div>
-  <div class="stats" id="stats"></div>
-  <div class="hoy" id="hoy"><span class="t">Hoy</span><span><b id="hW">0</b> victorias</span><span><b id="hK">0</b> bajas</span><span><b id="hM">0</b> partidas</span></div>
-  <div class="aviso" id="aviso"></div>
-</div>
+<div id="w"></div>
 <script>
 (function () {
   const q = new URLSearchParams(location.search);
-  const $ = id => document.getElementById(id);
-  const tema = q.get('tema') || 'octubre';
+  const DIS = ['marcador', 'insignias', 'credencial', 'cinta'];
+  const diseno = DIS.includes(q.get('diseno')) ? q.get('diseno') : 'marcador';
   const nombre = q.get('nombre') || '';
   const cuenta = q.get('cuenta') || 'epic';
   const ventana = q.get('ventana') === 'lifetime' ? 'lifetime' : 'season';
   const cada = Math.max(60, Number(q.get('cada')) || 90);
   const demo = q.get('demo') === '1';
-  const w = $('w');
-  w.classList.add(tema === 'marea' ? 'marea' : 'octubre');
-  const hex = v => /^[0-9a-f]{3,8}$/i.test(v || '') ? '#' + v : null;
-  if (q.get('forma') === 'pildora') w.classList.add('pildora');
-  const esc = Math.min(2, Math.max(0.5, Number(q.get('escala')) || 1));
-  if (esc !== 1) document.documentElement.style.zoom = esc;
-  [['acento', '--acento'], ['borde', '--borde'], ['caja', '--fondo'], ['texto', '--txt']].forEach(([k, v]) => { const c = hex(q.get(k)); if (c) w.style.setProperty(v, c); });
-  if (hex(q.get('borde'))) w.style.setProperty('--glow', hex(q.get('borde')) + '77');
   const celebrar = q.get('celebrar') !== 'no';
   const textoVictoria = q.get('victoria') || '¡VICTORIA!';
   const titulo = q.get('titulo') || '';
+  const codigo = q.get('codigo') || '';
+  const w = document.getElementById('w');
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
   const DEF = { wins: 'Victorias', kills: 'Bajas', kd: 'K/D', matches: 'Partidas', winrate: '% Victorias', top10: 'Top 10' };
-  const LISTA = (q.get('stats') || 'wins,kills,kd,matches').split(',').filter(k => DEF[k]).slice(0, 6);
-  w.style.setProperty('--n', LISTA.length || 1);
-  $('stats').innerHTML = LISTA.map((k, i) => '<div class="st' + (i === 0 ? ' dest' : '') + '" id="s-' + k + '"><div class="v" id="' + k + '">0</div><div class="l">' + DEF[k] + '</div></div>').join('');
+  const ICO = { wins: 'corona', kills: 'mira', kd: 'rayo', matches: 'bandera', winrate: 'estrella', top10: 'podio' };
+  let LISTA = (q.get('stats') || 'wins,kills,kd,matches').split(',').filter(k => DEF[k]).slice(0, 6);
+  if (!LISTA.length) LISTA = ['wins'];
+  if (diseno === 'cinta') LISTA = LISTA.slice(0, 4);
+  const ICON = {
+    corona: '<path d="M3 18 1.8 7l5.6 4.4L12 4l4.6 7.4L22.2 7 21 18Z" fill="currentColor"/><rect x="3" y="19.2" width="18" height="2.6" rx="1.3" fill="currentColor"/>',
+    mira: '<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="12" r="7.5"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/></g><circle cx="12" cy="12" r="2" fill="currentColor"/>',
+    rayo: '<path d="M13.5 1.5 4 13.5h7l-1.5 9 10-12.5h-7Z" fill="currentColor"/>',
+    bandera: '<path d="M5 22V2.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M6 3.5h13l-3.2 4.7L19 13H6Z" fill="currentColor"/>',
+    estrella: '<path d="M12 1.8l3 6.4 7 .9-5.1 4.8 1.3 7-6.2-3.4-6.2 3.4 1.3-7L2 9.1l7-.9Z" fill="currentColor"/>',
+    podio: '<path d="M8.5 9h7v13h-7zM1.5 14h6v8h-6zM16.5 12h6v10h-6z" fill="currentColor"/>'
+  };
+  const ic = n => '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + ICON[n] + '</svg>';
+  const vent = ventana === 'lifetime' ? 'Histórico' : 'Temporada';
+  const HOY = '<span data-hoy>';
+
+  // ---------- Plantillas ----------
+  const T = {
+    marcador: () => '<div class="caja pega mueve">' +
+      '<div class="cod" data-cod>Código: <b>' + esc(codigo) + '</b></div>' +
+      '<div class="cab"><div class="titulo" data-nombre></div><span class="chip">' + vent + '</span><span class="chip oro" data-nivel>Nv. <span data-nv></span></span></div>' +
+      '<div class="tiles">' + LISTA.map((k, i) => '<div class="tile' + (i === 0 ? ' top' : '') + '"><div class="n" data-k="' + k + '"></div><div class="l">' + ic(ICO[k]) + DEF[k] + '</div></div>').join('') + '</div>' +
+      '<div class="hoy" data-hoy><span class="chip">Hoy</span><span><b data-h="wins"></b> victorias</span><span><b data-h="kills"></b> bajas</span><span><b data-h="matches"></b> partidas</span></div>' +
+      '</div>',
+    insignias: () => '<div class="tab pega mueve"><span class="nv" data-nivel><span><small>NV</small><span data-nv></span></span></span><div class="titulo" data-nombre></div><span class="chip">' + vent + '</span></div>' +
+      '<div class="cod mueve" data-cod style="animation-delay:-1s">Código: <b>' + esc(codigo) + '</b></div>' +
+      '<div class="fila">' + LISTA.map((k, i) => '<div class="bad pega mueve" style="--r:' + [-6, 4, -3, 5, -4, 3][i] + 'deg;animation-delay:-' + i + 's">' + ic(ICO[k]) + '<div class="n" data-k="' + k + '"></div><div class="l">' + DEF[k] + '</div>' + (['wins', 'kills', 'matches'].includes(k) ? '<span class="mas" data-hoy data-m="' + k + '"></span>' : '') + '</div>').join('') + '</div>',
+    credencial: () => '<div class="caja pega mueve">' +
+      '<div class="banda"><span>Pase de jugadora</span><span class="ranura"></span><span>' + vent + '</span></div>' +
+      '<div class="cuerpo"><div class="foto"><div>' + ic('corona') + '</div></div>' +
+      '<div class="medio"><div class="titulo" data-nombre></div>' +
+      '<div class="fila"><span class="chip" data-nivel>Nv. <span data-nv></span></span><span data-hoy>Hoy <b data-h="wins"></b> 🏆 · <b data-h="kills"></b> bajas</span></div>' +
+      '<div class="barras" data-cod><i></i><span>CÓDIGO · ' + esc(codigo.toUpperCase()) + '</span></div></div>' +
+      '<div class="lista' + (LISTA.length > 4 ? ' muchas' : '') + '">' + LISTA.map(k => '<div><span class="l">' + DEF[k] + '</span><i></i><span class="n" data-k="' + k + '"></span></div>').join('') + '</div></div>' +
+      '<div class="holo">✦</div></div>',
+    cinta: () => '<div class="caja pega mueve"><span class="washi c1"></span><span class="washi c2"></span>' +
+      '<span class="hoy" data-hoy>Hoy: <b data-h="wins"></b> 🏆 · <b data-h="kills"></b> bajas</span>' +
+      '<span class="av">' + ic('corona') + '</span><div class="titulo" data-nombre></div><span class="sep"></span>' +
+      '<div class="stats">' + LISTA.map(k => '<div class="it">' + ic(ICO[k]) + '<div><div class="n" data-k="' + k + '"></div><span class="l">' + DEF[k] + '</span></div></div>').join('') + '</div>' +
+      '<div class="cod" data-cod><small>Código</small><b>' + esc(codigo) + '</b></div></div>'
+  };
+  w.className = 'd-' + diseno + (q.get('tema') === 'marea' ? ' marea' : ' octubre') + ' sin-nivel sin-datos';
+  w.innerHTML = T[diseno]() + '<div class="pop" id="pop"></div>';
+  document.body.classList.add('b-' + diseno);
+  if (q.get('mover') === 'no') w.classList.add('quieto');
   if (q.get('hoy') === 'no') w.classList.add('sin-hoy');
-  $('ventana').textContent = ventana === 'lifetime' ? 'Histórico' : 'Temporada';
-  if (q.get('codigo')) { $('codigo').hidden = false; $('codigoTxt').textContent = q.get('codigo'); }
+  if (!codigo) w.classList.add('sin-cod');
+  w.style.setProperty('--k', LISTA.length);
+  if (LISTA.length > 4) w.classList.add('muchas');
+  if (diseno === 'insignias') w.style.setProperty('--bs', Math.min(128, Math.floor((680 - (LISTA.length - 1) * 20) / LISTA.length)) + 'px');
+
+  const hex = v => /^[0-9a-f]{3,8}$/i.test(v || '') ? '#' + v : null;
+  [['acento', '--a'], ['borde', '--p'], ['caja', '--c'], ['texto', '--t']].forEach(([k, v]) => { const c = hex(q.get(k)); if (c) w.style.setProperty(v, c); });
+  const escala = Math.min(2, Math.max(0.5, Number(q.get('escala')) || 1));
+  if (escala !== 1) document.documentElement.style.zoom = escala;
+
+  const $$ = s => w.querySelectorAll(s);
+  const put = (s, t) => $$(s).forEach(e => { e.textContent = t; });
+  put('[data-nombre]', titulo || nombre || 'KyoSumiVT');
 
   // "Hoy": se guarda en OBS lo que tenías al empezar el día
   const hoyKey = 'kyo_fn_' + nombre.toLowerCase() + '_' + ventana;
@@ -109,49 +230,60 @@ html,body{margin:0;background:transparent!important;overflow:hidden}
 
   let prev = null;
   const num = n => Number(n || 0).toLocaleString('es');
+  const dec = k => k === 'kd' || k === 'winrate';
+  const fmt = (k, v) => dec(k) ? Number(v).toFixed(k === 'kd' ? 2 : 1) : num(v);
 
-  function contar(el, desde, hasta, dec) {
+  function contar(el, k, desde, hasta) {
     const t0 = performance.now(), dur = 900;
     const paso = t => { const p = Math.min(1, (t - t0) / dur), v = desde + (hasta - desde) * (1 - Math.pow(1 - p, 3));
-      el.textContent = dec ? v.toFixed(2) : num(Math.round(v)); if (p < 1) requestAnimationFrame(paso); };
+      el.textContent = dec(k) ? v.toFixed(k === 'kd' ? 2 : 1) : num(Math.round(v)); if (p < 1) requestAnimationFrame(paso); };
     requestAnimationFrame(paso);
+    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
   }
-  function saltar(id) { const e = $(id); e.classList.remove('salta'); void e.offsetWidth; e.classList.add('salta'); }
-  function aviso(txt, chico) { const a = $('aviso'); a.textContent = txt; a.className = 'aviso' + (chico ? ' chico' : ''); void a.offsetWidth; a.classList.add('go'); }
+  function aviso(txt, chico) { const a = document.getElementById('pop'); a.textContent = txt; a.className = 'pop' + (chico ? ' chico' : ''); void a.offsetWidth; a.classList.add('go'); }
   function destellos() {
-    const col = getComputedStyle(w).getPropertyValue('--oro').trim();
-    for (let i = 0; i < 16; i++) {
-      const s = document.createElement('span'); s.className = 'spark';
-      s.innerHTML = '<svg viewBox="0 0 100 100"><path d="M50 0 C53 38 62 47 100 50 C62 53 53 62 50 100 C47 62 38 53 0 50 C38 47 47 38 50 0Z" fill="' + (i % 3 ? col : '#F5F3FB') + '"/></svg>';
-      s.style.left = (20 + Math.random() * 60) + '%'; s.style.top = (30 + Math.random() * 30) + '%';
-      s.style.setProperty('--dx', (Math.random() * 300 - 150) + 'px'); s.style.setProperty('--dy', (Math.random() * -140 - 20) + 'px');
-      s.style.animationDelay = (Math.random() * .3) + 's'; w.appendChild(s); setTimeout(() => s.remove(), 2000);
+    for (let i = 0; i < 14; i++) {
+      const s = document.createElement('span'); s.className = 'chispa';
+      s.innerHTML = '<svg viewBox="0 0 100 100"><path d="M50 0C53 38 62 47 100 50 62 53 53 62 50 100 47 62 38 53 0 50 38 47 47 38 50 0Z" fill="' + (i % 3 ? '#F4C542' : '#fff') + '"/></svg>';
+      s.style.left = (25 + Math.random() * 50) + '%'; s.style.top = (30 + Math.random() * 30) + '%';
+      s.style.setProperty('--dx', (Math.random() * 300 - 150) + 'px'); s.style.setProperty('--dy', (Math.random() * -130 - 20) + 'px');
+      s.style.animationDelay = (Math.random() * .3) + 's'; w.appendChild(s); setTimeout(() => s.remove(), 1900);
     }
+  }
+  function mensaje(t) {
+    let m = w.querySelector('.msg');
+    if (!t) { if (m) m.remove(); return; }
+    if (!m) { m = document.createElement('div'); m.className = 'msg'; w.appendChild(m); }
+    m.textContent = t;
   }
 
   function pintar(d) {
     if (!d || !d.ok) {
-      const msg = { privado: 'Tus estadísticas son privadas. Actívalas en Fortnite: Ajustes > Cuenta y privacidad.', no_encontrado: 'No encuentro ese nombre de Epic.', falta_nombre: 'Falta ?nombre=TuNombreEpic en la URL.', clave_invalida: 'La clave FORTNITE_API_KEY no es válida.' }[d && d.error] || 'Sin datos por ahora.';
-      $('nombre').textContent = nombre || '—';
-      if (!prev) $('hoy').innerHTML = '<span class="err">' + msg + '</span>';
+      const msg = { privado: 'Tus estadísticas son privadas. Actívalas en Fortnite: Ajustes > Cuenta y privacidad.', no_encontrado: 'No encuentro ese nombre de Epic.', falta_nombre: 'Falta tu nombre de Epic en Kyo Estudio.', clave_invalida: 'La clave FORTNITE_API_KEY no es válida.' }[d && d.error] || 'Sin datos por ahora.';
+      if (!prev) { mensaje(msg); LISTA.forEach(k => put('[data-k="' + k + '"]', '–')); }
       return;
     }
+    mensaje(''); w.classList.remove('sin-datos');
     const t = d.total;
-    $('nombre').textContent = titulo || d.nombre;
-    if (d.nivel != null) { $('nivel').hidden = false; $('nivel').textContent = 'Nv. ' + d.nivel; }
+    put('[data-nombre]', titulo || d.nombre);
+    if (d.nivel != null) { w.classList.remove('sin-nivel'); put('[data-nv]', d.nivel); }
     const val = { wins: t.wins, kills: t.kills, kd: Number(t.kd) || 0, matches: t.matches, winrate: Number(t.winRate) || 0, top10: t.top10 || 0 };
-    const dec = k => k === 'kd' || k === 'winrate';
     LISTA.forEach(k => {
-      const el = $(k); if (!el) return;
-      if (!prev) { el.textContent = dec(k) ? val[k].toFixed(k === 'kd' ? 2 : 1) : num(val[k]); return; }
-      if (val[k] !== prev[k]) { contar(el, prev[k], val[k], dec(k)); saltar('s-' + k); }
+      $$('[data-k="' + k + '"]').forEach(el => {
+        if (!prev) el.textContent = fmt(k, val[k]);
+        else if (val[k] !== prev[k]) contar(el, k, prev[k], val[k]);
+      });
     });
     if (prev && celebrar) {
       if (val.wins > prev.wins) { aviso(textoVictoria); destellos(); }
       else if (val.kills > prev.kills) aviso('+' + (val.kills - prev.kills) + ' bajas', true);
     }
     if (!baseHoy) { baseHoy = { fecha, wins: t.wins, kills: t.kills, matches: t.matches }; try { localStorage.setItem(hoyKey, JSON.stringify(baseHoy)); } catch (e) {} }
-    $('hoy').innerHTML = '<span class="t">Hoy</span><span><b>' + num(t.wins - baseHoy.wins) + '</b> victorias</span><span><b>' + num(t.kills - baseHoy.kills) + '</b> bajas</span><span><b>' + num(t.matches - baseHoy.matches) + '</b> partidas</span>';
+    ['wins', 'kills', 'matches'].forEach(k => {
+      const dlt = t[k] - baseHoy[k];
+      put('[data-h="' + k + '"]', '+' + num(dlt));
+      put('[data-m="' + k + '"]', dlt > 0 ? '+' + num(dlt) : '');
+    });
     prev = val;
   }
 
@@ -162,7 +294,7 @@ html,body{margin:0;background:transparent!important;overflow:hidden}
       u.search = new URLSearchParams({ nombre, cuenta, ventana }).toString();
       const r = await fetch(u, { headers: { apikey: K.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + K.SUPABASE_ANON_KEY } });
       pintar(await r.json());
-    } catch (e) { console.warn('Kyo Fortnite: sin conexión', e); }
+    } catch (e) { console.warn('Kyo Fortnite: sin conexión', e); if (!prev) { mensaje('Sin conexión con Supabase.'); LISTA.forEach(k => put('[data-k="' + k + '"]', '–')); } }
   }
 
   // Datos de ejemplo y botones "Probar" de Kyo Estudio
@@ -175,6 +307,7 @@ html,body{margin:0;background:transparent!important;overflow:hidden}
     if (e.data.accion === 'bajas') { D.total.kills += 3; recalc(); }
   });
   if (demo) {
+    baseHoy = { fecha, wins: 40, kills: 1292, matches: 577 };
     pintar(JSON.parse(JSON.stringify(D)));
     let n = 0;
     setInterval(() => { n++; D.total.matches++; D.total.kills += 1 + (n % 4); if (n % 3 === 0) { D.total.wins++; D.total.top10++; } recalc(); }, 8000);
