@@ -53,7 +53,7 @@ body.b-cinta{height:170px}
   filter:drop-shadow(4px 0 0 var(--p)) drop-shadow(-4px 0 0 var(--p)) drop-shadow(0 4px 0 var(--p)) drop-shadow(0 -4px 0 var(--p)) drop-shadow(0 7px 0 var(--o));
   transform:translate(-50%,-50%) rotate(-7deg) scale(.3)}
 .pop.chico{font-size:40px;color:var(--a);-webkit-text-stroke:7px var(--o)}
-.pop.go{animation:pop 2.8s cubic-bezier(.34,1.56,.64,1) forwards}
+.pop.go{animation:pop 4s cubic-bezier(.34,1.56,.64,1) forwards}
 @keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) rotate(-7deg) scale(.3)}14%{opacity:1;transform:translate(-50%,-50%) rotate(-7deg) scale(1.1)}24%{transform:translate(-50%,-50%) rotate(-7deg) scale(1)}82%{opacity:1;transform:translate(-50%,-50%) rotate(-7deg) scale(1)}100%{opacity:0;transform:translate(-50%,-75%) rotate(-7deg) scale(.95)}}
 .chispa{position:absolute;width:30px;height:30px;z-index:8;pointer-events:none;animation:chispa 1.4s ease-out forwards}
 @keyframes chispa{0%{transform:translate(0,0) scale(.3) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1) rotate(120deg);opacity:0}}
@@ -152,7 +152,7 @@ body.b-cinta{height:170px}
   const nombre = q.get('nombre') || '';
   const cuenta = q.get('cuenta') || 'epic';
   const ventana = q.get('ventana') === 'lifetime' ? 'lifetime' : 'season';
-  const cada = Math.max(60, Number(q.get('cada')) || 90);
+  const cada = Math.max(60, Number(q.get('cada')) || 60);
   const demo = q.get('demo') === '1';
   const celebrar = q.get('celebrar') !== 'no';
   const textoVictoria = q.get('victoria') || '¡VICTORIA!';
@@ -229,6 +229,10 @@ body.b-cinta{height:170px}
   try { const b = JSON.parse(localStorage.getItem(hoyKey) || 'null'); if (b && b.fecha === fecha && q.get('reset') !== '1') baseHoy = b; } catch (e) {}
 
   let prev = null;
+  // Últimos valores vistos: se guardan en OBS para poder celebrar aunque la fuente se haya recargado
+  const ultKey = 'kyo_fn_ult_' + nombre.toLowerCase() + '_' + ventana;
+  let guardado = null;
+  if (!demo) { try { guardado = JSON.parse(localStorage.getItem(ultKey) || 'null'); } catch (e) {} }
   const num = n => Number(n || 0).toLocaleString('es');
   const dec = k => k === 'kd' || k === 'winrate';
   const fmt = (k, v) => dec(k) ? Number(v).toFixed(k === 'kd' ? 2 : 1) : num(v);
@@ -268,16 +272,21 @@ body.b-cinta{height:170px}
     put('[data-nombre]', titulo || d.nombre);
     if (d.nivel != null) { w.classList.remove('sin-nivel'); put('[data-nv]', d.nivel); }
     const val = { wins: t.wins, kills: t.kills, kd: Number(t.kd) || 0, matches: t.matches, winrate: Number(t.winRate) || 0, top10: t.top10 || 0 };
+    const ref = prev || guardado;
     LISTA.forEach(k => {
       $$('[data-k="' + k + '"]').forEach(el => {
-        if (!prev) el.textContent = fmt(k, val[k]);
-        else if (val[k] !== prev[k]) contar(el, k, prev[k], val[k]);
+        if (ref && ref[k] != null && val[k] !== ref[k]) contar(el, k, ref[k], val[k]);
+        else if (!prev) el.textContent = fmt(k, val[k]);
       });
     });
-    if (prev && celebrar) {
-      if (val.wins > prev.wins) { aviso(textoVictoria); destellos(); }
-      else if (val.kills > prev.kills) aviso('+' + (val.kills - prev.kills) + ' bajas', true);
+    if (ref && celebrar && val.matches >= ref.matches) {
+      const bajas = val.kills - ref.kills;
+      if (val.wins > ref.wins) {
+        aviso(textoVictoria); destellos();
+        if (bajas > 0) setTimeout(() => aviso('+' + bajas + (bajas === 1 ? ' baja' : ' bajas'), true), 4200);
+      } else if (bajas > 0) aviso('+' + bajas + (bajas === 1 ? ' baja' : ' bajas'), true);
     }
+    if (!demo) { try { localStorage.setItem(ultKey, JSON.stringify(val)); } catch (e) {} }
     if (!baseHoy) { baseHoy = { fecha, wins: t.wins, kills: t.kills, matches: t.matches }; try { localStorage.setItem(hoyKey, JSON.stringify(baseHoy)); } catch (e) {} }
     ['wins', 'kills', 'matches'].forEach(k => {
       const dlt = t[k] - baseHoy[k];
@@ -302,7 +311,7 @@ body.b-cinta{height:170px}
   const recalc = () => { D.total.kd = +(D.total.kills / Math.max(1, D.total.matches - D.total.wins)).toFixed(2); D.total.winRate = +(D.total.wins / D.total.matches * 100).toFixed(1); pintar(JSON.parse(JSON.stringify(D))); };
   window.addEventListener('message', e => {
     if (!e.data || e.data.type !== 'kyo-test') return;
-    if (!prev) pintar(JSON.parse(JSON.stringify(D)));
+    if (!prev) { guardado = null; pintar(JSON.parse(JSON.stringify(D))); }
     if (e.data.accion === 'victoria') { D.total.matches++; D.total.wins++; D.total.top10++; D.total.kills += 4; recalc(); }
     if (e.data.accion === 'bajas') { D.total.kills += 3; recalc(); }
   });

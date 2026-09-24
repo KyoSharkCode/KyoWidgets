@@ -363,7 +363,9 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
         : !d.tabla ? 'Falta ejecutar el archivo 01_setup.sql en el SQL Editor.'
         : ok ? 'Conectado desde ' + new Date(d.desde).toLocaleString('es') + '.' : 'Pulsa "Conectar Spotify" y acepta en la ventana de Spotify.';
       $('#btnSpot').textContent = ok ? 'Volver a conectar' : 'Conectar Spotify';
+      $('#pSpot').title = 'Comprobado a las ' + new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
     } catch (e) {
+      if ($('#pSpot').classList.contains('ok')) return; // fallo puntual: se reintenta luego
       pintarEstado($('#eSpot'), false, 'No responde');
       pintarEstado($('#pSpot'), false, 'Spotify');
       $('#nSpot').textContent = 'No encuentro la función spotify-auth. ¿Está creada con ese nombre y con "Verify JWT" desactivado?';
@@ -374,18 +376,28 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
     location.href = FN('spotify-auth') + '?clave=' + encodeURIComponent(leer('kyo_codigo') || '') + '&volver=' + encodeURIComponent(volver);
   });
   $('[data-refrescar]').addEventListener('click', comprobarSpotify);
-  $('#btnFn').addEventListener('click', async () => {
+  const hora = () => new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  async function comprobarFortnite(manual) {
     const o = estadoForm('fortnite');
-    if (!o.nombre) { tab('fortnite'); toast('Escribe tu nombre de Epic primero'); return; }
-    pintarEstado($('#eFn'), null, 'Probando…');
+    if (!o.nombre) { if (manual) { tab('fortnite'); toast('Escribe tu nombre de Epic primero'); } return; }
+    if (manual) pintarEstado($('#eFn'), null, 'Probando…');
     try {
       const r = await fetch(FN('fortnite-stats') + '?' + new URLSearchParams({ nombre: o.nombre, cuenta: o.cuenta || 'epic', ventana: o.ventana || 'season' }), { headers: HDR });
       const d = await r.json();
       const msg = { privado: 'Tus estadísticas son privadas: actívalas en Fortnite (Ajustes › Cuenta y privacidad).', no_encontrado: 'No encuentro ese nombre de Epic en esa plataforma.', clave_invalida: 'La clave FORTNITE_API_KEY no es válida.', falta_nombre: 'Falta el nombre.' };
-      if (d.ok) { pintarEstado($('#eFn'), true, 'Funciona'); $('#nFn').textContent = d.nombre + ': ' + d.total.wins + ' victorias y ' + d.total.kills + ' bajas (' + (d.ventana === 'lifetime' ? 'histórico' : 'temporada') + ').'; pintarEstado($('#pFn'), true, 'Fortnite'); }
+      if (d.ok) { pintarEstado($('#eFn'), true, 'Funciona'); $('#nFn').textContent = d.nombre + ': ' + d.total.wins + ' victorias y ' + d.total.kills + ' bajas (' + (d.ventana === 'lifetime' ? 'histórico' : 'temporada') + '). Comprobado a las ' + hora() + '.'; pintarEstado($('#pFn'), true, 'Fortnite'); }
       else { pintarEstado($('#eFn'), false, 'Error'); $('#nFn').textContent = msg[d.error] || ('Respuesta: ' + (d.error || r.status)); pintarEstado($('#pFn'), false, 'Fortnite'); }
-    } catch (e) { pintarEstado($('#eFn'), false, 'No responde'); $('#nFn').textContent = 'No encuentro la función fortnite-stats.'; }
-  });
+      $('#pFn').title = 'Comprobado a las ' + hora();
+    } catch (e) {
+      // Un fallo puntual de red no apaga el indicador si ya estaba en verde: se reintenta en la siguiente comprobación
+      if (manual || !$('#pFn').classList.contains('ok')) { pintarEstado($('#eFn'), false, 'No responde'); $('#nFn').textContent = 'No encuentro la función fortnite-stats.'; pintarEstado($('#pFn'), false, 'Fortnite'); }
+    }
+  }
+  $('#btnFn').addEventListener('click', () => comprobarFortnite(true));
+  // Comprobación automática: al entrar, cada 5 minutos y al volver a la pestaña
+  function comprobarTodo() { if (!$('#puerta').hidden) return; comprobarSpotify(); comprobarFortnite(false); }
+  setInterval(() => { if (document.visibilityState === 'visible') comprobarTodo(); }, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') comprobarTodo(); });
   $('#btnSalir').addEventListener('click', () => { try { localStorage.removeItem('kyo_codigo'); } catch (e) {} location.reload(); });
 
   // Vuelta de Spotify: #spotify=ok o #spotify=error-...
@@ -407,7 +419,7 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
       return { ok: !!d.ok, msg: d.ok ? '' : 'Código incorrecto.' };
     } catch (e) { return { ok: false, msg: 'No encuentro la función spotify-auth (¿creada y con "Verify JWT" desactivado?).' }; }
   }
-  function entrar() { $('#puerta').hidden = true; actualizar('spotify'); comprobarSpotify(); }
+  function entrar() { $('#puerta').hidden = true; actualizar('spotify'); comprobarSpotify(); comprobarFortnite(false); }
   $('#formPuerta').addEventListener('submit', async e => {
     e.preventDefault();
     const c = $('#codigo').value.trim(); if (!c) return;
