@@ -1213,5 +1213,169 @@ const momentazo = {
   }
 };
 
-export const PLANTILLAS = [pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, merch, transicion, nota, momentazo];
+// =====================================================================
+// 10 · Intro de YouTube "KyoSumi!" (pantalla completa, fondo propio)
+// =====================================================================
+function nivelMar(x, nivel, A, W, fase, t) { return nivel + A * Math.sin(x / W * Math.PI * 2 * 1.2 + t * 2.2 + fase) + A * .5 * Math.sin(x / W * Math.PI * 2 * 2.7 - t * 3 + fase * 1.7); }
+function caminoMar(W, H, nivel, A, fase, t) {
+  const p = new Path2D(), paso = W / 60;
+  p.moveTo(-20, H + 40);
+  for (let x = -20; x <= W + 20; x += paso) p.lineTo(x, nivelMar(x, nivel, A, W, fase, t));
+  p.lineTo(W + 20, H + 40); p.closePath(); return p;
+}
+function lineaMar(W, nivel, A, fase, t) {
+  const p = new Path2D(), paso = W / 60;
+  for (let x = -20; x <= W + 20; x += paso) x === -20 ? p.moveTo(x, nivelMar(x, nivel, A, W, fase, t)) : p.lineTo(x, nivelMar(x, nivel, A, W, fase, t));
+  return p;
+}
+function burbujasEn(ctx, W, H, t, u, sem, n, vel = 1) {
+  const r = azar(sem);
+  for (let b = 0; b < n; b++) {
+    const bx = r() * W, v = (.12 + r() * .2) * vel, rad0 = (6 + r() * 20) * u, y0 = r();
+    const by = H * (1.08 - ((y0 + t * v) % 1.16)), bxx = bx + Math.sin(t * 3 + b) * 12 * u;
+    ctx.beginPath(); ctx.arc(bxx, by, rad0, 0, Math.PI * 2); ctx.lineWidth = 3 * u; ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(bxx - rad0 * .35, by - rad0 * .35, rad0 * .22, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fill();
+  }
+}
+const intro = {
+  id: 'intro',
+  nombre: 'Intro de YouTube "KyoSumi!"',
+  desc: 'Intro a pantalla completa (fondo incluido): una aleta cruza el mar de noche, sube una ola que lo tapa todo y al bajar aparece tu nombre, letra a letra.',
+  fps: 30,
+  campos: [
+    { k: 'texto', label: 'Nombre', tipo: 'texto', def: 'KyoSumi!', max: 14 },
+    { k: 'sub', label: 'Subtítulo (opcional)', tipo: 'texto', def: 'VTUBER', max: 30 },
+    { k: 'aleta', label: 'Aleta de tiburón', tipo: 'chips', def: 'si', opciones: [['si', '🦈 Sí'], ['no', 'No']] },
+    { k: 'luna', label: 'Luna y estrellas', tipo: 'chips', def: 'si', opciones: [['si', '🌙 Sí'], ['no', 'No']] },
+    { k: 'final', label: 'Final', tipo: 'chips', def: 'ola', opciones: [['ola', '🌊 La ola lo tapa todo'], ['quieto', '⏸ Se queda el nombre']] },
+    ...COLORES,
+    { k: 'dur', label: 'Duración (segundos)', tipo: 'numero', def: 5, min: 4, max: 12, paso: 0.1 }
+  ],
+  duracion: o => clamp(Number(o.dur) || 5, 4, 12),
+  dibujar(ctx, t, o, fmt, W, H) {
+    const P = paleta(o), L = this.duracion(o), FIN = 5;
+    const tm = tiempo(t, L, 3.0, FIN - .7, FIN, .7);
+    const vert = fmt === 'vertical', u = Math.min(W, H) / 1080;
+    // ---- cielo de noche ----
+    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, P.o); g.addColorStop(.7, P.c); g.addColorStop(1, P.c);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    const rg = ctx.createRadialGradient(W / 2, H * .45, 0, W / 2, H * .45, Math.max(W, H) * .6); rg.addColorStop(0, P.a2 + '55'); rg.addColorStop(1, P.a2 + '00');
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+    const Y0 = H * (vert ? .74 : .72);
+    if (o.luna !== 'no') {
+      const r = azar(3);
+      for (let i = 0; i < 34; i++) { const sx = r() * W, sy = r() * Y0 * .92, tw = .5 + .5 * Math.sin(t * (2 + r() * 3) + i); destello(ctx, sx, sy, (10 + r() * 22) * u, i % 5 ? '#ffffff' : '#F4C542', .5 + tw * .5, i * 20 + t * 20, .35 + tw * .6); }
+      const mx = vert ? W * .78 : W * .85, my = vert ? H * .12 : H * .17, R = 70 * u;
+      const gl = ctx.createRadialGradient(mx, my, R * .6, mx, my, R * 2.6); gl.addColorStop(0, 'rgba(247,233,176,.35)'); gl.addColorStop(1, 'rgba(247,233,176,0)');
+      ctx.fillStyle = gl; ctx.fillRect(mx - R * 3, my - R * 3, R * 6, R * 6);
+      const ix = mx + R * .45, iy = my - R * .3, iR = R * .85;
+      const fuera = new Path2D(); fuera.rect(mx - R * 2, my - R * 2, R * 4, R * 4); fuera.arc(ix, iy, iR, 0, Math.PI * 2);
+      const dentro = new Path2D(); dentro.arc(mx, my, R, 0, Math.PI * 2);
+      ctx.save(); ctx.clip(fuera, 'evenodd');
+      ctx.lineWidth = 12 * u; ctx.strokeStyle = P.o; ctx.stroke(dentro); ctx.lineWidth = 7 * u; ctx.strokeStyle = P.p; ctx.stroke(dentro); ctx.fillStyle = '#F7E9B0'; ctx.fill(dentro); ctx.restore();
+      ctx.save(); ctx.clip(dentro); ctx.beginPath(); ctx.arc(ix, iy, iR, 0, Math.PI * 2);
+      ctx.lineWidth = 12 * u; ctx.strokeStyle = P.o; ctx.stroke(); ctx.lineWidth = 7 * u; ctx.strokeStyle = P.p; ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.clip(fuera, 'evenodd'); ctx.clip(dentro); ctx.fillStyle = '#F7E9B0'; ctx.fill(dentro); ctx.restore();
+    }
+    // ---- nivel del mar (sube, lo tapa todo, baja y deja ver el nombre) ----
+    const arriba = -H * .12;
+    const fr = [[0, { y: Y0 }], [1.15, { y: Y0 }], [1.6, { y: arriba }], [1.72, { y: arriba }], [2.35, { y: Y0 }]];
+    if (o.final !== 'quieto') fr.push([FIN - .7, { y: Y0 }], [FIN - .08, { y: arriba }]);
+    const nivel = kf(tm, fr, EASE.io).y;
+    const surge = clamp((Y0 - nivel) / (Y0 - arriba), 0, 1), A = (20 + 26 * surge) * u;
+    const nivelAtras = nivel - 46 * u;
+    // mar de fondo
+    const marAtras = caminoMar(W, H, nivelAtras, A, 1.3, t);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.lineWidth = 30 * u; ctx.strokeStyle = P.o; ctx.stroke(lineaMar(W, nivelAtras, A, 1.3, t));
+    ctx.lineWidth = 16 * u; ctx.strokeStyle = P.p; ctx.stroke(lineaMar(W, nivelAtras, A, 1.3, t));
+    ctx.fillStyle = P.a; ctx.fill(marAtras);
+    // aleta que cruza
+    if (o.aleta !== 'no' && tm > .1 && tm < 1.45) {
+      const p = EASE.io(clamp((tm - .12) / 1.25, 0, 1)), k = (vert ? 2.1 : 2.7) * u;
+      const fx = lerp(-150 * k, W + 30 * k, p), baseY = nivelMar(fx + 60 * k, nivel, A, W, 0, t) + 18 * u;
+      const hund = kf(tm, [[1.0, { y: 0 }], [1.3, { y: 90 }]], EASE.io).y * k;
+      // estela de espuma
+      for (let i = 0; i < 6; i++) { const ex = fx - i * 34 * k + 20 * k, ey = nivelMar(ex, nivel, A, W, 0, t) + 4 * u, a = (1 - i / 6) * .8;
+        ctx.beginPath(); ctx.ellipse(ex, ey, (26 - i * 2) * k * .5, 9 * u, 0, 0, Math.PI * 2); ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fill(); }
+      ctx.save(); ctx.translate(fx, baseY - 78 * k + hund); ctx.rotate(rad(Math.sin(t * 6) * 3)); ctx.scale(k, k);
+      ctx.lineJoin = 'round'; ctx.lineWidth = 14 / k * u; ctx.strokeStyle = P.o; ctx.stroke(ALETA);
+      ctx.lineWidth = 8 / k * u; ctx.strokeStyle = P.p; ctx.stroke(ALETA);
+      ctx.fillStyle = P.s; ctx.fill(ALETA);
+      ctx.beginPath(); ctx.moveTo(70, 20); ctx.quadraticCurveTo(58, 44, 40, 62); ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.stroke();
+      ctx.restore();
+    }
+    // ---- nombre, letra a letra (capa aparte para el brillo) ----
+    const txt = o.texto || '', letras = [...txt];
+    let fs = (vert ? 190 : 250) * u, fT = s => `400 ${s}px "Cherry Bomb One"`;
+    const esp = 6 * u;
+    let anchos = letras.map(c => ancho(ctx, c, fT(fs))), tot = anchos.reduce((a, b) => a + b, 0) + esp * (letras.length - 1);
+    const maxW = W - (vert ? 110 : 220) * u;
+    if (tot > maxW) { const k = maxW / tot; fs *= k; anchos = anchos.map(a => a * k); tot = maxW; }
+    const cyT = vert ? H * .44 : H * .43;
+    const mt = ctx.getTransform(), sx = Math.min(1, Math.hypot(mt.a, mt.b)) || 1, cw = Math.round(W * sx), ch = Math.round(H * sx);
+    this._capas = this._capas || {}; const capa = this._capas[cw + 'x' + ch] || (this._capas[cw + 'x' + ch] = Object.assign(document.createElement('canvas'), { width: cw, height: ch }));
+    const c2 = capa.getContext('2d'); c2.setTransform(1, 0, 0, 1, 0, 0); c2.clearRect(0, 0, cw, ch); c2.setTransform(sx, 0, 0, sx, 0, 0);
+    let x = W / 2 - tot / 2, hay = false;
+    const uu = fs / 250;
+    letras.forEach((c, i) => {
+      const ti = 1.92 + i * .075;
+      const a = kf(tm, [[ti, { y: 140, s: .3, r: -18, a: 0 }], [ti + .22, { y: -26, s: 1.14, r: 6, a: 1 }], [ti + .42, { y: 0, s: 1, r: 0, a: 1 }]], EASE.out);
+      const cx = x + anchos[i] / 2; x += anchos[i] + esp;
+      if (a.a <= 0.01) return; hay = true;
+      const bob = tm > ti + .42 ? Math.sin(t * 3 - i * .6) * 9 * uu : 0, rb = (i % 2 ? 3 : -3) + (tm > ti + .42 ? Math.sin(t * 2.4 - i) * 2 : 0);
+      c2.save(); c2.globalAlpha = clamp(a.a, 0, 1); c2.translate(cx, cyT + (a.y * uu) + bob); c2.rotate(rad(a.r + rb)); c2.scale(a.s, a.s);
+      c2.font = fT(fs); c2.textAlign = 'center'; c2.textBaseline = 'middle'; c2.lineJoin = 'round';
+      c2.lineWidth = 34 * uu; c2.strokeStyle = P.o; c2.strokeText(c, 0, 14 * uu); c2.fillStyle = P.o; c2.fillText(c, 0, 14 * uu); c2.strokeText(c, 0, 0);
+      c2.lineWidth = 20 * uu; c2.strokeStyle = P.p; c2.strokeText(c, 0, 0);
+      const lg = c2.createLinearGradient(0, -fs * .4, 0, fs * .4); lg.addColorStop(0, i % 2 ? P.a : P.t); lg.addColorStop(1, i % 2 ? P.a2 : P.a);
+      c2.fillStyle = lg; c2.fillText(c, 0, 0);
+      c2.restore();
+    });
+    if (hay) {
+      // brillo que cruza las letras
+      const sp = (tm - 3.0) / .7;
+      if (sp > 0 && sp < 1) { c2.save(); c2.globalCompositeOperation = 'source-atop'; const bx = lerp(W / 2 - tot / 2 - 200 * uu, W / 2 + tot / 2 + 200 * uu, EASE.io(sp));
+        c2.translate(bx, cyT); c2.rotate(rad(20)); c2.fillStyle = 'rgba(255,255,255,.55)'; c2.fillRect(-40 * uu, -H, 80 * uu, 2 * H); c2.fillRect(60 * uu, -H, 22 * uu, 2 * H); c2.restore(); }
+      ctx.drawImage(capa, 0, 0, W, H);
+    }
+    // subtítulo
+    if (o.sub) {
+      const a = kf(tm, [[2.55, { y: 30, a: 0 }], [2.9, { y: 0, a: 1 }]], EASE.back);
+      if (a.a > 0) {
+        const fS = `700 ${(vert ? 40 : 44) * u}px "Chakra Petch"`, e = 8 * u, st = o.sub.toUpperCase(), sw = ancho(ctx, st, fS, e) + 60 * u, sh = 70 * u;
+        const sy = cyT + fs * .62 + 30 * u + a.y * u;
+        ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1);
+        pegatina(ctx, W / 2 - sw / 2, sy, sw, sh, sh / 2, { fill: P.c, p: P.p, o: P.o, ring: 7 * u, out: 6 * u, drop: 9 * u, suave: false });
+        fuente(ctx, fS, e); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = P.a; ctx.fillText(st, W / 2 + e / 2, sy + sh / 2 + 2 * u); ctx.restore();
+      }
+    }
+    // destellos alrededor del nombre
+    [[-.52, -.95, '#F4C542', 0], [.5, -1.0, '#ffffff', .08], [.56, .55, P.a, .14], [-.5, .6, '#ffffff', .2]].forEach(([fx, fy, col, dl]) => {
+      const k = kf(tm - dl, [[2.5, { s: 0, r: 0, a: 0 }], [2.75, { s: 1.3, r: 60, a: 1 }], [3.4, { s: .85, r: 140, a: .95 }], [FIN - .9, { s: .8, r: 220, a: .9 }], [FIN - .6, { s: 0, r: 240, a: 0 }]]);
+      destello(ctx, W / 2 + fx * tot, cyT + fy * fs * .55, 80 * uu, col, k.s, k.r, k.a);
+    });
+    // mar de delante (tapa el nombre cuando sube)
+    const marDelante = caminoMar(W, H, nivel, A, 0, t);
+    ctx.lineWidth = 30 * u; ctx.strokeStyle = P.o; ctx.stroke(lineaMar(W, nivel, A, 0, t));
+    ctx.lineWidth = 16 * u; ctx.strokeStyle = P.p; ctx.stroke(lineaMar(W, nivel, A, 0, t));
+    const gm = ctx.createLinearGradient(0, Math.max(0, nivel), 0, H); gm.addColorStop(0, P.a2); gm.addColorStop(1, P.c);
+    ctx.fillStyle = gm; ctx.fill(marDelante);
+    ctx.save(); ctx.clip(marDelante); burbujasEn(ctx, W, H, t, u, 17, 30, 1 + surge * 2); ctx.restore();
+    // gotas al bajar la ola
+    const tg = tm - 1.78;
+    if (tg > 0 && tg < 1.1) {
+      const r = azar(29), gr = 2400 * u;
+      for (let i = 0; i < 34; i++) {
+        const x0 = r() * W, y0 = H * (.35 + r() * .35), vx = (r() * 2 - 1) * 380 * u, vy = -(500 + r() * 700) * u, rr0 = (8 + r() * 16) * u;
+        const gx = x0 + vx * tg, gy = y0 + vy * tg + gr * tg * tg / 2, a = tg < .8 ? 1 : 1 - (tg - .8) / .3;
+        if (gy > H + 40) continue;
+        ctx.save(); ctx.globalAlpha *= a; ctx.beginPath(); ctx.arc(gx, gy, rr0, 0, Math.PI * 2); ctx.lineWidth = 5 * u; ctx.strokeStyle = P.o; ctx.stroke();
+        ctx.fillStyle = i % 3 ? P.a : P.p; ctx.fill(); ctx.restore();
+      }
+    }
+  }
+};
+
+export const PLANTILLAS = [intro, pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, merch, transicion, nota, momentazo];
 export const FORMATOS = { horizontal: { w: 1920, h: 1080 }, vertical: { w: 1080, h: 1920 } };

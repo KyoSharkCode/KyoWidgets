@@ -208,7 +208,7 @@ function tarjeta(pl) {
   // vista previa en bucle (con una pausa corta entre repeticiones)
   const bucle = now => {
     if (!card.isConnected) return;
-    if (!card.closest('[hidden]')) {
+    if (!ocupado && card._visible !== false && !card.closest('[hidden]')) {
       const fmt = cv.dataset.fmt, F = FORMATOS[fmt], L = pl.duracion(o);
       let t = (now - t0) / 1000; if (t > L + .8) { t0 = now; t = 0; }
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
@@ -217,6 +217,8 @@ function tarjeta(pl) {
     }
     requestAnimationFrame(bucle);
   };
+  // solo se anima la vista previa de las tarjetas que están en pantalla
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => es.forEach(e => { card._visible = e.isIntersecting; })).observe(cv);
   fuentesListas.then(() => requestAnimationFrame(bucle));
   return card;
 }
