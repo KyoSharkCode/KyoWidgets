@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kyo Estudio</title>
+<link rel="icon" type="image/png" sizes="32x32" href="logo/favicon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="logo/favicon-48.png">
+<link rel="icon" type="image/png" sizes="192x192" href="logo/favicon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="logo/favicon-180.png">
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -81,12 +85,19 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .estado.bad i{background:var(--bad)}
 .animhead{margin-bottom:16px;display:grid;gap:8px}
 .animhead h2,.anim h2{margin:0;font-family:"Cherry Bomb One",sans-serif;font-weight:400;font-size:26px}
-.animlista{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
-.anim{display:flex;flex-direction:column;gap:12px}
+.animlista{display:grid;gap:16px}
+.anim{display:flex;flex-direction:column;gap:14px}
+.animtop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.animgrid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:18px;align-items:start}
+.animform{max-height:640px;overflow:auto;padding-right:6px}
+.animform .f input[type=text],.animform .f input[type=number]{width:100%}
+.fcolor input[type=color]{width:100%;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);padding:3px;cursor:pointer}
+.animside{position:sticky;top:14px;display:flex;flex-direction:column;gap:12px}
 .animprev{border-radius:14px;overflow:hidden;display:flex;justify-content:center;padding:10px;background:repeating-conic-gradient(#2a2f45 0 25%,#1d2133 0 50%) 0 0/24px 24px;border:1px solid var(--line)}
 .animprev canvas{display:block;width:100%;height:auto}
 .progreso{height:10px;border-radius:999px;background:var(--panel2);overflow:hidden;box-shadow:0 0 0 1px var(--line)}
 .progreso i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .3s}
+@media (max-width:900px){.animgrid{grid-template-columns:1fr}.animside{position:static}}
 .btn:disabled{opacity:.5;cursor:progress}
 .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,140%);background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:12px 18px;font-weight:600;box-shadow:0 10px 40px rgba(0,0,0,.5);transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .25s;opacity:0;visibility:hidden;z-index:50;max-width:calc(100% - 32px)}
 .toast.on{transform:translate(-50%,0);opacity:1;visibility:visible}
@@ -204,7 +215,7 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
   <section data-panel="animaciones" hidden>
     <div class="card animhead">
       <h2>🎬 Animaciones para tus videos</h2>
-      <p class="nota">Elige el formato y pulsa <b>Descargar</b>: tu navegador convierte los fotogramas en un video <b>.mov con transparencia</b> (ProRes 4444) que Premiere abre directamente. Todo pasa en tu compu, gratis y sin subir nada. La primera vez tarda un poco más porque carga el conversor.</p>
+      <p class="nota">Cambia los textos, el estilo, los colores, la posición, el tamaño y la duración: la vista previa se actualiza al momento y se guarda sola. Luego elige el formato y pulsa <b>Descargar</b>: tu navegador arma un video <b>.mov con transparencia</b> (ProRes 4444) que Premiere abre directamente. Todo pasa en tu compu, gratis y sin subir nada.</p>
       <p class="nota">En Premiere: arrastra el .mov a una pista <b>encima</b> de tu video. El fondo ya es transparente.</p>
     </div>
     <div id="animLista" class="animlista"><p class="nota">Cargando…</p></div>
