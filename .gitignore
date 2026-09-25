@@ -3,3 +3,8 @@ Thumbs.db
 .env
 .env.*
 supabase/.temp/
+
+# Animaciones antiguas (ya no se usan; se guardan solo en el PC)
+animaciones/codigo-kyosumi/
+animaciones/barra-codigo/
+animaciones/lista.json
