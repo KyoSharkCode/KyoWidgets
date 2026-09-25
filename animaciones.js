@@ -114,7 +114,7 @@ async function exportar(pl, card) {
   const barra = $('.progreso', card), txt = $('.ptxt', card), bi = $('.progreso i', card), btn = $('[data-mov]', card);
   const aviso = (t, p) => { txt.textContent = t; if (p != null) bi.style.width = Math.round(p * 100) + '%'; };
   btn.disabled = true; barra.hidden = false;
-  const nombre = pl.id + '-' + fmt + '.mov';
+  const mp4 = !!pl.opaco, nombre = pl.id + '-' + fmt + (mp4 ? '.mp4' : '.mov');
   try {
     await fuentesListas;
     const f = await conversor(aviso);
@@ -134,16 +134,18 @@ async function exportar(pl, card) {
       const buf = await pl.sonido(o);
       if (buf) { await f.writeFile('audio.wav', aWav(buf)); conAudio = true; }
     }
-    const prog = ({ progress }) => aviso('Armando el video con transparencia… ' + Math.min(99, Math.round(progress * 100)) + '%', 0.5 + 0.48 * Math.min(1, progress));
+    const prog = ({ progress }) => aviso((mp4 ? 'Armando el video MP4… ' : 'Armando el video con transparencia… ') + Math.min(99, Math.round(progress * 100)) + '%', 0.5 + 0.48 * Math.min(1, progress));
     f.on('progress', prog);
-    await f.exec(['-framerate', String(pl.fps), '-i', 'f%04d.png', ...(conAudio ? ['-i', 'audio.wav', '-map', '0:v', '-map', '1:a', '-c:a', 'pcm_s16le'] : []),
-      '-c:v', 'prores_ks', '-profile:v', '4444', '-pix_fmt', 'yuva444p10le', '-qscale:v', '9', '-vendor', 'apl0', '-y', 'salida.mov']);
+    const salida = mp4 ? 'salida.mp4' : 'salida.mov';
+    await f.exec(['-framerate', String(pl.fps), '-i', 'f%04d.png', ...(conAudio ? ['-i', 'audio.wav', '-map', '0:v', '-map', '1:a', '-c:a', mp4 ? 'aac' : 'pcm_s16le', ...(mp4 ? ['-b:a', '192k'] : [])] : []),
+      ...(mp4 ? ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '15', '-movflags', '+faststart']
+        : ['-c:v', 'prores_ks', '-profile:v', '4444', '-pix_fmt', 'yuva444p10le', '-qscale:v', '9', '-vendor', 'apl0']), '-y', salida]);
     f.off('progress', prog);
-    const data = await f.readFile('salida.mov');
+    const data = await f.readFile(salida);
     for (let i = 0; i < n; i++) { try { await f.deleteFile('f' + pad(i) + '.png'); } catch (e) {} }
-    try { await f.deleteFile('salida.mov'); } catch (e) {}
+    try { await f.deleteFile(salida); } catch (e) {}
     if (conAudio) { try { await f.deleteFile('audio.wav'); } catch (e) {} }
-    const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/quicktime' }));
+    const url = URL.createObjectURL(new Blob([data.buffer], { type: mp4 ? 'video/mp4' : 'video/quicktime' }));
     const a = document.createElement('a'); a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     aviso('¡Listo! Se descargó ' + nombre + ' (' + (data.length / 1048576).toFixed(1) + ' MB · ' + L.toFixed(1) + ' s).', 1);
@@ -163,7 +165,7 @@ function tarjeta(pl) {
     '<div class="animgrid"><div class="animform opts">' + formulario(pl) + '</div>' +
     '<div class="animside"><div class="chips">' + Object.keys(FORMATOS).map((k, i) => '<label><input type="radio" name="fmt-' + pl.id + '" value="' + k + '"' + (i ? '' : ' checked') + '>' + (k === 'horizontal' ? '🖥️ Horizontal 1920×1080' : '📱 Vertical 1080×1920') + '</label>').join('') + '</div>' +
     '<div class="animprev"><canvas></canvas></div>' +
-    '<div class="acciones"><button class="btn pri" type="button" data-mov>⬇ Descargar .mov con transparencia</button><button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
+    '<div class="acciones"><button class="btn pri" type="button" data-mov>' + (pl.opaco ? '⬇ Descargar .mp4' : '⬇ Descargar .mov con transparencia') + '</button><button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
     '<div class="progreso" hidden><i></i></div><p class="nota ptxt" aria-live="polite"></p></div></div>';
   const clave = 'kyo_anim_' + pl.id;
   ponerForm(card, pl, Object.assign(defecto(pl), leer(clave) || {}));

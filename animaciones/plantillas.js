@@ -1239,6 +1239,7 @@ function burbujasEn(ctx, W, H, t, u, sem, n, vel = 1) {
 }
 const intro = {
   id: 'intro',
+  opaco: true, // fondo completo: se descarga en MP4 (H.264)
   nombre: 'Intro de YouTube "KyoSumi!"',
   desc: 'Intro a pantalla completa (fondo incluido): una aleta cruza el mar de noche, sube una ola que lo tapa todo y al bajar aparece tu nombre, letra a letra.',
   fps: 30,
