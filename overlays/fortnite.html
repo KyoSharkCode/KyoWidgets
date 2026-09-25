@@ -261,7 +261,9 @@ body.b-cinta{height:170px}
     m.textContent = t;
   }
 
-  function pintar(d) {
+  let ultimaReal = null, volverT = 0;
+  function pintar(d, modo) {
+    // modo: undefined = datos normales · 'prueba' = botón Probar (no se guarda) · 'volver' = regreso a los datos reales tras la prueba (sin celebrar)
     if (!d || !d.ok) {
       const msg = { privado: 'Tus estadísticas son privadas. Actívalas en Fortnite: Ajustes > Cuenta y privacidad.', no_encontrado: 'No encuentro ese nombre de Epic.', falta_nombre: 'Falta tu nombre de Epic en Kyo Estudio.', clave_invalida: 'La clave FORTNITE_API_KEY no es válida.' }[d && d.error] || 'Sin datos por ahora.';
       if (!prev) { mensaje(msg); LISTA.forEach(k => put('[data-k="' + k + '"]', '–')); }
@@ -279,15 +281,16 @@ body.b-cinta{height:170px}
         else if (!prev) el.textContent = fmt(k, val[k]);
       });
     });
-    if (ref && celebrar && val.matches >= ref.matches) {
+    if (ref && celebrar && modo !== 'volver' && val.matches >= ref.matches) {
       const bajas = val.kills - ref.kills;
       if (val.wins > ref.wins) {
         aviso(textoVictoria); destellos();
         if (bajas > 0) setTimeout(() => aviso('+' + bajas + (bajas === 1 ? ' baja' : ' bajas'), true), 4200);
       } else if (bajas > 0) aviso('+' + bajas + (bajas === 1 ? ' baja' : ' bajas'), true);
     }
-    if (!demo) { try { localStorage.setItem(ultKey, JSON.stringify(val)); } catch (e) {} }
-    if (!baseHoy) { baseHoy = { fecha, wins: t.wins, kills: t.kills, matches: t.matches }; try { localStorage.setItem(hoyKey, JSON.stringify(baseHoy)); } catch (e) {} }
+    if (!demo && !modo) { try { localStorage.setItem(ultKey, JSON.stringify(val)); } catch (e) {} }
+    if (!demo && !modo) ultimaReal = JSON.parse(JSON.stringify(d));
+    if (!baseHoy && modo !== 'prueba') { baseHoy = { fecha, wins: t.wins, kills: t.kills, matches: t.matches }; try { localStorage.setItem(hoyKey, JSON.stringify(baseHoy)); } catch (e) {} }
     ['wins', 'kills', 'matches'].forEach(k => {
       const dlt = t[k] - baseHoy[k];
       put('[data-h="' + k + '"]', '+' + num(dlt));
@@ -302,7 +305,9 @@ body.b-cinta{height:170px}
       const u = new URL(K.SUPABASE_URL + '/functions/v1/fortnite-stats');
       u.search = new URLSearchParams({ nombre, cuenta, ventana }).toString();
       const r = await fetch(u, { headers: { apikey: K.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + K.SUPABASE_ANON_KEY } });
-      pintar(await r.json());
+      const dd = await r.json();
+      if (volverT && dd && dd.ok) { ultimaReal = dd; return; } // hay una prueba en pantalla: se aplica al terminar
+      pintar(dd);
     } catch (e) { console.warn('Kyo Fortnite: sin conexión', e); if (!prev) { mensaje('Sin conexión con Supabase.'); LISTA.forEach(k => put('[data-k="' + k + '"]', '–')); } }
   }
 
@@ -311,6 +316,18 @@ body.b-cinta{height:170px}
   const recalc = () => { D.total.kd = +(D.total.kills / Math.max(1, D.total.matches - D.total.wins)).toFixed(2); D.total.winRate = +(D.total.wins / D.total.matches * 100).toFixed(1); pintar(JSON.parse(JSON.stringify(D))); };
   window.addEventListener('message', e => {
     if (!e.data || e.data.type !== 'kyo-test') return;
+    // Con datos reales: la prueba se hace sobre TUS números y a los pocos segundos vuelven solos (no se guarda nada)
+    if (!demo && ultimaReal) {
+      const f = JSON.parse(JSON.stringify(prev ? Object.assign({}, ultimaReal, { total: Object.assign({}, ultimaReal.total, { wins: prev.wins, kills: prev.kills, matches: prev.matches, top10: prev.top10 }) }) : ultimaReal));
+      const t = f.total;
+      if (e.data.accion === 'victoria') { t.matches++; t.wins++; t.top10 = (t.top10 || 0) + 1; t.kills += 4; }
+      if (e.data.accion === 'bajas') { t.kills += 3; }
+      t.kd = +(t.kills / Math.max(1, t.matches - t.wins)).toFixed(2); t.winRate = +(t.wins / Math.max(1, t.matches) * 100).toFixed(1);
+      pintar(f, 'prueba');
+      clearTimeout(volverT);
+      volverT = setTimeout(() => { volverT = 0; pintar(JSON.parse(JSON.stringify(ultimaReal)), 'volver'); }, 7000);
+      return;
+    }
     if (!prev) { guardado = null; pintar(JSON.parse(JSON.stringify(D))); }
     if (e.data.accion === 'victoria') { D.total.matches++; D.total.wins++; D.total.top10++; D.total.kills += 4; recalc(); }
     if (e.data.accion === 'bajas') { D.total.kills += 3; recalc(); }
