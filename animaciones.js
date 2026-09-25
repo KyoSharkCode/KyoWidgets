@@ -84,6 +84,28 @@ function ponerForm(card, pl, o) {
   });
 }
 
+// ---------- sonido ----------
+// AudioBuffer → WAV PCM 16 bits (para meterlo dentro del .mov)
+function aWav(buf) {
+  const nc = buf.numberOfChannels, n = buf.length, sr = buf.sampleRate, dv = new DataView(new ArrayBuffer(44 + n * nc * 2));
+  const txt = (o, t) => { for (let i = 0; i < t.length; i++) dv.setUint8(o + i, t.charCodeAt(i)); };
+  txt(0, 'RIFF'); dv.setUint32(4, 36 + n * nc * 2, true); txt(8, 'WAVE'); txt(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true);
+  dv.setUint16(22, nc, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr * nc * 2, true); dv.setUint16(32, nc * 2, true); dv.setUint16(34, 16, true); txt(36, 'data'); dv.setUint32(40, n * nc * 2, true);
+  const ch = [...Array(nc)].map((_, c) => buf.getChannelData(c)); let o = 44;
+  for (let i = 0; i < n; i++) for (let c = 0; c < nc; c++) { const v = Math.max(-1, Math.min(1, ch[c][i])); dv.setInt16(o, v < 0 ? v * 0x8000 : v * 0x7fff, true); o += 2; }
+  return new Uint8Array(dv.buffer);
+}
+let audioCtx = null, sonando = null;
+async function oir(pl, o) {
+  const buf = await pl.sonido(o);
+  if (sonando) { try { sonando.stop(); } catch (e) {} sonando = null; }
+  if (!buf) return false;
+  audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+  const src = audioCtx.createBufferSource(); src.buffer = buf; src.connect(audioCtx.destination); src.start(); sonando = src;
+  return true;
+}
+
 // ---------- exportar ----------
 async function exportar(pl, card) {
   if (ocupado) return;
@@ -106,14 +128,21 @@ async function exportar(pl, card) {
       await f.writeFile('f' + pad(i) + '.png', new Uint8Array(await blob.arrayBuffer()));
       if (i % 5 === 0) aviso('Dibujando fotogramas ' + (i + 1) + '/' + n + '…', 0.05 + 0.45 * (i / n));
     }
+    let conAudio = false;
+    if (pl.sonido) {
+      aviso('Creando el sonido…', 0.5);
+      const buf = await pl.sonido(o);
+      if (buf) { await f.writeFile('audio.wav', aWav(buf)); conAudio = true; }
+    }
     const prog = ({ progress }) => aviso('Armando el video con transparencia… ' + Math.min(99, Math.round(progress * 100)) + '%', 0.5 + 0.48 * Math.min(1, progress));
     f.on('progress', prog);
-    await f.exec(['-framerate', String(pl.fps), '-i', 'f%04d.png', '-c:v', 'prores_ks', '-profile:v', '4444',
-      '-pix_fmt', 'yuva444p10le', '-qscale:v', '9', '-vendor', 'apl0', '-y', 'salida.mov']);
+    await f.exec(['-framerate', String(pl.fps), '-i', 'f%04d.png', ...(conAudio ? ['-i', 'audio.wav', '-map', '0:v', '-map', '1:a', '-c:a', 'pcm_s16le'] : []),
+      '-c:v', 'prores_ks', '-profile:v', '4444', '-pix_fmt', 'yuva444p10le', '-qscale:v', '9', '-vendor', 'apl0', '-y', 'salida.mov']);
     f.off('progress', prog);
     const data = await f.readFile('salida.mov');
     for (let i = 0; i < n; i++) { try { await f.deleteFile('f' + pad(i) + '.png'); } catch (e) {} }
     try { await f.deleteFile('salida.mov'); } catch (e) {}
+    if (conAudio) { try { await f.deleteFile('audio.wav'); } catch (e) {} }
     const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/quicktime' }));
     const a = document.createElement('a'); a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
@@ -134,7 +163,7 @@ function tarjeta(pl) {
     '<div class="animgrid"><div class="animform opts">' + formulario(pl) + '</div>' +
     '<div class="animside"><div class="chips">' + Object.keys(FORMATOS).map((k, i) => '<label><input type="radio" name="fmt-' + pl.id + '" value="' + k + '"' + (i ? '' : ' checked') + '>' + (k === 'horizontal' ? '🖥️ Horizontal 1920×1080' : '📱 Vertical 1080×1920') + '</label>').join('') + '</div>' +
     '<div class="animprev"><canvas></canvas></div>' +
-    '<div class="acciones"><button class="btn pri" type="button" data-mov>⬇ Descargar .mov con transparencia</button><button class="btn" type="button" data-replay>↻ Repetir</button></div>' +
+    '<div class="acciones"><button class="btn pri" type="button" data-mov>⬇ Descargar .mov con transparencia</button><button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
     '<div class="progreso" hidden><i></i></div><p class="nota ptxt" aria-live="polite"></p></div></div>';
   const clave = 'kyo_anim_' + pl.id;
   ponerForm(card, pl, Object.assign(defecto(pl), leer(clave) || {}));
@@ -152,6 +181,10 @@ function tarjeta(pl) {
   $('[data-replay]', card).addEventListener('click', () => { t0 = performance.now(); });
   $('[data-reset]', card).addEventListener('click', () => { ponerForm(card, pl, defecto(pl)); refrescar(); t0 = performance.now(); });
   $('[data-mov]', card).addEventListener('click', () => exportar(pl, card));
+  if (pl.sonido) $('[data-oir]', card).addEventListener('click', async () => {
+    const ok = await oir(pl, o).catch(() => false); t0 = performance.now();
+    if (!ok) $('.ptxt', card).textContent = o.sonido === 'ninguno' ? 'Elegiste "Sin sonido": el video saldrá mudo.' : 'Tu navegador no pudo generar el sonido.';
+  });
   // imágenes
   card._imgs = {};
   const ponerImg = async (k, blob, nombre) => {

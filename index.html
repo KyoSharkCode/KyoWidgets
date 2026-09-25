@@ -97,6 +97,8 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .animprev canvas{display:block;width:100%;height:auto}
 .progreso{height:10px;border-radius:999px;background:var(--panel2);overflow:hidden;box-shadow:0 0 0 1px var(--line)}
 .progreso i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .3s}
+.fila3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color-scheme:dark}
 .imgpick{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.imgpick label.btn{cursor:pointer}.imgpick small{color:var(--faint);font-size:12.5px}
 @media (max-width:900px){.animgrid{grid-template-columns:1fr}.animside{position:static}}
 .btn:disabled{opacity:.5;cursor:progress}
@@ -134,6 +136,7 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="spotify" aria-selected="true">🎵 Música</button>
     <button role="tab" data-tab="fortnite" aria-selected="false">🏆 Fortnite</button>
+    <button role="tab" data-tab="cuenta" aria-selected="false">⏱ Cuenta atrás</button>
     <button role="tab" data-tab="animaciones" aria-selected="false">🎬 Animaciones</button>
     <button role="tab" data-tab="conexiones" aria-selected="false">🔌 Conexiones</button>
   </nav>
@@ -212,6 +215,45 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
   </section>
 
   <!-- ===================== CONEXIONES ===================== -->
+  <!-- ===================== CUENTA ATRÁS ===================== -->
+  <section data-panel="cuenta" class="grid" hidden>
+    <form class="card opts" id="fCuenta" onsubmit="return false">
+      <div class="grupo"><h3>Textos</h3>
+        <label class="f"><span>Texto de arriba (vacío = sin texto)</span><input type="text" name="titulo" maxlength="30"></label>
+        <label class="f"><span>Texto al llegar a cero</span><input type="text" name="final" maxlength="24"></label>
+      </div>
+      <div class="grupo"><h3>Tiempo</h3>
+        <div class="f"><span>¿Cómo cuenta?</span><div class="chips" data-radio="modo" data-val="hasta:📅 Hasta una fecha y hora,duracion:⏳ Durante un tiempo"></div></div>
+        <label class="f" data-si="modo=hasta"><span>Fecha y hora</span><input type="datetime-local" name="fecha"></label>
+        <p class="nota" data-si="modo=hasta">Recomendado: aunque OBS se cierre o recargue, siempre llega a cero a esa hora exacta.</p>
+        <div data-si="modo=duracion" class="fila3">
+          <label class="f"><span>Horas</span><input type="number" name="h" min="0" max="99"></label>
+          <label class="f"><span>Minutos</span><input type="number" name="m" min="0" max="59"></label>
+          <label class="f"><span>Segundos</span><input type="number" name="s" min="0" max="59"></label>
+        </div>
+        <p class="nota" data-si="modo=duracion">Empieza a contar la primera vez que se abre en OBS y sigue aunque OBS se recargue. Para empezar de nuevo, pulsa <b>Reiniciar cuenta</b> y vuelve a pegar el enlace.</p>
+        <div data-si="modo=duracion"><button class="btn" type="button" id="btnSesion">🔄 Reiniciar cuenta</button><input type="hidden" name="sesion"></div>
+      </div>
+      <div class="grupo"><h3>Estilo</h3>
+        <div class="f"><span>Diseño</span><div class="chips" data-radio="diseno" data-val="pegatina:🟦 Pegatina,barra:💊 Barra,texto:🔤 Solo texto"></div></div>
+        <div class="f"><span>Temporada</span><div class="chips" data-radio="tema" data-val="marea:🌊 Normal,octubre:🎃 Halloween,navidad:🎄 Navidad"></div></div>
+        <div class="f"><span>Tamaño</span><div class="chips" data-radio="escala" data-val="0.75:Pequeño,1:Normal,1.25:Grande,1.5:Muy grande"></div></div>
+        <div class="f"><span>Nombres (horas, min, seg)</span><div class="chips" data-radio="etiquetas" data-val="si:Mostrar,no:Ocultar"></div></div>
+        <div class="f"><span>Al llegar a cero</span><div class="chips" data-radio="alfinal" data-val="final:🎉 Mostrar el texto final,ocultar:👻 Desaparecer,cero:Quedarse en 00:00:00"></div></div>
+      </div>
+      <div class="grupo"><h3>Colores</h3>
+        <div class="chips"><label><input type="checkbox" name="colores"> Usar mis propios colores</label></div>
+        <div class="colores off" data-colores>
+          <label>Acento<input type="color" name="acento" value="#6fe3f0"></label>
+          <label>Borde / pegatina<input type="color" name="borde" value="#ffffff"></label>
+          <label>Caja<input type="color" name="caja" value="#0f1a4a"></label>
+          <label>Texto<input type="color" name="texto" value="#f5f3fb"></label>
+        </div>
+      </div>
+    </form>
+    <div class="prev" data-prev="cuenta"></div>
+  </section>
+
   <!-- ===================== ANIMACIONES ===================== -->
   <section data-panel="animaciones" hidden>
     <div class="card animhead">
@@ -258,6 +300,8 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
   const leer = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   function toast(t, ms = 3200) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), ms); }
 
+  // Fecha por defecto de la cuenta atrás: mañana a las 20:00 (hora local)
+  function fechaPorDefecto() { const d = new Date(Date.now() + 86400000); d.setHours(20, 0, 0, 0); const z = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + 'T20:00'; }
   // ---------- Widgets: tamaño base y valores por defecto ----------
   const W = {
     spotify: { w: 720, h: 180, tam: { vinilo: [720, 180], polaroid: [640, 200], casete: [620, 210], entrada: [640, 190] },
@@ -265,7 +309,10 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
       pruebas: [['cancion', '🎵 Probar cambio de canción']] },
     fortnite: { w: 760, h: 250, tam: { marcador: [760, 250], insignias: [760, 250], credencial: [760, 250], cinta: [760, 170] },
       def: { diseno: 'marcador', mover: 'si', tema: 'octubre', escala: '1', cuenta: 'epic', ventana: 'season', hoy: 'si', celebrar: 'si', stats: ['wins', 'kills', 'kd', 'matches'] },
-      pruebas: [['victoria', '🏆 Probar victoria'], ['bajas', '⚔️ Probar bajas']] }
+      pruebas: [['victoria', '🏆 Probar victoria'], ['bajas', '⚔️ Probar bajas']] },
+    cuenta: { w: 860, h: 280, tam: { pegatina: [860, 280], barra: [860, 150], texto: [860, 240] }, sinDatos: true,
+      def: { diseno: 'pegatina', tema: 'marea', escala: '1', modo: 'hasta', etiquetas: 'si', alfinal: 'final' },
+      pruebas: [['diez', '⏱ Probar últimos 10 s'], ['final', '🎉 Probar el final'], ['reset', '↺ Volver al tiempo real']] }
   };
 
   // Construye chips a partir de data-radio / data-check
@@ -280,7 +327,7 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
     p.innerHTML = '<div class="card" style="display:flex;flex-direction:column;gap:12px">' +
       '<div class="chips" data-bg><label><input type="radio" name="bg-' + id + '" value="juego" checked>Sobre juego</label><label><input type="radio" name="bg-' + id + '" value="escena">Escena octubre</label><label><input type="radio" name="bg-' + id + '" value="oscuro">Oscuro</label><label><input type="radio" name="bg-' + id + '" value="claro">Claro</label></div>' +
       '<div class="stage juego" data-lbl="Vista previa"><div class="frame"><iframe title="Vista previa del widget"></iframe></div></div>' +
-      '<div class="acciones"><div class="chips"><label><input type="radio" name="datos-' + id + '" value="demo" checked>Datos de ejemplo</label><label><input type="radio" name="datos-' + id + '" value="real">Mis datos reales</label></div></div>' +
+      (W[id].sinDatos ? '' : '<div class="acciones"><div class="chips"><label><input type="radio" name="datos-' + id + '" value="demo" checked>Datos de ejemplo</label><label><input type="radio" name="datos-' + id + '" value="real">Mis datos reales</label></div></div>') +
       '<div class="acciones">' + W[id].pruebas.map(([a, l]) => '<button class="btn" type="button" data-test="' + a + '">' + l + '</button>').join('') + '</div>' +
       '<div class="url"><input readonly aria-label="Enlace para OBS"><button class="btn pri" type="button" data-copy>Copiar enlace</button></div>' +
       '<ol class="pasos"><li>En OBS: <b>+ Fuente → Navegador</b>.</li><li>Pega el enlace. <b>Ancho <span data-w></span></b> · <b>Alto <span data-h></span></b>.</li><li>Colócalo donde quieras: el fondo ya es transparente.</li></ol></div>';
@@ -310,13 +357,18 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
   function url(id, demo) {
     const o = estadoForm(id), d = W[id].def, p = new URLSearchParams();
     const set = (k, v) => { if (v !== undefined && v !== '' && v !== d[k]) p.set(k, v); };
-    ['diseno', 'tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'mover', 'cuenta', 'ventana', 'hoy', 'celebrar'].forEach(k => { if (k in o) set(k, o[k]); });
+    ['diseno', 'tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'mover', 'cuenta', 'ventana', 'hoy', 'celebrar', 'etiquetas', 'alfinal'].forEach(k => { if (k in o) set(k, o[k]); });
     if (o.colores) ['acento', 'borde', 'caja', 'texto'].forEach(k => p.set(k, (o[k] || '').replace('#', '')));
     if (id === 'spotify') {
       const ocultar = d.ver.filter(v => !(o.ver || []).includes(v));
       if (ocultar.length) p.set('ocultar', ocultar.join(','));
       if (o.etiqueta && o.etiqueta !== 'Sonando ahora') p.set('etiqueta', o.etiqueta);
       if (o.modo === 'cambio') p.set('segundos', o.segundos || 12);
+    } else if (id === 'cuenta') {
+      p.set('titulo', o.titulo || '');
+      if (o.final && o.final !== '¡YA!') p.set('final', o.final);
+      if (o.modo === 'duracion') { p.set('h', o.h || 0); p.set('m', o.m || 0); p.set('s', o.s || 0); p.set('sesion', o.sesion || '1'); }
+      else p.set('hasta', o.fecha || fechaPorDefecto());
     } else {
       p.set('nombre', o.nombre || 'TuNombreEpic');
       if (o.titulo) p.set('titulo', o.titulo);
@@ -339,7 +391,7 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
     const esc = Number(o.escala || 1), w = Math.ceil(base[0] * esc), h = Math.ceil(base[1] * esc);
     $('[data-w]', panel).textContent = w; $('[data-h]', panel).textContent = h;
     $('.url input', panel).value = url(id, false);
-    const demo = $('input[name="datos-' + id + '"]:checked', panel).value === 'demo';
+    const dsel = $('input[name="datos-' + id + '"]:checked', panel), demo = dsel ? dsel.value === 'demo' : false;
     const src = url(id, demo);
     const stage = $('.stage', panel);
     stage.className = 'stage ' + $('input[name="bg-' + id + '"]:checked', panel).value;
@@ -357,7 +409,8 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
       prev.ver = (prev.ver || []).map(v => v === 'disco' ? 'portada' : v === 'sonar' ? 'progreso' : v);
       if (prev.fuente === 'fredoka') prev.fuente = 'auto';
     }
-    aplicarForm(id, Object.assign({}, W[id].def, id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' }, prev || {}));
+    const extra = id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : id === 'cuenta' ? { titulo: 'REVELACIÓN EN', final: '¡YA!', fecha: fechaPorDefecto(), h: '1', m: '0', s: '0', sesion: '1' } : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' };
+    aplicarForm(id, Object.assign({}, W[id].def, extra, prev || {}));
     const panel = $('[data-panel="' + id + '"]');
     panel.addEventListener('change', () => actualizar(id));
     panel.addEventListener('input', e => { if (e.target.type === 'text' || e.target.type === 'number' || e.target.type === 'color') { clearTimeout(panel.t); panel.t = setTimeout(() => actualizar(id), 400); } });
@@ -372,6 +425,7 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
       }
     });
   });
+  $('#btnSesion').addEventListener('click', () => { $('#fCuenta [name=sesion]').value = Date.now().toString(36); actualizar('cuenta'); toast('Cuenta reiniciada: copia el enlace nuevo y pégalo en OBS'); });
   window.addEventListener('resize', () => Object.keys(W).forEach(id => { if (!$('[data-panel="' + id + '"]').hidden) actualizar(id); }));
 
   // ---------- Pestañas ----------
