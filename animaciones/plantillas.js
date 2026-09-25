@@ -1580,5 +1580,213 @@ const rotulo = {
   }
 };
 
+// Iconos extra (paneles y anuncios)
+const CHAT = new Path2D('M4 4.5h16a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5h-9.5l-5 3.8v-3.8H4A1.5 1.5 0 0 1 2.5 16V6A1.5 1.5 0 0 1 4 4.5Z');
+const REGALO = new Path2D('M3.5 8.5h17v4.5h-17Z M5 14h6v6.5H5Z M13 14h6v6.5h-6Z M12 8.3C10 3.8 6.3 4.4 6.8 6.5 7.2 8 10 8.3 12 8.3Z M12 8.3C14 3.8 17.7 4.4 17.2 6.5 16.8 8 14 8.3 12 8.3Z');
+const MANDO = new Path2D('M7 7.5h10a5 5 0 0 1 4.8 6.3l-.9 3.4a2.2 2.2 0 0 1-3.9.7l-1.5-2.4h-7L7 17.9a2.2 2.2 0 0 1-3.9-.7l-.9-3.4A5 5 0 0 1 7 7.5Z');
+const NOTA = new Path2D('M9 18.5a3 3 0 1 1-2-2.83V5.2l12-2.4v12.7a3 3 0 1 1-2-2.83V6.6L9 8.1Z');
+const MUNDO = new Path2D('M12 2.5a9.5 9.5 0 1 0 0 19 9.5 9.5 0 0 0 0-19Zm6.9 8.5h-3.3a15 15 0 0 0-1.2-5.7A7.5 7.5 0 0 1 18.9 11ZM12 4.6c.9 1.2 1.8 3.4 2 6.4h-4c.2-3 1.1-5.2 2-6.4ZM9.6 5.3A15 15 0 0 0 8.4 11H5.1a7.5 7.5 0 0 1 4.5-5.7ZM5.1 13h3.3a15 15 0 0 0 1.2 5.7A7.5 7.5 0 0 1 5.1 13Zm6.9 6.4c-.9-1.2-1.8-3.4-2-6.4h4c-.2 3-1.1 5.2-2 6.4Zm2.4-.7a15 15 0 0 0 1.2-5.7h3.3a7.5 7.5 0 0 1-4.5 5.7Z');
+
+// =====================================================================
+// Música de fondo (100 % sintetizada en el navegador)
+// =====================================================================
+const midi = m => 440 * Math.pow(2, (m - 69) / 12);
+const ESTILOS_MUSICA = {
+  alegre: { bpm: 112, acordes: [[60, 64, 67], [59, 62, 67], [60, 64, 69], [60, 65, 69]], bajos: [36, 43, 45, 41], onda: 'triangle' },
+  chill: { bpm: 84, acordes: [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]], bajos: [41, 40, 38, 36], onda: 'sine' }
+};
+function musicaFondo(ac, destino, L, estilo, vol) {
+  const E = ESTILOS_MUSICA[estilo] || ESTILOS_MUSICA.alegre, b = 60 / E.bpm, compas = 4 * b, chill = estilo === 'chill';
+  const r = azar(chill ? 77 : 55), nb = ruido(ac, 1, 9);
+  const master = ac.createGain(); master.gain.setValueAtTime(0.0001, 0); master.gain.exponentialRampToValueAtTime(vol, .5);
+  master.gain.setValueAtTime(vol, Math.max(.6, L - 1.4)); master.gain.linearRampToValueAtTime(0.0001, L);
+  master.connect(destino);
+  // eco suave para la melodía
+  const eco = ac.createDelay(1); eco.delayTime.value = b * .75; const fb = ac.createGain(); fb.gain.value = chill ? .38 : .25; const ecoLp = ac.createBiquadFilter(); ecoLp.type = 'lowpass'; ecoLp.frequency.value = 2400;
+  eco.connect(ecoLp).connect(fb).connect(eco); ecoLp.connect(master);
+  const nota = (t, f, dur, { tipo = 'sine', nivel = .1, ataque = .01, corte = 3000, det = 0, a = null } = {}) => {
+    if (t >= L) return;
+    const os = ac.createOscillator(); os.type = tipo; os.frequency.value = f; os.detune.value = det;
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = corte;
+    const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(nivel, t + ataque); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    os.connect(lp).connect(g).connect(master); if (a) g.connect(a); os.start(t); os.stop(t + dur + .05);
+  };
+  const golpe = (t, { hp = 0, bp = 0, nivel = .2, dur = .1 }) => {
+    if (t >= L) return;
+    const s = ac.createBufferSource(); s.buffer = nb; let n = s;
+    if (hp) { const f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp; n.connect(f); n = f; }
+    if (bp) { const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = bp; f.Q.value = .8; n.connect(f); n = f; }
+    const g = ac.createGain(); g.gain.setValueAtTime(nivel, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    n.connect(g).connect(master); s.start(t, r() * .5); s.stop(t + dur + .02);
+  };
+  const bombo = (t, nivel) => {
+    if (t >= L) return;
+    const os = ac.createOscillator(); os.frequency.setValueAtTime(150, t); os.frequency.exponentialRampToValueAtTime(42, t + .12);
+    const g = ac.createGain(); g.gain.setValueAtTime(nivel, t); g.gain.exponentialRampToValueAtTime(0.0001, t + .28);
+    os.connect(g).connect(master); os.start(t); os.stop(t + .3);
+  };
+  const arp = [0, 1, 2, 1, 0, 2, 1, 2];
+  for (let c = 0, t0 = 0; t0 < L; c++, t0 += compas) {
+    const ac_ = E.acordes[c % 4], bajo = E.bajos[c % 4];
+    // colchón de acordes
+    ac_.forEach((m, i) => { nota(t0, midi(m), compas + .1, { tipo: E.onda, nivel: chill ? .045 : .03, ataque: chill ? .35 : .08, corte: chill ? 1100 : 1800, det: i % 2 ? 6 : -6 }); });
+    // bajo
+    if (chill) nota(t0, midi(bajo), compas * .95, { tipo: 'sine', nivel: .16, ataque: .05, corte: 500 });
+    else [0, 1.5, 2, 3.5].forEach(p => nota(t0 + p * b, midi(bajo + 12), b * .45, { tipo: 'triangle', nivel: .15, ataque: .01, corte: 700 }));
+    // melodía / arpegio
+    if (chill) {
+      for (let k = 0; k < 4; k++) if (r() > .25) nota(t0 + k * b + (k % 2 ? b * .12 : 0), midi(ac_[Math.floor(r() * ac_.length)] + 12), b * 1.4, { tipo: 'sine', nivel: .06, ataque: .01, corte: 3500, a: eco });
+    } else {
+      for (let k = 0; k < 8; k++) nota(t0 + k * b / 2, midi(ac_[arp[k] % ac_.length] + 12 + (k === 7 && c % 2 ? 12 : 0)), b * .4, { tipo: 'square', nivel: .022, ataque: .005, corte: 2600, a: eco });
+      if (c % 2 === 0) nota(t0, midi(ac_[2] + 24), b * 2, { tipo: 'sine', nivel: .04, ataque: .005, corte: 6000, a: eco });
+      // acordes cortos a contratiempo
+      for (let k = 0; k < 4; k++) ac_.forEach(m => nota(t0 + (k + .5) * b, midi(m + 12), b * .28, { tipo: 'triangle', nivel: .018, ataque: .005, corte: 2200 }));
+    }
+    // batería (desde el segundo compás)
+    if (c >= 1 || chill) {
+      if (chill) { bombo(t0, .5); bombo(t0 + 2.5 * b, .38); golpe(t0 + 2 * b, { bp: 1800, nivel: .12, dur: .09 });
+        for (let k = 0; k < 8; k++) golpe(t0 + k * b / 2 + (k % 2 ? b * .1 : 0), { hp: 7500, nivel: k % 2 ? .035 : .02, dur: .03 }); }
+      else { bombo(t0, .7); bombo(t0 + 2 * b, .7); bombo(t0 + 2.75 * b, .4);
+        [1, 3].forEach(p => golpe(t0 + p * b, { hp: 1200, bp: 2200, nivel: .22, dur: .13 }));
+        for (let k = 0; k < 8; k++) golpe(t0 + k * b / 2, { hp: 7000, nivel: k % 2 ? .05 : .03, dur: .035 }); }
+    }
+  }
+}
+
+// =====================================================================
+// Anuncio de merch (pestaña Anuncios)
+// =====================================================================
+const itemCampos = i => {
+  const si = i === 1 ? undefined : i === 2 ? 'cantidad=2|3' : 'cantidad=3';
+  const defs = [['Camiseta KyoSumi'], ['Sudadera Tiburón'], ['Taza Marea']][i - 1];
+  return [
+    { k: 'imagen' + i, label: 'Producto ' + i + ' · foto (PNG sin fondo queda genial)', tipo: 'imagen', si },
+    { k: 'nombre' + i, label: 'Producto ' + i + ' · nombre', tipo: 'texto', def: defs[0], max: 26, si },
+    { k: 'precio' + i, label: 'Producto ' + i + ' · precio (vacío = no sale)', tipo: 'texto', def: '', max: 12, si }
+  ];
+};
+const anuncioMerch = {
+  id: 'anuncio-merch',
+  opaco: true,
+  fmtDef: 'vertical',
+  nombre: 'Anuncio de merch',
+  desc: 'Anuncio a pantalla completa con 1, 2 o 3 productos, el enlace de tu tienda, "envíos a todo el mundo" y música de fondo propia.',
+  fps: 30,
+  campos: [
+    { k: 'titulo', label: 'Título', tipo: 'texto', def: '¡Nueva merch!', max: 22 },
+    { k: 'cantidad', label: 'Productos a la vez', tipo: 'chips', def: '1', opciones: [['1', '1 producto'], ['2', '2 productos'], ['3', '3 productos']] },
+    ...itemCampos(1), ...itemCampos(2), ...itemCampos(3),
+    { k: 'fondoFoto', label: 'Fondo de las fotos', tipo: 'chips', def: 'claro', opciones: [['claro', 'Claro'], ['acento', 'Color del estilo'], ['oscuro', 'Oscuro']] },
+    { k: 'url', label: 'Dónde comprar (enlace)', tipo: 'texto', def: 'tutienda.com/kyosumi', max: 36 },
+    { k: 'envio', label: 'Texto de envíos', tipo: 'texto', def: 'Envíos a todo el mundo', max: 32 },
+    ...COLORES,
+    { k: 'musica', label: 'Música de fondo', tipo: 'chips', def: 'alegre', opciones: [['alegre', '🎶 Alegre'], ['chill', '🌙 Chill'], ['ninguna', '🔇 Sin música']] },
+    { k: 'vol', label: 'Volumen de la música (%)', tipo: 'numero', def: 70, min: 5, max: 100, paso: 5 },
+    { k: 'dur', label: 'Duración (segundos)', tipo: 'numero', def: 12, min: 6, max: 30, paso: 1 }
+  ],
+  duracion: o => clamp(Number(o.dur) || 12, 6, 30),
+  sonido(o) {
+    if (o.musica === 'ninguna') return Promise.resolve(null);
+    const L = this.duracion(o), v = clamp(Number(o.vol) || 70, 5, 100) / 100;
+    return renderSonido(L, (ac, out) => musicaFondo(ac, out, L, o.musica, 1.5 * v));
+  },
+  _cajas(n, fmt, W, H) {
+    if (fmt === 'vertical') {
+      if (n === 1) return [[160, 420, 760, 760]];
+      if (n === 2) return [[60, 470, 460, 600], [560, 470, 460, 600]];
+      return [[95, 410, 420, 420], [565, 410, 420, 420], [330, 890, 420, 420]];
+    }
+    if (n === 1) return [[710, 250, 500, 500]];
+    if (n === 2) return [[440, 260, 480, 480], [1000, 260, 480, 480]];
+    return [[190, 270, 460, 460], [730, 270, 460, 460], [1270, 270, 460, 460]];
+  },
+  dibujar(ctx, t, o, fmt, W, H) {
+    const P = paleta(o), vert = fmt === 'vertical', u = Math.min(W, H) / 1080, k = vert ? W / 1080 : W / 1920;
+    // fondo: degradado + rayas diagonales que se mueven + brillos
+    const g = ctx.createLinearGradient(0, 0, W * .3, H); g.addColorStop(0, P.c); g.addColorStop(1, P.o);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.globalAlpha = .07; ctx.fillStyle = P.a; const paso = 90 * u, desp = (t * 30 * u) % (paso * 2);
+    ctx.translate(W / 2, H / 2); ctx.rotate(rad(-25)); for (let x = -W * 1.5 - desp; x < W * 1.5; x += paso * 2) ctx.fillRect(x, -H * 1.5, paso, H * 3); ctx.restore();
+    const rg = ctx.createRadialGradient(W / 2, H * .45, 0, W / 2, H * .45, Math.max(W, H) * .55); rg.addColorStop(0, P.a2 + '44'); rg.addColorStop(1, P.a2 + '00');
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+    { const r = azar(8); for (let i = 0; i < 22; i++) { const sx = r() * W, sy = r() * H, tw = .5 + .5 * Math.sin(t * (2 + r() * 2) + i); destello(ctx, sx, sy, (12 + r() * 20) * u, i % 4 ? '#ffffff' : '#F4C542', .5 + tw * .5, i * 30 + t * 25, .25 + tw * .5); } }
+    // mar abajo
+    const Y0 = H * (vert ? .88 : .935), A = 16 * u;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.lineWidth = 26 * u; ctx.strokeStyle = P.o; ctx.stroke(lineaMar(W, Y0 - 34 * u, A, 1.3, t)); ctx.lineWidth = 14 * u; ctx.strokeStyle = P.p; ctx.stroke(lineaMar(W, Y0 - 34 * u, A, 1.3, t));
+    ctx.fillStyle = P.a; ctx.fill(caminoMar(W, H, Y0 - 34 * u, A, 1.3, t));
+    ctx.lineWidth = 26 * u; ctx.strokeStyle = P.o; ctx.stroke(lineaMar(W, Y0, A, 0, t)); ctx.lineWidth = 14 * u; ctx.strokeStyle = P.p; ctx.stroke(lineaMar(W, Y0, A, 0, t));
+    ctx.fillStyle = P.a2; ctx.fill(caminoMar(W, H, Y0, A, 0, t));
+    // título
+    if (o.titulo) letrasSaltan(ctx, o.titulo, W / 2, (vert ? 270 : 130) * k, (vert ? 150 : 130) * k, P, t, .25, .06, t, W - 140 * k);
+    // productos
+    const n = clamp(Number(o.cantidad) || 1, 1, 3), cajas = this._cajas(n, fmt, W, H);
+    const fondoF = o.fondoFoto === 'acento' ? P.a : o.fondoFoto === 'oscuro' ? P.o : '#ffffff';
+    cajas.forEach(([x, y, w, h], i) => {
+      x *= k; y *= k; w *= k; h *= k;
+      const ti = .8 + i * .3, a = kf(t, [[ti, { s: .2, r: -16, a: 0, y: 80 }], [ti + .35, { s: 1.08, r: 4, a: 1, y: -10 }], [ti + .55, { s: 1, r: 0, a: 1, y: 0 }]], EASE.back);
+      if (a.a <= .01) return;
+      const cx = x + w / 2, cy = y + h / 2, base = (i % 2 ? 2.5 : -2.5) + (n === 3 && i === 2 ? 2 : 0);
+      const bob = Math.sin(t * 2.2 + i * 1.3) * 6 * u, rb = Math.sin(t * 1.6 + i) * 1.2;
+      ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(cx, cy + a.y * u + bob); ctx.rotate(rad(a.r + base + rb)); ctx.scale(a.s, a.s); ctx.translate(-cx, -cy);
+      pegatina(ctx, x, y, w, h, 34 * u, { fill: fondoF, p: P.p, o: P.o, ring: 9 * u, out: 7 * u, drop: 16 * u });
+      const img = o['imagen' + (i + 1)];
+      ctx.save(); rr(ctx, x, y, w, h, 34 * u); ctx.clip();
+      if (img) imagenEn(ctx, img, x + w * .06, y + h * .06, w * .88, h * .78, 'contener');
+      else icono(ctx, CAMISETA, cx - w * .28, cy - h * .32, w * .56, o.fondoFoto === 'claro' ? P.a2 + '66' : 'rgba(255,255,255,.35)');
+      // brillo que cruza la foto cada 4 s
+      const sp = ((t - ti - .6) % 4) / .8;
+      if (t > ti + .6 && sp > 0 && sp < 1) { ctx.save(); ctx.translate(lerp(x - w * .3, x + w * 1.3, sp), cy); ctx.rotate(rad(20)); ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(-26 * u, -h, 52 * u, 2 * h); ctx.restore(); }
+      ctx.restore();
+      // nombre (chip sobre el borde inferior)
+      const nom = o['nombre' + (i + 1)];
+      if (nom) { const f = `700 ${(n === 1 ? 40 : 32) * u}px "Fredoka"`; let wn = ancho(ctx, nom, f) + 50 * u; const sc = Math.min(1, (w + 40 * u) / wn);
+        ctx.save(); ctx.translate(cx, y + h); ctx.scale(sc, sc);
+        pegatina(ctx, -wn / 2, -30 * u, wn, 62 * u, 31 * u, { fill: P.c, p: P.p, o: P.o, ring: 6 * u, out: 5 * u, drop: 8 * u, suave: false });
+        fuente(ctx, f); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = P.t; ctx.fillText(nom, 0, 3 * u); ctx.restore(); }
+      // precio (estrella pegatina en la esquina)
+      const pr = o['precio' + (i + 1)];
+      if (pr) { const pk = kf(t, [[ti + .45, { s: 0 }], [ti + .7, { s: 1.2 }], [ti + .85, { s: 1 }]], EASE.back).s, R = (n === 1 ? 88 : 70) * u;
+        if (pk > 0) { const px = x + w - R * .35, py = y + R * .35; ctx.save(); ctx.translate(px, py); ctx.rotate(rad(12 + Math.sin(t * 3 + i) * 5)); ctx.scale(pk, pk);
+          const est = caminoEstallido(R, R, 10, t, 3 + i); ctx.lineJoin = 'round'; ctx.lineWidth = 18 * u; ctx.strokeStyle = P.o; ctx.stroke(est); ctx.lineWidth = 10 * u; ctx.strokeStyle = P.p; ctx.stroke(est); ctx.fillStyle = '#F4C542'; ctx.fill(est);
+          const fp = `400 ${(n === 1 ? 40 : 32) * u}px "Cherry Bomb One"`; let s2 = Math.min(1, R * 1.35 / ancho(ctx, pr, fp)); ctx.scale(s2, s2); fuente(ctx, fp); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = P.o; ctx.fillText(pr, 0, 3 * u); ctx.restore(); } }
+      ctx.restore();
+    });
+    // enlace de la tienda
+    const tU = .8 + n * .3 + .35;
+    if (o.url) {
+      const a = kf(t, [[tU, { y: 60, s: .6, a: 0 }], [tU + .35, { y: -8, s: 1.05, a: 1 }], [tU + .5, { y: 0, s: 1, a: 1 }]], EASE.back);
+      if (a.a > .01) {
+        const f = `700 ${(vert ? 50 : 44) * k}px "Chakra Petch"`, fe = 2 * k, tw = ancho(ctx, o.url, f, fe), hh = (vert ? 104 : 92) * k, ww = Math.min(W - 80 * k, tw + 150 * k);
+        const cx = W / 2, cy = (vert ? 1430 : 835) * k + a.y * u, lat = 1 + Math.sin(t * 4) * .015;
+        ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(cx, cy); ctx.scale(a.s * lat, a.s * lat);
+        pegatina(ctx, -ww / 2, -hh / 2, ww, hh, hh / 2, { fill: P.a, p: P.p, o: P.o, ring: 8 * u, out: 7 * u, drop: 12 * u });
+        icono(ctx, BOLSA, -ww / 2 + 30 * k, -28 * k, 56 * k, P.o); icono(ctx, ASA, -ww / 2 + 30 * k, -28 * k, 56 * k, P.o, { trazo: true, grosor: 2.2 });
+        const sc = Math.min(1, (ww - 130 * k) / tw); ctx.translate(34 * k, 3 * k); ctx.scale(sc, sc); fuente(ctx, f, fe); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = P.o; ctx.fillText(o.url, 0, 0);
+        ctx.restore();
+      }
+    }
+    // envíos a todo el mundo ✨
+    if (o.envio) {
+      const a = kf(t, [[tU + .35, { y: 30, a: 0 }], [tU + .7, { y: 0, a: 1 }]], EASE.back);
+      if (a.a > .01) {
+        const f = `700 ${(vert ? 50 : 40) * k}px "Fredoka"`, tw = ancho(ctx, o.envio, f), cy = (vert ? 1545 : 930) * k + a.y * u, ic = 44 * k;
+        ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1);
+        const x0 = W / 2 - (tw + ic + 14 * k) / 2;
+        icono(ctx, MUNDO, x0, cy - ic / 2, ic, P.t);
+        fuente(ctx, f); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineWidth = 8 * u; ctx.strokeStyle = P.o; ctx.strokeText(o.envio, x0 + ic + 14 * k, cy + 2 * k); ctx.fillStyle = P.t; ctx.fillText(o.envio, x0 + ic + 14 * k, cy + 2 * k);
+        ctx.restore();
+        const xs = W / 2 + (tw + ic + 14 * k) / 2 + 34 * k;
+        [[0, 0, 40, '#F4C542', 0], [26, -26, 22, '#ffffff', .8], [-4, 30, 16, P.a, 1.6]].forEach(([dx, dy, s, col, ph]) => { const tw2 = .6 + .4 * Math.sin(t * 5 + ph); destello(ctx, xs + dx * k, cy + dy * k, s * k, col, a.a * tw2 * 1.2, t * 60 + ph * 40, a.a); });
+      }
+    }
+  }
+};
+
 export const PLANTILLAS = [intro, outro, rotulo, pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, merch, transicion, nota, momentazo];
 export const FORMATOS = { horizontal: { w: 1920, h: 1080 }, vertical: { w: 1080, h: 1920 } };
+// Anuncios (pestaña propia)
+export const ANUNCIOS = [anuncioMerch];
+// Utilidades de dibujo para otras pestañas (paneles de Twitch)
+export const UT = { TEMAS, paleta, pegatina, rr, fuente, ancho, destello, icono, azar, rad,
+  ICONOS: { estrella: [ESTRELLA], corazon: [CORAZON], calendario: [CALENDARIO, CAL_LINEAS], check: [CHECK], camiseta: [CAMISETA], bolsa: [BOLSA, ASA], chat: [CHAT], regalo: [REGALO], mando: [MANDO], nota: [NOTA], play: [PLAY], campana: [CAMPANA, BADAJO], aleta: [ALETA], mundo: [MUNDO] } };

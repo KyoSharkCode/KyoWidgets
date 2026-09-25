@@ -99,6 +99,13 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .progreso i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .3s}
 .fila3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color-scheme:dark}
+.panopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px}
+.panlista{display:grid;gap:12px;margin-bottom:14px}
+.panfila{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:16px;background:repeating-conic-gradient(#1b1545 0 25%,#140f38 0 50%) 0 0/18px 18px}
+.panfila canvas{width:320px;max-width:100%;height:auto;display:block}
+.panctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1;min-width:260px}
+.panctl input[type=text]{width:auto;flex:1;min-width:150px}
+.panctl select{font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
 .versiones{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border:1px dashed var(--line2);border-radius:14px;background:rgba(155,107,255,.06)}
 .versiones span{font:600 13px "Fredoka",sans-serif;color:var(--dim);margin-right:4px}
 .versiones select{font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:210px}
@@ -150,6 +157,8 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <button role="tab" data-tab="fortnite" aria-selected="false">🏆 Fortnite</button>
     <button role="tab" data-tab="cuenta" aria-selected="false">⏱ Cuenta atrás</button>
     <button role="tab" data-tab="animaciones" aria-selected="false">🎬 Animaciones</button>
+    <button role="tab" data-tab="anuncios" aria-selected="false">📣 Anuncios</button>
+    <button role="tab" data-tab="paneles" aria-selected="false">🧩 Paneles</button>
     <button role="tab" data-tab="conexiones" aria-selected="false">🔌 Conexiones</button>
   </nav>
 
@@ -274,6 +283,24 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       <p class="nota">En Premiere: arrastra el .mov a una pista <b>encima</b> de tu video. El fondo ya es transparente.</p>
     </div>
     <div id="animLista" class="animlista"><p class="nota">Cargando…</p></div>
+  </section>
+
+  <!-- ===================== ANUNCIOS ===================== -->
+  <section data-panel="anuncios" hidden>
+    <div class="card animhead">
+      <h2>📣 Anuncios</h2>
+      <p class="nota">Anuncios a pantalla completa para redes (TikTok, Reels, Shorts) o para el directo. Elige cuántos productos salen, pon tus fotos, el enlace de la tienda y la música, y descarga un <b>.mp4</b> listo para subir. Pulsa <b>🔊 Repetir con sonido</b> para oír la música antes de descargar.</p>
+    </div>
+    <div id="anunLista" class="animlista"><p class="nota">Cargando…</p></div>
+  </section>
+
+  <!-- ===================== PANELES DE TWITCH ===================== -->
+  <section data-panel="paneles" hidden>
+    <div class="card animhead">
+      <h2>🧩 Paneles de Twitch</h2>
+      <p class="nota">Crea los paneles de la sección "Acerca de" de tu canal con tu estilo pegatina. Escribe los títulos, elige un icono para cada uno y descárgalos en PNG (uno a uno o todos juntos en un .zip). Tamaño recomendado por Twitch: 320×100 (el de 640×200 se ve más nítido en pantallas grandes).</p>
+    </div>
+    <div id="panelesApp" class="card"><p class="nota">Cargando…</p></div>
   </section>
 
   <section data-panel="conexiones" class="con" hidden>
@@ -444,7 +471,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   function tab(n) {
     $$('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === n ? 'true' : 'false'));
     $$('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== n);
-    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else comprobarSpotify();
+    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else comprobarSpotify();
   }
   $$('nav.tabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.tab)));
 
@@ -532,5 +559,6 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 })();
 </script>
 <script type="module" src="animaciones.js"></script>
+<script type="module" src="paneles.js"></script>
 </body>
 </html>

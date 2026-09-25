@@ -4,7 +4,7 @@
 // Todo pasa en el navegador: cada fotograma se dibuja en un <canvas> y ffmpeg.wasm arma el video.
 
 import { FFmpeg } from './vendor/ffmpeg/index.js';
-import { PLANTILLAS, FORMATOS } from './animaciones/plantillas.js';
+import { PLANTILLAS, FORMATOS, ANUNCIOS } from './animaciones/plantillas.js';
 
 const CORE = window.KYO_FFMPEG_CORE || 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
 const $ = (s, r = document) => r.querySelector(s);
@@ -21,7 +21,7 @@ const FUENTES = [
   ['Fredoka', 'fonts/fredoka-latin-700-normal.woff2', '700'],
   ['Chakra Petch', 'fonts/chakra-petch-latin-700-normal.woff2', '700']
 ];
-const fuentesListas = Promise.all(FUENTES.map(([n, u, w]) => new FontFace(n, `url(${u})`, { weight: w }).load().then(f => document.fonts.add(f)).catch(() => {})));
+export const fuentesListas = Promise.all(FUENTES.map(([n, u, w]) => new FontFace(n, `url(${u})`, { weight: w }).load().then(f => document.fonts.add(f)).catch(() => {})));
 
 let ff = null, cargando = null, ocupado = false, abierto = false;
 
@@ -167,7 +167,7 @@ function tarjeta(pl) {
     '<div class="versiones"><span>⭐ Mis versiones</span><select data-ver><option value="">Elegir versión guardada…</option></select>' +
     '<input type="text" data-vernom maxlength="30" placeholder="Nombre (ej. Código Halloween)"><button class="btn" type="button" data-verguardar>💾 Guardar versión</button><button class="btn" type="button" data-verborrar hidden>🗑 Borrar</button></div>' +
     '<div class="animgrid"><div class="animform opts">' + formulario(pl) + '</div>' +
-    '<div class="animside"><div class="chips">' + FMTS(pl).map((k, i) => '<label><input type="radio" name="fmt-' + pl.id + '" value="' + k + '"' + (i ? '' : ' checked') + '>' + (k === 'horizontal' ? '🖥️ Horizontal 1920×1080' : '📱 Vertical 1080×1920') + '</label>').join('') + '</div>' +
+    '<div class="animside"><div class="chips">' + FMTS(pl).map((k, i) => '<label><input type="radio" name="fmt-' + pl.id + '" value="' + k + '"' + ((pl.fmtDef ? k === pl.fmtDef : !i) ? ' checked' : '') + '>' + (k === 'horizontal' ? '🖥️ Horizontal 1920×1080' : '📱 Vertical 1080×1920') + '</label>').join('') + '</div>' +
     '<div class="animprev"><canvas></canvas></div>' +
     '<div class="acciones"><button class="btn pri" type="button" data-mov>' + (pl.opaco ? '⬇ Descargar .mp4' : '⬇ Descargar .mov con transparencia') + '</button>' + (FMTS(pl).length > 1 ? '<button class="btn" type="button" data-ambos>⬇ Horizontal + vertical</button>' : '') + '<button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
     '<div class="progreso" hidden><i></i></div><p class="nota ptxt" aria-live="polite"></p></div></div>';
@@ -177,7 +177,7 @@ function tarjeta(pl) {
   let t0 = performance.now(), o = leerForm(card, pl);
   const refrescar = () => {
     o = leerForm(card, pl); guardar(clave, Object.fromEntries(Object.entries(o).filter(([k]) => !(card._imgs && k in card._imgs) && !pl.campos.some(c => c.k === k && c.tipo === 'imagen'))));
-    $$('[data-si]', card).forEach(el => { const [k, v] = el.dataset.si.split('='); el.hidden = o[k] !== v; });
+    $$('[data-si]', card).forEach(el => { const [k, v] = el.dataset.si.split('='); el.hidden = !v.split('|').includes(String(o[k])); });
     const fmt = $('input[name="fmt-' + pl.id + '"]:checked', card).value, F = FORMATOS[fmt];
     cv.width = F.w / 3; cv.height = F.h / 3; cv.dataset.fmt = fmt;
     cv.style.maxWidth = fmt === 'vertical' ? '300px' : '100%';
@@ -248,10 +248,16 @@ function tarjeta(pl) {
   return card;
 }
 
+let anunciosAbierto = false;
 window.kyoAnim = {
   abrir() {
     if (abierto) return; abierto = true;
     const cont = $('#animLista'); cont.innerHTML = '';
     PLANTILLAS.forEach(pl => cont.appendChild(tarjeta(pl)));
+  },
+  abrirAnuncios() {
+    if (anunciosAbierto) return; anunciosAbierto = true;
+    const cont = $('#anunLista'); cont.innerHTML = '';
+    ANUNCIOS.forEach(pl => cont.appendChild(tarjeta(pl)));
   }
 };
