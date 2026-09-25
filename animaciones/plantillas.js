@@ -1662,7 +1662,8 @@ const itemCampos = i => {
   return [
     { k: 'imagen' + i, label: 'Producto ' + i + ' · foto (PNG sin fondo queda genial)', tipo: 'imagen', si },
     { k: 'nombre' + i, label: 'Producto ' + i + ' · nombre', tipo: 'texto', def: defs[0], max: 26, si },
-    { k: 'precio' + i, label: 'Producto ' + i + ' · precio (vacío = no sale)', tipo: 'texto', def: '', max: 12, si }
+    { k: 'precio' + i, label: 'Producto ' + i + ' · precio (vacío = no sale)', tipo: 'texto', def: '', max: 12, si },
+    { k: 'zoom' + i, label: 'Producto ' + i + ' · zoom de la foto (%)', tipo: 'numero', def: 100, min: 50, max: 250, paso: 5, si }
   ];
 };
 const anuncioMerch = {
@@ -1732,7 +1733,7 @@ const anuncioMerch = {
       pegatina(ctx, x, y, w, h, 34 * u, { fill: fondoF, p: P.p, o: P.o, ring: 9 * u, out: 7 * u, drop: 16 * u });
       const img = o['imagen' + (i + 1)];
       ctx.save(); rr(ctx, x, y, w, h, 34 * u); ctx.clip();
-      if (img) imagenEn(ctx, img, x + w * .06, y + h * .06, w * .88, h * .78, 'contener');
+      if (img) { const z = clamp(Number(o['zoom' + (i + 1)]) || 100, 50, 250) / 100, bw = w * .88 * z, bh = h * .78 * z; imagenEn(ctx, img, cx - bw / 2, y + h * .45 - bh / 2, bw, bh, 'contener'); }
       else icono(ctx, CAMISETA, cx - w * .28, cy - h * .32, w * .56, o.fondoFoto === 'claro' ? P.a2 + '66' : 'rgba(255,255,255,.35)');
       // brillo que cruza la foto cada 4 s
       const sp = ((t - ti - .6) % 4) / .8;
