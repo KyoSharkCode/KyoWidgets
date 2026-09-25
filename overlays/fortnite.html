@@ -230,9 +230,11 @@ body.b-cinta{height:170px}
 
   let prev = null;
   // Últimos valores vistos: se guardan en OBS para poder celebrar aunque la fuente se haya recargado
-  const ultKey = 'kyo_fn_ult_' + nombre.toLowerCase() + '_' + ventana;
+  // v2: se ignoran los valores que guardaba la versión anterior (podían ser de ejemplo)
+  const ultKey = 'kyo_fn_ult2_' + nombre.toLowerCase() + '_' + ventana;
+  const enEstudio = window.self !== window.top; // vista previa dentro de Kyo Estudio: no usa ni guarda memoria
   let guardado = null;
-  if (!demo) { try { guardado = JSON.parse(localStorage.getItem(ultKey) || 'null'); } catch (e) {} }
+  if (!demo && !enEstudio) { try { guardado = JSON.parse(localStorage.getItem(ultKey) || 'null'); } catch (e) {} }
   const num = n => Number(n || 0).toLocaleString('es');
   const dec = k => k === 'kd' || k === 'winrate';
   const fmt = (k, v) => dec(k) ? Number(v).toFixed(k === 'kd' ? 2 : 1) : num(v);
@@ -275,20 +277,22 @@ body.b-cinta{height:170px}
     if (d.nivel != null) { w.classList.remove('sin-nivel'); put('[data-nv]', d.nivel); }
     const val = { wins: t.wins, kills: t.kills, kd: Number(t.kd) || 0, matches: t.matches, winrate: Number(t.winRate) || 0, top10: t.top10 || 0 };
     const ref = prev || guardado;
+    // Solo se celebra un cambio creíble entre dos consultas; si el salto es enorme (datos viejos) se actualiza en silencio
+    const creible = ref && val.matches >= ref.matches && val.wins - ref.wins <= 5 && val.kills - ref.kills <= 80 && val.matches - ref.matches <= 10;
     LISTA.forEach(k => {
       $$('[data-k="' + k + '"]').forEach(el => {
-        if (ref && ref[k] != null && val[k] !== ref[k]) contar(el, k, ref[k], val[k]);
-        else if (!prev) el.textContent = fmt(k, val[k]);
+        if (creible && ref[k] != null && val[k] !== ref[k]) contar(el, k, ref[k], val[k]);
+        else if (!prev || !creible) el.textContent = fmt(k, val[k]);
       });
     });
-    if (ref && celebrar && modo !== 'volver' && val.matches >= ref.matches) {
+    if (creible && celebrar && modo !== 'volver') {
       const bajas = val.kills - ref.kills;
       if (val.wins > ref.wins) {
         aviso(textoVictoria); destellos();
         if (bajas > 0) setTimeout(() => aviso('+' + bajas + (bajas === 1 ? ' baja' : ' bajas'), true), 4200);
       } else if (bajas > 0) aviso('+' + bajas + (bajas === 1 ? ' baja' : ' bajas'), true);
     }
-    if (!demo && !modo) { try { localStorage.setItem(ultKey, JSON.stringify(val)); } catch (e) {} }
+    if (!demo && !modo && !enEstudio) { try { localStorage.setItem(ultKey, JSON.stringify(val)); } catch (e) {} }
     if (!demo && !modo) ultimaReal = JSON.parse(JSON.stringify(d));
     if (!baseHoy && modo !== 'prueba') { baseHoy = { fecha, wins: t.wins, kills: t.kills, matches: t.matches }; try { localStorage.setItem(hoyKey, JSON.stringify(baseHoy)); } catch (e) {} }
     ['wins', 'kills', 'matches'].forEach(k => {
@@ -328,6 +332,7 @@ body.b-cinta{height:170px}
       volverT = setTimeout(() => { volverT = 0; pintar(JSON.parse(JSON.stringify(ultimaReal)), 'volver'); }, 7000);
       return;
     }
+    if (!demo) return; // con datos reales, esperar a que lleguen tus números antes de probar
     if (!prev) { guardado = null; pintar(JSON.parse(JSON.stringify(D))); }
     if (e.data.accion === 'victoria') { D.total.matches++; D.total.wins++; D.total.top10++; D.total.kills += 4; recalc(); }
     if (e.data.accion === 'bajas') { D.total.kills += 3; recalc(); }
