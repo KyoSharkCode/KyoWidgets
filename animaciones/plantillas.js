@@ -1237,6 +1237,28 @@ function burbujasEn(ctx, W, H, t, u, sem, n, vel = 1) {
     ctx.beginPath(); ctx.arc(bxx - rad0 * .35, by - rad0 * .35, rad0 * .22, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.fill();
   }
 }
+// Cielo de noche (degradado, brillo, estrellas y luna) compartido por la intro y la outro
+function fondoNoche(ctx, P, W, H, t, u, Y0, luna, vert) {
+    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, P.o); g.addColorStop(.7, P.c); g.addColorStop(1, P.c);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    const rg = ctx.createRadialGradient(W / 2, H * .45, 0, W / 2, H * .45, Math.max(W, H) * .6); rg.addColorStop(0, P.a2 + '55'); rg.addColorStop(1, P.a2 + '00');
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+    if (luna) {
+      const r = azar(3);
+      for (let i = 0; i < 34; i++) { const sx = r() * W, sy = r() * Y0 * .92, tw = .5 + .5 * Math.sin(t * (2 + r() * 3) + i); destello(ctx, sx, sy, (10 + r() * 22) * u, i % 5 ? '#ffffff' : '#F4C542', .5 + tw * .5, i * 20 + t * 20, .35 + tw * .6); }
+      const mx = vert ? W * .78 : W * .85, my = vert ? H * .12 : H * .17, R = 70 * u;
+      const gl = ctx.createRadialGradient(mx, my, R * .6, mx, my, R * 2.6); gl.addColorStop(0, 'rgba(247,233,176,.35)'); gl.addColorStop(1, 'rgba(247,233,176,0)');
+      ctx.fillStyle = gl; ctx.fillRect(mx - R * 3, my - R * 3, R * 6, R * 6);
+      const ix = mx + R * .45, iy = my - R * .3, iR = R * .85;
+      const fuera = new Path2D(); fuera.rect(mx - R * 2, my - R * 2, R * 4, R * 4); fuera.arc(ix, iy, iR, 0, Math.PI * 2);
+      const dentro = new Path2D(); dentro.arc(mx, my, R, 0, Math.PI * 2);
+      ctx.save(); ctx.clip(fuera, 'evenodd');
+      ctx.lineWidth = 12 * u; ctx.strokeStyle = P.o; ctx.stroke(dentro); ctx.lineWidth = 7 * u; ctx.strokeStyle = P.p; ctx.stroke(dentro); ctx.fillStyle = '#F7E9B0'; ctx.fill(dentro); ctx.restore();
+      ctx.save(); ctx.clip(dentro); ctx.beginPath(); ctx.arc(ix, iy, iR, 0, Math.PI * 2);
+      ctx.lineWidth = 12 * u; ctx.strokeStyle = P.o; ctx.stroke(); ctx.lineWidth = 7 * u; ctx.strokeStyle = P.p; ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.clip(fuera, 'evenodd'); ctx.clip(dentro); ctx.fillStyle = '#F7E9B0'; ctx.fill(dentro); ctx.restore();
+    }
+}
 const intro = {
   id: 'intro',
   opaco: true, // fondo completo: se descarga en MP4 (H.264)
@@ -1257,27 +1279,8 @@ const intro = {
     const P = paleta(o), L = this.duracion(o), FIN = 5;
     const tm = tiempo(t, L, 3.0, FIN - .7, FIN, .7);
     const vert = fmt === 'vertical', u = Math.min(W, H) / 1080;
-    // ---- cielo de noche ----
-    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, P.o); g.addColorStop(.7, P.c); g.addColorStop(1, P.c);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    const rg = ctx.createRadialGradient(W / 2, H * .45, 0, W / 2, H * .45, Math.max(W, H) * .6); rg.addColorStop(0, P.a2 + '55'); rg.addColorStop(1, P.a2 + '00');
-    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
     const Y0 = H * (vert ? .74 : .72);
-    if (o.luna !== 'no') {
-      const r = azar(3);
-      for (let i = 0; i < 34; i++) { const sx = r() * W, sy = r() * Y0 * .92, tw = .5 + .5 * Math.sin(t * (2 + r() * 3) + i); destello(ctx, sx, sy, (10 + r() * 22) * u, i % 5 ? '#ffffff' : '#F4C542', .5 + tw * .5, i * 20 + t * 20, .35 + tw * .6); }
-      const mx = vert ? W * .78 : W * .85, my = vert ? H * .12 : H * .17, R = 70 * u;
-      const gl = ctx.createRadialGradient(mx, my, R * .6, mx, my, R * 2.6); gl.addColorStop(0, 'rgba(247,233,176,.35)'); gl.addColorStop(1, 'rgba(247,233,176,0)');
-      ctx.fillStyle = gl; ctx.fillRect(mx - R * 3, my - R * 3, R * 6, R * 6);
-      const ix = mx + R * .45, iy = my - R * .3, iR = R * .85;
-      const fuera = new Path2D(); fuera.rect(mx - R * 2, my - R * 2, R * 4, R * 4); fuera.arc(ix, iy, iR, 0, Math.PI * 2);
-      const dentro = new Path2D(); dentro.arc(mx, my, R, 0, Math.PI * 2);
-      ctx.save(); ctx.clip(fuera, 'evenodd');
-      ctx.lineWidth = 12 * u; ctx.strokeStyle = P.o; ctx.stroke(dentro); ctx.lineWidth = 7 * u; ctx.strokeStyle = P.p; ctx.stroke(dentro); ctx.fillStyle = '#F7E9B0'; ctx.fill(dentro); ctx.restore();
-      ctx.save(); ctx.clip(dentro); ctx.beginPath(); ctx.arc(ix, iy, iR, 0, Math.PI * 2);
-      ctx.lineWidth = 12 * u; ctx.strokeStyle = P.o; ctx.stroke(); ctx.lineWidth = 7 * u; ctx.strokeStyle = P.p; ctx.stroke(); ctx.restore();
-      ctx.save(); ctx.clip(fuera, 'evenodd'); ctx.clip(dentro); ctx.fillStyle = '#F7E9B0'; ctx.fill(dentro); ctx.restore();
-    }
+    fondoNoche(ctx, P, W, H, t, u, Y0, o.luna !== 'no', vert);
     // ---- nivel del mar (sube, lo tapa todo, baja y deja ver el nombre) ----
     const arriba = -H * .12;
     const fr = [[0, { y: Y0 }], [1.15, { y: Y0 }], [1.6, { y: arriba }], [1.72, { y: arriba }], [2.35, { y: Y0 }]];
@@ -1378,5 +1381,204 @@ const intro = {
   }
 };
 
-export const PLANTILLAS = [intro, pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, merch, transicion, nota, momentazo];
+// Letras tipo pegatina que saltan una a una (títulos grandes)
+function letrasSaltan(ctx, txt, cx, cy, fs, P, tm, tIni, paso, t, maxW) {
+  const letras = [...txt], fT = s => `400 ${s}px "Cherry Bomb One"`, esp = fs * .025;
+  let anchos = letras.map(c => ancho(ctx, c, fT(fs))), tot = anchos.reduce((a, b) => a + b, 0) + esp * (letras.length - 1);
+  if (tot > maxW) { const k = maxW / tot; fs *= k; anchos = anchos.map(a => a * k); tot = maxW; }
+  const uu = fs / 250; let x = cx - tot / 2;
+  letras.forEach((c, i) => {
+    const ti = tIni + i * paso, w = anchos[i], lx = x + w / 2; x += w + esp;
+    if (c === ' ') return;
+    const a = kf(tm, [[ti, { y: 110, s: .3, r: -18, a: 0 }], [ti + .22, { y: -22, s: 1.14, r: 6, a: 1 }], [ti + .42, { y: 0, s: 1, r: 0, a: 1 }]], EASE.out);
+    if (a.a <= .01) return;
+    const bob = tm > ti + .42 ? Math.sin(t * 3 - i * .6) * 7 * uu : 0, rb = (i % 2 ? 3 : -3) + (tm > ti + .42 ? Math.sin(t * 2.4 - i) * 2 : 0);
+    ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(lx, cy + a.y * uu + bob); ctx.rotate(rad(a.r + rb)); ctx.scale(a.s, a.s);
+    ctx.font = fT(fs); ctx.letterSpacing = '0px'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    ctx.lineWidth = 34 * uu; ctx.strokeStyle = P.o; ctx.strokeText(c, 0, 14 * uu); ctx.fillStyle = P.o; ctx.fillText(c, 0, 14 * uu); ctx.strokeText(c, 0, 0);
+    ctx.lineWidth = 20 * uu; ctx.strokeStyle = P.p; ctx.strokeText(c, 0, 0);
+    const lg = ctx.createLinearGradient(0, -fs * .4, 0, fs * .4); lg.addColorStop(0, i % 2 ? P.a : P.t); lg.addColorStop(1, i % 2 ? P.a2 : P.a);
+    ctx.fillStyle = lg; ctx.fillText(c, 0, 0); ctx.restore();
+  });
+  return { tot, fs };
+}
+// Chip pegatina con texto (etiquetas de la outro)
+function chipTexto(ctx, txt, cx, cy, u, P, fondo) {
+  const f = `700 ${30 * u}px "Fredoka"`, w = ancho(ctx, txt, f) + 56 * u, h = 58 * u;
+  pegatina(ctx, cx - w / 2, cy - h / 2, w, h, h / 2, { fill: fondo || P.a, p: P.p, o: P.o, ring: 6 * u, out: 5 * u, drop: 8 * u, suave: false });
+  fuente(ctx, f); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = P.o; ctx.fillText(txt, cx, cy + 2 * u);
+}
+
+// =====================================================================
+// 11 · Outro / pantalla final de YouTube (pantalla completa, MP4)
+// =====================================================================
+const outro = {
+  id: 'outro',
+  opaco: true,
+  formatos: ['horizontal'],
+  nombre: 'Outro de YouTube (pantalla final)',
+  desc: 'Empieza tapada por la ola (enlaza con la intro), el mar baja y aparecen los huecos para los elementos de pantalla final de YouTube: vídeos y botón de suscribirse.',
+  fps: 30,
+  campos: [
+    { k: 'titulo', label: 'Título', tipo: 'texto', def: '¡Gracias por ver!', max: 24 },
+    { k: 'huecos', label: 'Huecos', tipo: 'chips', def: 'uno', opciones: [['uno', '1 vídeo + suscribirse'], ['dos', '2 vídeos + suscribirse']] },
+    { k: 'e1', label: 'Etiqueta del vídeo 1', tipo: 'texto', def: '¡Mira este!', max: 24 },
+    { k: 'e2', label: 'Etiqueta del vídeo 2', tipo: 'texto', def: 'O este otro', max: 24, si: 'huecos=dos' },
+    { k: 'es', label: 'Etiqueta de suscribirse', tipo: 'texto', def: '¡Suscríbete!', max: 22 },
+    { k: 'aleta', label: 'Aleta de tiburón', tipo: 'chips', def: 'si', opciones: [['si', '🦈 Sí'], ['no', 'No']] },
+    { k: 'luna', label: 'Luna y estrellas', tipo: 'chips', def: 'si', opciones: [['si', '🌙 Sí'], ['no', 'No']] },
+    ...COLORES,
+    { k: 'dur', label: 'Duración (segundos · YouTube admite de 5 a 20)', tipo: 'numero', def: 12, min: 5, max: 20, paso: 1 }
+  ],
+  duracion: o => clamp(Number(o.dur) || 12, 5, 20),
+  // Huecos en coordenadas de 1920×1080 (para colocar los elementos en YouTube Studio)
+  _huecos(o) {
+    return o.huecos === 'dos'
+      ? { videos: [[120, 300, 780, 439], [1020, 300, 780, 439]], sub: [960, 860, 190] }
+      : { videos: [[150, 300, 900, 506]], sub: [1480, 553, 300] };
+  },
+  dibujar(ctx, t, o, fmt, W, H) {
+    const P = paleta(o), L = this.duracion(o), u = Math.min(W, H) / 1080, k = W / 1920;
+    const tm = t; // la entrada dura ~2 s y después se queda quieta hasta el final
+    const Y0 = H * .9;
+    fondoNoche(ctx, P, W, H, t, u, Y0, o.luna !== 'no', false);
+    // el mar empieza arriba (tapando todo, como acaba la intro) y baja
+    const arriba = -H * .12, nivel = kf(tm, [[0, { y: arriba }], [.15, { y: arriba }], [.85, { y: Y0 }]], EASE.io).y;
+    const surge = clamp((Y0 - nivel) / (Y0 - arriba), 0, 1), A = (18 + 26 * surge) * u, nivelAtras = nivel - 40 * u;
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.lineWidth = 30 * u; ctx.strokeStyle = P.o; ctx.stroke(lineaMar(W, nivelAtras, A, 1.3, t));
+    ctx.lineWidth = 16 * u; ctx.strokeStyle = P.p; ctx.stroke(lineaMar(W, nivelAtras, A, 1.3, t));
+    ctx.fillStyle = P.a; ctx.fill(caminoMar(W, H, nivelAtras, A, 1.3, t));
+    // aleta que pasa cada 7 s por el horizonte
+    if (o.aleta !== 'no' && t > 1) {
+      const ciclo = ((t - 1) % 7) / 7, kk = 2.2 * u, fx = lerp(W + 60 * kk, -180 * kk, ciclo);
+      const baseY = nivelMar(fx + 60 * kk, nivel, A, W, 0, t) + 18 * u;
+      ctx.save(); ctx.translate(fx + 116 * kk, baseY - 78 * kk); ctx.scale(-kk, kk); ctx.rotate(rad(Math.sin(t * 6) * 3));
+      ctx.lineWidth = 14 / kk * u; ctx.strokeStyle = P.o; ctx.stroke(ALETA); ctx.lineWidth = 8 / kk * u; ctx.strokeStyle = P.p; ctx.stroke(ALETA); ctx.fillStyle = P.s; ctx.fill(ALETA);
+      ctx.restore();
+    }
+    const gm = ctx.createLinearGradient(0, Math.max(0, nivel), 0, H); gm.addColorStop(0, P.a2); gm.addColorStop(1, P.c);
+    const marD = caminoMar(W, H, nivel, A, 0, t);
+    ctx.lineWidth = 30 * u; ctx.strokeStyle = P.o; ctx.stroke(lineaMar(W, nivel, A, 0, t));
+    ctx.lineWidth = 16 * u; ctx.strokeStyle = P.p; ctx.stroke(lineaMar(W, nivel, A, 0, t));
+    ctx.fillStyle = gm; ctx.fill(marD);
+    ctx.save(); ctx.clip(marD); burbujasEn(ctx, W, H, t, u, 17, 30, 1 + surge * 2); ctx.restore();
+    // gotas al bajar el agua
+    const tg = tm - .45;
+    if (tg > 0 && tg < 1.1) { const r = azar(31), gr = 2400 * u;
+      for (let i = 0; i < 30; i++) { const x0 = r() * W, y0 = H * (.4 + r() * .4), vx = (r() * 2 - 1) * 380 * u, vy = -(500 + r() * 650) * u, rr0 = (8 + r() * 14) * u;
+        const gx = x0 + vx * tg, gy = y0 + vy * tg + gr * tg * tg / 2, a = tg < .8 ? 1 : 1 - (tg - .8) / .3; if (gy > H + 40) continue;
+        ctx.save(); ctx.globalAlpha *= a; ctx.beginPath(); ctx.arc(gx, gy, rr0, 0, Math.PI * 2); ctx.lineWidth = 5 * u; ctx.strokeStyle = P.o; ctx.stroke(); ctx.fillStyle = i % 3 ? P.a : P.p; ctx.fill(); ctx.restore(); } }
+    // título
+    if (o.titulo) letrasSaltan(ctx, o.titulo, W / 2, 150 * k, 120 * k, P, tm, .7, .05, t, W - 700 * k);
+    // huecos
+    const hz = this._huecos(o);
+    hz.videos.forEach(([x, y, w, h], i) => {
+      x *= k; y *= k; w *= k; h *= k;
+      const a = kf(tm, [[1.05 + i * .15, { s: .4, a: 0, r: -6 }], [1.4 + i * .15, { s: 1.05, a: 1, r: 1.5 }], [1.6 + i * .15, { s: 1, a: 1, r: 0 }]], EASE.back);
+      if (a.a <= .01) return;
+      const cx = x + w / 2, cy = y + h / 2;
+      ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(cx, cy); ctx.rotate(rad(a.r + (i ? 1 : -1))); ctx.scale(a.s, a.s); ctx.translate(-cx, -cy);
+      pegatina(ctx, x, y, w, h, 28 * u, { fill: P.o, p: P.p, o: P.o, ring: 9 * u, out: 7 * u, drop: 14 * u });
+      rr(ctx, x + 18 * u, y + 18 * u, w - 36 * u, h - 36 * u, 16 * u); ctx.setLineDash([16 * u, 12 * u]); ctx.lineDashOffset = -t * 30 * u; ctx.lineWidth = 3 * u; ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.stroke(); ctx.setLineDash([]);
+      icono(ctx, PLAY, cx - 40 * u, cy - 40 * u, 80 * u, 'rgba(255,255,255,.18)');
+      const et = i ? o.e2 : o.e1;
+      if (et) { const b = Math.sin(t * 3 + i) * 4 * u; ctx.save(); ctx.translate(x + 40 * u, y - 4 * u + b); ctx.rotate(rad(-4)); chipTexto(ctx, et, ancho(ctx, et, `700 ${30 * u}px "Fredoka"`) / 2 + 28 * u, 0, u, P); ctx.restore(); }
+      ctx.restore();
+    });
+    { let [cx, cy, d] = hz.sub; cx *= k; cy *= k; d *= k; const R = d / 2;
+      const a = kf(tm, [[1.45, { s: .3, a: 0 }], [1.8, { s: 1.12, a: 1 }], [1.95, { s: 1, a: 1 }]], EASE.back);
+      if (a.a > .01) {
+        ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(cx, cy); ctx.scale(a.s, a.s); ctx.translate(-cx, -cy);
+        const pul = (t % 1.6) / 1.6; ctx.save(); ctx.globalAlpha *= (1 - pul) * .7; ctx.beginPath(); ctx.arc(cx, cy, R + 14 * u + pul * 50 * u, 0, Math.PI * 2); ctx.lineWidth = 6 * u; ctx.strokeStyle = P.a; ctx.stroke(); ctx.restore();
+        ctx.beginPath(); ctx.arc(cx, cy + 14 * u, R + 16 * u, 0, Math.PI * 2); ctx.fillStyle = P.o; ctx.fill();
+        ctx.beginPath(); ctx.arc(cx, cy, R + 16 * u, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx, cy, R + 9 * u, 0, Math.PI * 2); ctx.fillStyle = P.p; ctx.fill();
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fillStyle = P.o; ctx.fill();
+        ctx.beginPath(); ctx.arc(cx, cy, R - 14 * u, 0, Math.PI * 2); ctx.setLineDash([12 * u, 10 * u]); ctx.lineDashOffset = t * 30 * u; ctx.lineWidth = 3 * u; ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.stroke(); ctx.setLineDash([]);
+        icono(ctx, CAMPANA, cx - R * .3, cy - R * .32, R * .6, 'rgba(255,255,255,.18)');
+        if (o.es) { const b = Math.sin(t * 3 + 2) * 4 * u, dos = o.huecos === 'dos'; ctx.save(); ctx.translate(dos ? cx + R + 30 * u + ancho(ctx, o.es, `700 ${30 * u}px "Fredoka"`) / 2 + 28 * u : cx, dos ? cy + b : cy + R + 56 * u + b); ctx.rotate(rad(dos ? -3 : 3)); chipTexto(ctx, o.es, 0, 0, u, P, '#F4C542'); ctx.restore(); }
+        ctx.restore();
+      }
+    }
+  }
+};
+
+// =====================================================================
+// 12 · Rótulo con nombre (invitadas, juegos…)
+// =====================================================================
+const rotulo = {
+  id: 'rotulo',
+  nombre: 'Rótulo con nombre',
+  desc: 'Barra tipo pegatina para presentar a una invitada (o un juego): entra barriendo, salta el avatar y una ola recorre el borde.',
+  fps: 30,
+  campos: [
+    { k: 'etiqueta', label: 'Etiqueta', tipo: 'texto', def: 'Invitada especial', max: 24 },
+    { k: 'nombre', label: 'Nombre', tipo: 'texto', def: 'NombreInvitada', max: 24 },
+    { k: 'sub', label: 'Debajo del nombre (opcional)', tipo: 'texto', def: '@usuario · en Twitch', max: 36 },
+    { k: 'imagen', label: 'Avatar de la invitada (opcional)', tipo: 'imagen' },
+    { k: 'icono', label: 'Icono (si no hay imagen)', tipo: 'chips', def: 'estrella', opciones: [['estrella', '⭐ Estrella'], ['corazon', '💙 Corazón'], ['play', '▶ Juego'], ['ninguno', 'Sin avatar']] },
+    ...COMUNES,
+    { k: 'dur', label: 'Duración (segundos)', tipo: 'numero', def: 6, min: 3, max: 30, paso: 0.5 }
+  ],
+  duracion: o => clamp(Number(o.dur) || 6, 3, 30),
+  dibujar(ctx, t, o, fmt, W, H) {
+    const P = paleta(o), L = this.duracion(o), vert = fmt === 'vertical';
+    let u = (vert ? 1.2 : 1.15) * (Number(o.tam) || 1);
+    const conAv = !!o.imagen || o.icono !== 'ninguno';
+    const medir = uu => {
+      const f = { chip: `700 ${20 * uu}px "Chakra Petch"`, chipE: 3 * uu, nom: `400 ${66 * uu}px "Cherry Bomb One"`, sub: `700 ${28 * uu}px "Fredoka"` };
+      const chipTxt = (o.etiqueta || '').toUpperCase(), chipW = chipTxt ? ancho(ctx, chipTxt, f.chip, f.chipE) + 32 * uu : 0;
+      const nomW = ancho(ctx, o.nombre || '', f.nom), subW = o.sub ? ancho(ctx, o.sub, f.sub) : 0;
+      const D = conAv ? 130 * uu : 0, pad = 30 * uu, txtX = pad + (D ? D * .72 : 0) + 10 * uu;
+      const h = pad + (chipTxt ? 42 * uu : 0) + 72 * uu + (o.sub ? 38 * uu : 0) + pad - 10 * uu;
+      const w = Math.max(txtX + Math.max(chipW, nomW, subW) + pad + 20 * uu, 420 * uu);
+      return { f, chipTxt, chipW, nomW, subW, D, pad, txtX, w, h };
+    };
+    let m = medir(u); if (m.w > W - 200) { u *= (W - 200) / m.w; m = medir(u); }
+    const { f, D, pad, txtX, w, h } = m;
+    const pos = colocar(fmt, o, W, H, w + (D ? D * .28 : 0), h, 40 * u);
+    const x = pos.x + (D ? D * .28 : 0), y = pos.y;
+    // entrada y salida (barrido)
+    const ent = EASE.back(clamp((t - .1) / .55, 0, 1)), sal = EASE.io(clamp((t - (L - .6)) / .5, 0, 1));
+    const contA = clamp((t - .35) / .3, 0, 1) * (1 - clamp((t - (L - .75)) / .25, 0, 1));
+    if (ent <= 0 || sal >= 1) return;
+    ctx.save();
+    const izq = x - 40 * u, anchoTot = w + 80 * u;
+    const clipX0 = sal > 0 ? izq + anchoTot * sal : izq - 400 * u, clipX1 = ent >= 1 ? x + w + 400 * u : izq + anchoTot * ent;
+    ctx.beginPath(); ctx.rect(clipX0, y - 300 * u, Math.max(0, clipX1 - clipX0), h + 600 * u); ctx.clip();
+    const cy = y + h / 2;
+    ctx.translate(x, cy); ctx.rotate(rad(-1.2)); ctx.translate(-x, -cy);
+    pegatina(ctx, x, y, w, h, 30 * u, { fill: P.c, p: P.p, o: P.o, ring: 7 * u, out: 6 * u, drop: 12 * u });
+    // ola que recorre el borde inferior
+    ctx.save(); rr(ctx, x, y, w, h, 30 * u); ctx.clip();
+    ctx.beginPath(); ctx.moveTo(x, y + h);
+    for (let xx = 0; xx <= w; xx += 8 * u) ctx.lineTo(x + xx, y + h - 16 * u - 7 * u * Math.sin(xx / (60 * u) - t * 4));
+    ctx.lineTo(x + w, y + h); ctx.closePath(); ctx.fillStyle = P.a2; ctx.fill();
+    ctx.restore();
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    let ty = y + pad - 6 * u; const tx = x + txtX;
+    ctx.save(); ctx.globalAlpha *= contA;
+    if (m.chipTxt) { const a = kf(t, [[.4, { x: -20 }], [.7, { x: 0 }]], EASE.back);
+      rr(ctx, tx + a.x * u, ty, m.chipW, 32 * u, 16 * u); ctx.fillStyle = P.a; ctx.fill();
+      fuente(ctx, f.chip, f.chipE); ctx.fillStyle = P.o; ctx.fillText(m.chipTxt, tx + 16 * u + a.x * u, ty + 17 * u); ty += 42 * u; }
+    { const a = kf(t, [[.5, { x: -30, s: .8 }], [.85, { x: 0, s: 1 }]], EASE.back);
+      fuente(ctx, f.nom); ctx.lineWidth = 9 * u; ctx.lineJoin = 'round'; ctx.strokeStyle = P.o; ctx.fillStyle = P.t;
+      ctx.strokeText(o.nombre || '', tx + a.x * u, ty + 36 * u); ctx.fillText(o.nombre || '', tx + a.x * u, ty + 36 * u); ty += 72 * u; }
+    if (o.sub) { const a = kf(t, [[.65, { y: 12 }], [.95, { y: 0 }]], EASE.back); fuente(ctx, f.sub); ctx.fillStyle = P.s; ctx.fillText(o.sub, tx, ty + 14 * u + a.y * u); }
+    ctx.restore();
+    ctx.restore();
+    // avatar (fuera del barrido para que sobresalga)
+    if (D) {
+      const ax = x + 6 * u, ay = cy;
+      const av = kf(t, [[.3, { s: 0, r: -30 }], [.6, { s: 1.15, r: 8 }], [.8, { s: 1, r: 0 }], [L - .75, { s: 1, r: 0 }], [L - .55, { s: 1.1, r: -6 }], [L - .35, { s: 0, r: 20 }]], EASE.back);
+      if (av.s > .01) { ctx.save(); ctx.translate(ax, ay); ctx.rotate(rad(av.r + Math.sin(t * 2.5) * 3)); ctx.scale(av.s, av.s); ctx.translate(-ax, -ay);
+        avatar(ctx, ax, ay, D, P, o.imagen, o.icono === 'corazon' ? CORAZON : o.icono === 'play' ? PLAY : ESTRELLA, u); ctx.restore(); }
+      const k2 = kf(t, [[.7, { s: 0, r: 0, a: 0 }], [.9, { s: 1.2, r: 60, a: 1 }], [1.4, { s: 0, r: 140, a: 0 }]]);
+      destello(ctx, ax + D * .42, ay - D * .45, 44 * u, '#F4C542', k2.s, k2.r, k2.a);
+    }
+  }
+};
+
+export const PLANTILLAS = [intro, outro, rotulo, pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, merch, transicion, nota, momentazo];
 export const FORMATOS = { horizontal: { w: 1920, h: 1080 }, vertical: { w: 1080, h: 1920 } };

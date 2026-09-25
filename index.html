@@ -99,6 +99,10 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .progreso i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .3s}
 .fila3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color-scheme:dark}
+.versiones{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border:1px dashed var(--line2);border-radius:14px;background:rgba(155,107,255,.06)}
+.versiones span{font:600 13px "Fredoka",sans-serif;color:var(--dim);margin-right:4px}
+.versiones select{font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:210px}
+.versiones input[type=text]{width:auto;flex:1;min-width:190px}
 .imgpick{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.imgpick label.btn{cursor:pointer}.imgpick small{color:var(--faint);font-size:12.5px}
 @media (max-width:900px){.animgrid{grid-template-columns:1fr}.animside{position:static}}
 .btn:disabled{opacity:.5;cursor:progress}

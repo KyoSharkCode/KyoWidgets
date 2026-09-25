@@ -11,6 +11,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const pad = n => String(n).padStart(4, '0');
 const aBlob = async (url, tipo) => URL.createObjectURL(new Blob([await (await fetch(url)).arrayBuffer()], { type: tipo }));
+const FMTS = pl => pl.formatos || Object.keys(FORMATOS);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // Tipografías propias (alojadas en el repo) para que el video salga igual en cualquier compu
@@ -107,13 +108,13 @@ async function oir(pl, o) {
 }
 
 // ---------- exportar ----------
-async function exportar(pl, card) {
+async function exportar(pl, card, fmtElegido) {
   if (ocupado) return;
   ocupado = true;
-  const o = leerForm(card, pl), fmt = $('input[name="fmt-' + pl.id + '"]:checked', card).value, F = FORMATOS[fmt];
-  const barra = $('.progreso', card), txt = $('.ptxt', card), bi = $('.progreso i', card), btn = $('[data-mov]', card);
+  const o = leerForm(card, pl), fmt = fmtElegido || $('input[name="fmt-' + pl.id + '"]:checked', card).value, F = FORMATOS[fmt];
+  const barra = $('.progreso', card), txt = $('.ptxt', card), bi = $('.progreso i', card), btn = $$('[data-mov],[data-ambos]', card);
   const aviso = (t, p) => { txt.textContent = t; if (p != null) bi.style.width = Math.round(p * 100) + '%'; };
-  btn.disabled = true; barra.hidden = false;
+  btn.forEach(b => b.disabled = true); barra.hidden = false;
   const mp4 = !!pl.opaco, nombre = pl.id + '-' + fmt + (mp4 ? '.mp4' : '.mov');
   try {
     await fuentesListas;
@@ -152,20 +153,23 @@ async function exportar(pl, card) {
   } catch (e) {
     console.error(e);
     aviso('No se pudo convertir: ' + (e && e.message ? e.message : e) + '. Recarga la página y prueba otra vez.', null);
-  } finally { ocupado = false; btn.disabled = false; }
+  } finally { ocupado = false; btn.forEach(b => b.disabled = false); }
 }
 
 // ---------- tarjeta de cada plantilla ----------
 function tarjeta(pl) {
-  const card = document.createElement('div');
-  card.className = 'card anim';
+  // cada tarjeta es un <form> para que sus opciones no se mezclen con las de otras tarjetas
+  const card = document.createElement('form');
+  card.className = 'card anim'; card.addEventListener('submit', e => e.preventDefault());
   card.innerHTML =
     '<div class="animtop"><div><h2>' + esc(pl.nombre) + '</h2><p class="nota">' + esc(pl.desc) + '</p></div>' +
     '<button class="btn" type="button" data-reset>↺ Restablecer</button></div>' +
+    '<div class="versiones"><span>⭐ Mis versiones</span><select data-ver><option value="">Elegir versión guardada…</option></select>' +
+    '<input type="text" data-vernom maxlength="30" placeholder="Nombre (ej. Código Halloween)"><button class="btn" type="button" data-verguardar>💾 Guardar versión</button><button class="btn" type="button" data-verborrar hidden>🗑 Borrar</button></div>' +
     '<div class="animgrid"><div class="animform opts">' + formulario(pl) + '</div>' +
-    '<div class="animside"><div class="chips">' + Object.keys(FORMATOS).map((k, i) => '<label><input type="radio" name="fmt-' + pl.id + '" value="' + k + '"' + (i ? '' : ' checked') + '>' + (k === 'horizontal' ? '🖥️ Horizontal 1920×1080' : '📱 Vertical 1080×1920') + '</label>').join('') + '</div>' +
+    '<div class="animside"><div class="chips">' + FMTS(pl).map((k, i) => '<label><input type="radio" name="fmt-' + pl.id + '" value="' + k + '"' + (i ? '' : ' checked') + '>' + (k === 'horizontal' ? '🖥️ Horizontal 1920×1080' : '📱 Vertical 1080×1920') + '</label>').join('') + '</div>' +
     '<div class="animprev"><canvas></canvas></div>' +
-    '<div class="acciones"><button class="btn pri" type="button" data-mov>' + (pl.opaco ? '⬇ Descargar .mp4' : '⬇ Descargar .mov con transparencia') + '</button><button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
+    '<div class="acciones"><button class="btn pri" type="button" data-mov>' + (pl.opaco ? '⬇ Descargar .mp4' : '⬇ Descargar .mov con transparencia') + '</button>' + (FMTS(pl).length > 1 ? '<button class="btn" type="button" data-ambos>⬇ Horizontal + vertical</button>' : '') + '<button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
     '<div class="progreso" hidden><i></i></div><p class="nota ptxt" aria-live="polite"></p></div></div>';
   const clave = 'kyo_anim_' + pl.id;
   ponerForm(card, pl, Object.assign(defecto(pl), leer(clave) || {}));
@@ -183,6 +187,25 @@ function tarjeta(pl) {
   $('[data-replay]', card).addEventListener('click', () => { t0 = performance.now(); });
   $('[data-reset]', card).addEventListener('click', () => { ponerForm(card, pl, defecto(pl)); refrescar(); t0 = performance.now(); });
   $('[data-mov]', card).addEventListener('click', () => exportar(pl, card));
+  const ambos = $('[data-ambos]', card);
+  if (ambos) ambos.addEventListener('click', async () => { if (ocupado) return; for (const f of FMTS(pl)) await exportar(pl, card, f); });
+  // versiones guardadas (textos y opciones; las imágenes se quedan como estén)
+  const claveV = 'kyo_versiones_' + pl.id, sel = $('[data-ver]', card), nom = $('[data-vernom]', card), borrar = $('[data-verborrar]', card);
+  const pintarV = elegida => {
+    const v = leer(claveV) || {};
+    sel.innerHTML = '<option value="">' + (Object.keys(v).length ? 'Elegir versión guardada…' : 'Aún no hay versiones guardadas') + '</option>' + Object.keys(v).sort().map(n => '<option' + (n === elegida ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+    borrar.hidden = !sel.value;
+  };
+  sel.addEventListener('change', e => { e.stopPropagation(); const v = leer(claveV) || {}; borrar.hidden = !sel.value; if (!sel.value || !v[sel.value]) return;
+    ponerForm(card, pl, Object.assign(defecto(pl), v[sel.value])); nom.value = sel.value; refrescar(); t0 = performance.now(); });
+  $('[data-verguardar]', card).addEventListener('click', () => {
+    const n = nom.value.trim(); if (!n) { nom.focus(); $('.ptxt', card).textContent = 'Escribe un nombre para la versión.'; return; }
+    const v = leer(claveV) || {}; v[n] = Object.fromEntries(Object.entries(leerForm(card, pl)).filter(([k]) => !pl.campos.some(c => c.k === k && c.tipo === 'imagen')));
+    guardar(claveV, v); pintarV(n); $('.ptxt', card).textContent = '⭐ Versión "' + n + '" guardada.';
+  });
+  borrar.addEventListener('click', () => { const v = leer(claveV) || {}; const n = sel.value; if (!n) return; delete v[n]; guardar(claveV, v); nom.value = ''; pintarV(); $('.ptxt', card).textContent = 'Versión "' + n + '" borrada.'; });
+  nom.addEventListener('input', e => e.stopPropagation());
+  pintarV();
   if (pl.sonido) $('[data-oir]', card).addEventListener('click', async () => {
     const ok = await oir(pl, o).catch(() => false); t0 = performance.now();
     if (!ok) $('.ptxt', card).textContent = o.sonido === 'ninguno' ? 'Elegiste "Sin sonido": el video saldrá mudo.' : 'Tu navegador no pudo generar el sonido.';
