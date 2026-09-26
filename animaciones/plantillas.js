@@ -907,6 +907,7 @@ const COLORES = COMUNES.slice(0, 5);
 // =====================================================================
 const transicion = {
   id: 'transicion',
+  fotoMomento: 50, // % de la duración para la imagen PNG por defecto
   nombre: 'Transición Marea (con sonido)',
   desc: 'Olas que tapan toda la pantalla y se retiran. Ponla encima del corte en Premiere: a mitad de la transición la pantalla queda cubierta.',
   fps: 30,
@@ -1289,6 +1290,7 @@ const MUSICA_CAMPOS = (def) => [
 ];
 const intro = {
   id: 'intro',
+  fotoMomento: 55, // % de la duración para la imagen PNG por defecto
   // con "Transición a tu clip" el final es transparente → .mov; si no, fondo completo → MP4
   opaco: o => o.final !== 'transicion',
   nombre: 'Intro de YouTube "KyoSumi!"',
@@ -1452,6 +1454,7 @@ function chipTexto(ctx, txt, cx, cy, u, P, fondo) {
 // =====================================================================
 const outro = {
   id: 'outro',
+  fotoMomento: 85, // % de la duración para la imagen PNG por defecto
   // con "Transición desde tu clip" empieza transparente → .mov; si no, MP4
   opaco: o => o.entrada === 'tapada',
   formatos: ['horizontal'],
@@ -1779,8 +1782,15 @@ const itemCampos = i => {
     { k: 'zoom' + i, label: 'Producto ' + i + ' · zoom de la foto (%)', tipo: 'numero', def: 100, min: 50, max: 250, paso: 5, si }
   ];
 };
+// Posiciones de los anuncios por formato (en px de diseño: ancho 1080 en vertical/retrato/cuadrado, 1920 en horizontal)
+const DISENO_ANUNCIO = {
+  vertical: { tY: 270, tF: 150, url: 1430, env: 1545 },
+  retrato: { tY: 150, tF: 130, url: 1075, env: 1175 },
+  cuadrado: { tY: 105, tF: 110, url: 860, env: 948 },
+  horizontal: { tY: 130, tF: 130, url: 835, env: 930 }
+};
 // Pie de los anuncios: enlace de la tienda + "envíos a todo el mundo" con destellos
-function pieAnuncio(ctx, o, P, W, H, t, u, k, vert, tU, yUrl, yEnv) {
+function pieAnuncio(ctx, o, P, W, H, t, u, k, vert, tU, yUrl, yEnv, ic = {}) {
     // enlace de la tienda
     if (o.url) {
       const a = kf(t, [[tU, { y: 60, s: .6, a: 0 }], [tU + .35, { y: -8, s: 1.05, a: 1 }], [tU + .5, { y: 0, s: 1, a: 1 }]], EASE.back);
@@ -1789,7 +1799,7 @@ function pieAnuncio(ctx, o, P, W, H, t, u, k, vert, tU, yUrl, yEnv) {
         const cx = W / 2, cy = yUrl * k + a.y * u, lat = 1 + Math.sin(t * 4) * .015;
         ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(cx, cy); ctx.scale(a.s * lat, a.s * lat);
         pegatina(ctx, -ww / 2, -hh / 2, ww, hh, hh / 2, { fill: P.a, p: P.p, o: P.o, ring: 8 * u, out: 7 * u, drop: 12 * u });
-        icono(ctx, BOLSA, -ww / 2 + 30 * k, -28 * k, 56 * k, P.o); icono(ctx, ASA, -ww / 2 + 30 * k, -28 * k, 56 * k, P.o, { trazo: true, grosor: 2.2 });
+        if (ic.url) icono(ctx, ic.url, -ww / 2 + 30 * k, -28 * k, 56 * k, P.o); else { icono(ctx, BOLSA, -ww / 2 + 30 * k, -28 * k, 56 * k, P.o); icono(ctx, ASA, -ww / 2 + 30 * k, -28 * k, 56 * k, P.o, { trazo: true, grosor: 2.2 }); }
         const sc = Math.min(1, (ww - 130 * k) / tw); ctx.translate(34 * k, 3 * k); ctx.scale(sc, sc); fuente(ctx, f, fe); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = P.o; ctx.fillText(o.url, 0, 0);
         ctx.restore();
       }
@@ -1798,13 +1808,13 @@ function pieAnuncio(ctx, o, P, W, H, t, u, k, vert, tU, yUrl, yEnv) {
     if (o.envio) {
       const a = kf(t, [[tU + .35, { y: 30, a: 0 }], [tU + .7, { y: 0, a: 1 }]], EASE.back);
       if (a.a > .01) {
-        const f = `700 ${(vert ? 50 : 40) * k}px "Fredoka"`, tw = ancho(ctx, o.envio, f), cy = yEnv * k + a.y * u, ic = 44 * k;
+        const f = `700 ${(vert ? 50 : 40) * k}px "Fredoka"`, tw = ancho(ctx, o.envio, f), cy = yEnv * k + a.y * u, icT = 44 * k, ic2 = ic.pie;
         ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1);
-        const x0 = W / 2 - (tw + ic + 14 * k) / 2;
-        icono(ctx, MUNDO, x0, cy - ic / 2, ic, P.t);
-        fuente(ctx, f); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineWidth = 8 * u; ctx.strokeStyle = P.o; ctx.strokeText(o.envio, x0 + ic + 14 * k, cy + 2 * k); ctx.fillStyle = P.t; ctx.fillText(o.envio, x0 + ic + 14 * k, cy + 2 * k);
+        const x0 = W / 2 - (tw + icT + 14 * k) / 2;
+        icono(ctx, ic2 || MUNDO, x0, cy - icT / 2, icT, P.t);
+        fuente(ctx, f); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.lineWidth = 8 * u; ctx.strokeStyle = P.o; ctx.strokeText(o.envio, x0 + icT + 14 * k, cy + 2 * k); ctx.fillStyle = P.t; ctx.fillText(o.envio, x0 + icT + 14 * k, cy + 2 * k);
         ctx.restore();
-        const xs = W / 2 + (tw + ic + 14 * k) / 2 + 34 * k;
+        const xs = W / 2 + (tw + icT + 14 * k) / 2 + 34 * k;
         [[0, 0, 40, '#F4C542', 0], [26, -26, 22, '#ffffff', .8], [-4, 30, 16, P.a, 1.6]].forEach(([dx, dy, s, col, ph]) => { const tw2 = .6 + .4 * Math.sin(t * 5 + ph); destello(ctx, xs + dx * k, cy + dy * k, s * k, col, a.a * tw2 * 1.2, t * 60 + ph * 40, a.a); });
       }
     }
@@ -1852,7 +1862,10 @@ const anuncioMerch = {
     const L = this.duracion(o), v = clamp(Number(o.vol) || 70, 5, 100) / 100;
     return renderSonido(L, (ac, out) => musicaFondo(ac, out, L, mus, 1.5 * v));
   },
+  formatos: ['vertical', 'horizontal', 'retrato', 'cuadrado'],
   _cajas(n, fmt, W, H) {
+    if (fmt === 'cuadrado') return [[[315, 235, 450, 450]], [[110, 220, 410, 410], [560, 220, 410, 410]], [[40, 260, 320, 320], [380, 260, 320, 320], [720, 260, 320, 320]]][n - 1];
+    if (fmt === 'retrato') return [[[215, 245, 650, 650]], [[70, 290, 450, 540], [560, 290, 450, 540]], [[40, 320, 320, 390], [380, 320, 320, 390], [720, 320, 320, 390]]][n - 1];
     if (fmt === 'vertical') {
       if (n === 1) return [[160, 420, 760, 760]];
       if (n === 2) return [[60, 470, 460, 600], [560, 470, 460, 600]];
@@ -1863,10 +1876,10 @@ const anuncioMerch = {
     return [[190, 270, 460, 460], [730, 270, 460, 460], [1270, 270, 460, 460]];
   },
   dibujar(ctx, t, o, fmt, W, H) {
-    const P = paleta(o), vert = fmt === 'vertical', u = Math.min(W, H) / 1080, k = vert ? W / 1080 : W / 1920;
-    fondoAnuncio(ctx, P, W, H, t, u, vert);
+    const P = paleta(o), vert = fmt !== 'horizontal', u = Math.min(W, H) / 1080, k = vert ? W / 1080 : W / 1920, D = DISENO_ANUNCIO[fmt];
+    fondoAnuncio(ctx, P, W, H, t, u, fmt === 'vertical');
     // título
-    if (o.titulo) letrasSaltan(ctx, o.titulo, W / 2, (vert ? 270 : 130) * k, (vert ? 150 : 130) * k, P, t, .25, .06, t, W - 140 * k);
+    if (o.titulo) letrasSaltan(ctx, o.titulo, W / 2, D.tY * k, D.tF * k, P, t, .25, .06, t, W - 140 * k);
     // productos
     const n = clamp(Number(o.cantidad) || 1, 1, 3), cajas = this._cajas(n, fmt, W, H);
     const fondoF = o.fondoFoto === 'acento' ? P.a : o.fondoFoto === 'oscuro' ? P.o : '#ffffff';
@@ -1900,12 +1913,12 @@ const anuncioMerch = {
           const fp = `400 ${(n === 1 ? 40 : 32) * u}px "Cherry Bomb One"`; let s2 = Math.min(1, R * 1.35 / ancho(ctx, pr, fp)); ctx.scale(s2, s2); fuente(ctx, fp); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = P.o; ctx.fillText(pr, 0, 3 * u); ctx.restore(); } }
       ctx.restore();
     });
-    pieAnuncio(ctx, o, P, W, H, t, u, k, vert, .8 + n * .3 + .35, vert ? 1430 : 835, vert ? 1545 : 930);
+    pieAnuncio(ctx, o, P, W, H, t, u, k, vert, .8 + n * .3 + .35, D.url, D.env);
   }
 };
 
 export const PLANTILLAS = [intro, outro, rotulo, pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, merch, transicion, nota, momentazo];
-export const FORMATOS = { horizontal: { w: 1920, h: 1080 }, vertical: { w: 1080, h: 1920 } };
+export const FORMATOS = { horizontal: { w: 1920, h: 1080 }, vertical: { w: 1080, h: 1920 }, retrato: { w: 1080, h: 1350 }, cuadrado: { w: 1080, h: 1080 } };
 // =====================================================================
 // Anuncio con cuenta atrás o fecha ("Nueva merch en 01:00:00" / "el 03-10-2026")
 // =====================================================================
@@ -1913,6 +1926,7 @@ const anuncioCuenta = {
   id: 'anuncio-cuenta',
   opaco: true,
   fmtDef: 'vertical',
+  formatos: ['vertical', 'horizontal', 'retrato', 'cuadrado'],
   nombre: 'Anuncio con cuenta atrás o fecha',
   desc: '"¡Nueva merch!" con una cuenta atrás que avanza de verdad (HH:MM:SS) o con la fecha de salida (DD-MM-AAAA). Imagen de adelanto opcional (en silueta o borrosa para crear misterio) y música.',
   fps: 30,
@@ -1956,14 +1970,35 @@ const anuncioCuenta = {
   _total: o => Math.max(0, (Number(o.d) || 0) * 86400 + (Number(o.h) || 0) * 3600 + (Number(o.m) || 0) * 60 + (Number(o.s) || 0)),
   _capa(W, H) { this._c = this._c || {}; return this._c[W + 'x' + H] || (this._c[W + 'x' + H] = Object.assign(document.createElement('canvas'), { width: W, height: H })); },
   dibujar(ctx, t, o, fmt, W, H) {
-    const P = paleta(o), vert = fmt === 'vertical', u = Math.min(W, H) / 1080, k = vert ? W / 1080 : W / 1920;
-    fondoAnuncio(ctx, P, W, H, t, u, vert);
-    if (o.titulo) letrasSaltan(ctx, o.titulo, W / 2, (vert ? 250 : 120) * k, (vert ? 145 : 120) * k, P, t, .2, .06, t, W - 140 * k);
-    const fecha = o.modo === 'fecha', img = o.imagen;
+    const P = paleta(o), vert = fmt !== 'horizontal', u = Math.min(W, H) / 1080, k = vert ? W / 1080 : W / 1920;
+    const fecha = o.modo === 'fecha', img = o.imagen, V = this._variante || {};
+    // posiciones por formato: [con imagen, sin imagen]
+    const Lx = {
+      vertical: { tY: 250, tF: 145, img: [460, 450], regalo: [560, 250], fr: [390, 800], bl: [1090, 1030], F: [140, 200], hora: 100, url: 1430, env: 1545 },
+      retrato: { tY: 140, tF: 125, img: [360, 215], regalo: [330, 220], fr: [640, 510], bl: [800, 700], F: [135, 170], hora: 70, url: 1085, env: 1185 },
+      cuadrado: { tY: 105, tF: 110, img: [250, 175], regalo: [270, 170], fr: [485, 430], bl: [610, 580], F: [110, 135], hora: 55, url: 860, env: 948 },
+      horizontal: { tY: 120, tF: 120, fr: [330, 300], bl: [500, 500], F: [150, 150], hora: 80, url: 835, env: 930 }
+    }[fmt] || {};
+    // con etiqueta de evento (anuncio de directo) se deja sitio debajo del título
+    if (V.evento && o.evento) Object.assign(Lx, {
+      vertical: { img: [400, 510], regalo: [600, 230], fr: [460, 820], bl: [1060, 1040] },
+      retrato: { img: [300, 270], regalo: [360, 200], fr: [650, 540], bl: [815, 720] },
+      cuadrado: { img: [220, 225], regalo: [318, 140], fr: [495, 450], bl: [615, 595] }
+    }[fmt] || {});
+    const iI = img ? 0 : 1;
+    fondoAnuncio(ctx, P, W, H, t, u, fmt === 'vertical');
+    if (o.titulo) letrasSaltan(ctx, o.titulo, W / 2, Lx.tY * k, Lx.tF * k, P, t, .2, .06, t, W - 140 * k);
+    // etiqueta del evento (anuncio de directo): punto rojo que late + texto
+    if (V.evento && o.evento) { const a = kf(t, [[.5, { s: 0 }], [.8, { s: 1.1 }], [.95, { s: 1 }]], EASE.back);
+      if (a.s > .01) { const ev = fmt === 'vertical' ? 1.3 : 1.1, f = `700 ${32 * ev * k}px "Fredoka"`, tw = ancho(ctx, o.evento, f), h = 58 * ev * k, w = tw + 96 * ev * k, cx = W / 2, cy = (Lx.tY + Lx.tF * .8) * k;
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(rad(-2)); ctx.scale(a.s, a.s);
+        pegatina(ctx, -w / 2, -h / 2, w, h, h / 2, { fill: '#FF4D6A', p: P.p, o: P.o, ring: 6 * u, out: 5 * u, drop: 8 * u, suave: false });
+        const lat = .75 + .25 * Math.abs(Math.sin(t * 3)); ctx.beginPath(); ctx.arc(-w / 2 + 34 * ev * k, 0, 9 * ev * k * lat, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+        ctx.beginPath(); ctx.arc(-w / 2 + 34 * ev * k, 0, 15 * ev * k * lat, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2.5 * k; ctx.stroke();
+        fuente(ctx, f); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.fillText(o.evento, -w / 2 + 62 * ev * k, 2 * k); ctx.restore(); } }
     // zona de la cuenta (derecha en horizontal si hay imagen)
     const cxC = !vert && img ? 1280 * k : W / 2, anchoC = vert ? W - 110 * k : img ? 1060 * k : W - 360 * k;
-    const yFrase = vert ? (img ? 390 : 800) * k : (img ? 330 : 300) * k;
-    const yBloques = vert ? (img ? 1090 : 1030) * k : 500 * k;
+    const yFrase = Lx.fr[iI] * k, yBloques = Lx.bl[iI] * k;
     // frase
     const fr = fecha ? o.fraseF : o.frase;
     if (fr) { const a = kf(t, [[.6, { y: 24, a: 0 }], [.95, { y: 0, a: 1 }]], EASE.back);
@@ -1971,7 +2006,7 @@ const anuncioCuenta = {
         ctx.lineWidth = 10 * u; ctx.strokeStyle = P.o; ctx.strokeText(fr, cxC, yFrase + a.y * u); ctx.fillStyle = P.t; ctx.fillText(fr, cxC, yFrase + a.y * u); ctx.restore(); } }
     // imagen de adelanto
     if (img) {
-      const s = (vert ? 460 : 440) * k, x = vert ? (W - s) / 2 : 190 * k, y = vert ? 450 * k : 300 * k, cx = x + s / 2, cy = y + s / 2;
+      const s = (vert ? Lx.img[0] : 440) * k, x = vert ? (W - s) / 2 : 190 * k, y = vert ? Lx.img[1] * k : 300 * k, cx = x + s / 2, cy = y + s / 2;
       const a = kf(t, [[.8, { s: .2, r: -14, a: 0 }], [1.15, { s: 1.08, r: 4, a: 1 }], [1.35, { s: 1, r: 0, a: 1 }]], EASE.back);
       if (a.a > .01) {
         ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(cx, cy + Math.sin(t * 2.2) * 6 * u); ctx.rotate(rad(a.r - 2 + Math.sin(t * 1.6) * 1.2)); ctx.scale(a.s, a.s); ctx.translate(-cx, -cy);
@@ -1997,9 +2032,9 @@ const anuncioCuenta = {
     // sin imagen en vertical: regalo misterioso en el centro
     if (!img && vert) {
       const a = kf(t, [[.8, { s: 0, r: -30 }], [1.15, { s: 1.12, r: 8 }], [1.35, { s: 1, r: 0 }]], EASE.back);
-      if (a.s > .01) { const cx = W / 2, cy = 560 * k + Math.sin(t * 2.4) * 10 * u, D = 250 * k;
+      if (a.s > .01) { const cx = W / 2, cy = Lx.regalo[0] * k + Math.sin(t * 2.4) * 10 * u, D = Lx.regalo[1] * k;
         ctx.save(); ctx.translate(cx, cy); ctx.rotate(rad(a.r + Math.sin(t * 3) * 5)); ctx.scale(a.s, a.s); ctx.translate(-cx, -cy);
-        avatar(ctx, cx, cy, D, P, null, REGALO, u * 1.3); ctx.restore();
+        avatar(ctx, cx, cy, D, P, null, V.icono || REGALO, u * 1.3 * D / (250 * k)); ctx.restore();
         [[-.75, -.6, '#F4C542', 0], [.8, -.45, '#ffffff', .1], [.7, .7, P.a, .2]].forEach(([fx, fy, col, dl]) => { const kk = kf(t - dl, [[1.2, { s: 0, r: 0 }], [1.45, { s: 1.2, r: 60 }], [2, { s: .9, r: 140 }]]); destello(ctx, cx + fx * D, cy + fy * D, 54 * k, col, kk.s * (.8 + .2 * Math.sin(t * 4 + dl * 9)), kk.r + t * 30, 1); });
       }
     }
@@ -2018,7 +2053,7 @@ const anuncioCuenta = {
       cambio = idx.map(i => t > T1 + 1 && pasados <= total && act[i] !== ant[i] && frac < .3 ? frac / .3 : 1);
       urg = rest <= 10 && total > 0;
     }
-    let F = (vert ? (img ? 140 : 200) : 150) * k;
+    let F = Lx.F[iI] * k;
     const medir = F => { fuente(ctx, `700 ${F}px "Fredoka"`); const ws = partes.map(p => ctx.measureText(p).width + F * .5), sw = seps ? F * .42 : 0; return { ws, sw, tot: ws.reduce((a, b) => a + b, 0) + sw * (partes.length - 1) }; };
     let mm = medir(F); if (mm.tot > anchoC) { F *= anchoC / mm.tot; mm = medir(F); }
     const hB = F * 1.3; let x = cxC - mm.tot / 2;
@@ -2044,13 +2079,32 @@ const anuncioCuenta = {
     });
     // hora (modo fecha)
     if (fecha && o.hora) { const a = kf(t, [[1.6, { s: 0 }], [1.9, { s: 1.1 }], [2.05, { s: 1 }]], EASE.back);
-      if (a.s > .01) { ctx.save(); ctx.translate(cxC, yBloques + hB / 2 + F * .25 + (vert ? 100 : 80) * k); ctx.scale(a.s, a.s); ctx.rotate(rad(-2)); chipTexto(ctx, o.hora, 0, 0, u * (vert ? 1.25 : 1.1), P, '#F4C542'); ctx.restore(); } }
-    pieAnuncio(ctx, o, P, W, H, t, u, k, vert, 2.0, vert ? 1430 : 835, vert ? 1545 : 930);
+      if (a.s > .01) { ctx.save(); ctx.translate(cxC, yBloques + hB / 2 + F * .25 + Lx.hora * k); ctx.scale(a.s, a.s); ctx.rotate(rad(-2)); chipTexto(ctx, o.hora, 0, 0, u * (vert ? 1.25 : 1.1), P, '#F4C542'); ctx.restore(); } }
+    pieAnuncio(ctx, o, P, W, H, t, u, k, vert, 2.0, Lx.url, Lx.env, { url: V.iconoUrl, pie: V.iconoPie });
   }
 };
 
+// =====================================================================
+// Anuncio "¡Directo especial!" (misma cuenta atrás, pensado para avisar de un stream)
+// =====================================================================
+const anuncioDirecto = Object.assign({}, anuncioCuenta, {
+  id: 'anuncio-directo',
+  nombre: '¡Directo especial!',
+  desc: 'Avisa de un stream especial (maratón, colaboración, aniversario…) con cuenta atrás o fecha, etiqueta "en directo" que late, imagen opcional y música.',
+  _variante: { evento: true, icono: PLAY, iconoUrl: PLAY, iconoPie: CHAT },
+  campos: (() => {
+    const c = conDef(anuncioCuenta.campos, { titulo: '¡Directo especial!', frase: 'empieza en…', fraseF: 'será el…', h: 2, url: 'twitch.tv/KyoSumiVT', envio: '¡Te espero en el chat!', misterio: 'normal', fecha: '31-10-2026', hora: '20:00 h · España' })
+      .map(x => x.k === 'imagen' ? Object.assign({}, x, { label: 'Imagen (opcional: invitada, juego, tu avatar…)' }) : x);
+    c.splice(1, 0, { k: 'evento', label: 'Qué directo es', tipo: 'texto', def: 'Maratón de 12 horas', max: 30 });
+    return c;
+  })(),
+  _c: null
+});
+
 // Anuncios (pestaña propia)
-export const ANUNCIOS = [anuncioMerch, anuncioCuenta];
+export const ANUNCIOS = [anuncioMerch, anuncioCuenta, anuncioDirecto];
 // Utilidades de dibujo para otras pestañas (paneles de Twitch)
 export const UT = { TEMAS, paleta, pegatina, rr, fuente, ancho, destello, icono, azar, rad,
   ICONOS: { estrella: [ESTRELLA], corazon: [CORAZON], calendario: [CALENDARIO, CAL_LINEAS], check: [CHECK], camiseta: [CAMISETA], bolsa: [BOLSA, ASA], chat: [CHAT], regalo: [REGALO], mando: [MANDO], nota: [NOTA], play: [PLAY], campana: [CAMPANA, BADAJO], aleta: [ALETA], mundo: [MUNDO] } };
+// Música propia (pestaña Mis músicas)
+export { musicaFondo, renderSonido };

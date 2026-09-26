@@ -106,6 +106,14 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 .panctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1;min-width:260px}
 .panctl input[type=text]{width:auto;flex:1;min-width:150px}
 .panctl select{font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.subtabs{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 16px;padding:8px 10px;border:1px dashed var(--line2);border-radius:16px;width:fit-content;max-width:100%}
+.subtabs button{font:600 14px "Fredoka",sans-serif;color:var(--dim);background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
+.subtabs button[aria-pressed="true"]{background:var(--acc2);border-color:var(--acc2);color:#06222a}
+.subtabs button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.momento{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font:600 13px "Fredoka",sans-serif;color:var(--dim)}
+.momento input[type=range]{flex:1;min-width:140px;accent-color:var(--acc2)}
+.momento output{font:700 13px "Chakra Petch",monospace;color:var(--acc2);min-width:52px}
+.musform{display:grid;gap:14px}
 .versiones{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border:1px dashed var(--line2);border-radius:14px;background:rgba(155,107,255,.06)}
 .versiones span{font:600 13px "Fredoka",sans-serif;color:var(--dim);margin-right:4px}
 .versiones select{font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:210px}
@@ -153,13 +161,17 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   </header>
 
   <nav class="tabs" role="tablist">
-    <button role="tab" data-tab="spotify" aria-selected="true">🎵 Música</button>
-    <button role="tab" data-tab="fortnite" aria-selected="false">🏆 Fortnite</button>
-    <button role="tab" data-tab="cuenta" aria-selected="false">⏱ Cuenta atrás</button>
+    <button role="tab" data-tab="widgets" aria-selected="true">🧰 Widgets</button>
     <button role="tab" data-tab="animaciones" aria-selected="false">🎬 Animaciones</button>
     <button role="tab" data-tab="anuncios" aria-selected="false">📣 Anuncios</button>
     <button role="tab" data-tab="paneles" aria-selected="false">🧩 Paneles</button>
+    <button role="tab" data-tab="musica" aria-selected="false">🎶 Mis músicas</button>
     <button role="tab" data-tab="conexiones" aria-selected="false">🔌 Conexiones</button>
+  </nav>
+  <nav class="subtabs" id="subtabs" aria-label="Widgets para OBS">
+    <button type="button" data-sub="spotify" aria-pressed="true">🎵 Música (Spotify)</button>
+    <button type="button" data-sub="fortnite" aria-pressed="false">🏆 Fortnite</button>
+    <button type="button" data-sub="cuenta" aria-pressed="false">⏱ Cuenta atrás</button>
   </nav>
 
   <!-- ===================== MÚSICA ===================== -->
@@ -301,6 +313,15 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       <p class="nota">Crea los paneles de la sección "Acerca de" de tu canal con tu estilo pegatina. Escribe los títulos, elige un icono para cada uno y descárgalos en PNG (uno a uno o todos juntos en un .zip). Tamaño recomendado por Twitch: 320×100 (el de 640×200 se ve más nítido en pantallas grandes).</p>
     </div>
     <div id="panelesApp" class="card"><p class="nota">Cargando…</p></div>
+  </section>
+
+  <!-- ===================== MIS MÚSICAS ===================== -->
+  <section data-panel="musica" hidden>
+    <div class="card animhead">
+      <h2>🎶 Mis músicas</h2>
+      <p class="nota">Las músicas propias de tus animaciones, para usarlas donde quieras: de fondo en vídeos, TikToks o en el directo. Elige el estilo y la duración, escúchala y descárgala en MP3. Empieza y termina con un fundido suave.</p>
+    </div>
+    <div id="musicaApp" class="card"><p class="nota">Cargando…</p></div>
   </section>
 
   <section data-panel="conexiones" class="con" hidden>
@@ -468,12 +489,18 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   window.addEventListener('resize', () => Object.keys(W).forEach(id => { if (!$('[data-panel="' + id + '"]').hidden) actualizar(id); }));
 
   // ---------- Pestañas ----------
+  let subActual = 'spotify';
   function tab(n) {
-    $$('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === n ? 'true' : 'false'));
+    if (n === 'widgets') n = subActual;
+    const esWidget = !!W[n]; if (esWidget) subActual = n;
+    $$('nav.tabs button').forEach(b => b.setAttribute('aria-selected', (b.dataset.tab === n || (esWidget && b.dataset.tab === 'widgets')) ? 'true' : 'false'));
+    $('#subtabs').hidden = !esWidget;
+    $$('#subtabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sub === n ? 'true' : 'false'));
     $$('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== n);
-    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else comprobarSpotify();
+    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else comprobarSpotify();
   }
   $$('nav.tabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.tab)));
+  $$('#subtabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.sub)));
 
   // ---------- Conexiones ----------
   function pintarEstado(el, ok, txt) { el.classList.toggle('ok', ok === true); el.classList.toggle('bad', ok === false); if (el.querySelector('span')) el.querySelector('span').textContent = txt; else el.lastChild.textContent = txt; }
