@@ -12,6 +12,9 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const pad = n => String(n).padStart(4, '0');
 const aBlob = async (url, tipo) => URL.createObjectURL(new Blob([await (await fetch(url)).arrayBuffer()], { type: tipo }));
 const FMTS = pl => pl.formatos || Object.keys(FORMATOS);
+// ¿Fondo completo? (MP4) — puede depender de las opciones (p. ej. intro con final transparente → .mov)
+const esOpaco = (pl, o) => typeof pl.opaco === 'function' ? !!pl.opaco(o) : !!pl.opaco;
+const textoDescarga = (pl, o) => esOpaco(pl, o) ? '⬇ Descargar .mp4' : '⬇ Descargar .mov con transparencia';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // Tipografías propias (alojadas en el repo) para que el video salga igual en cualquier compu
@@ -115,7 +118,7 @@ async function exportar(pl, card, fmtElegido) {
   const barra = $('.progreso', card), txt = $('.ptxt', card), bi = $('.progreso i', card), btn = $$('[data-mov],[data-ambos]', card);
   const aviso = (t, p) => { txt.textContent = t; if (p != null) bi.style.width = Math.round(p * 100) + '%'; };
   btn.forEach(b => b.disabled = true); barra.hidden = false;
-  const mp4 = !!pl.opaco, nombre = pl.id + '-' + fmt + (mp4 ? '.mp4' : '.mov');
+  const mp4 = esOpaco(pl, o), nombre = pl.id + '-' + fmt + (mp4 ? '.mp4' : '.mov');
   try {
     await fuentesListas;
     const f = await conversor(aviso);
@@ -169,7 +172,7 @@ function tarjeta(pl) {
     '<div class="animgrid"><div class="animform opts">' + formulario(pl) + '</div>' +
     '<div class="animside"><div class="chips">' + FMTS(pl).map((k, i) => '<label><input type="radio" name="fmt-' + pl.id + '" value="' + k + '"' + ((pl.fmtDef ? k === pl.fmtDef : !i) ? ' checked' : '') + '>' + (k === 'horizontal' ? '🖥️ Horizontal 1920×1080' : '📱 Vertical 1080×1920') + '</label>').join('') + '</div>' +
     '<div class="animprev"><canvas></canvas></div>' +
-    '<div class="acciones"><button class="btn pri" type="button" data-mov>' + (pl.opaco ? '⬇ Descargar .mp4' : '⬇ Descargar .mov con transparencia') + '</button>' + (FMTS(pl).length > 1 ? '<button class="btn" type="button" data-ambos>⬇ Horizontal + vertical</button>' : '') + '<button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
+    '<div class="acciones"><button class="btn pri" type="button" data-mov>⬇ Descargar</button>' + (FMTS(pl).length > 1 ? '<button class="btn" type="button" data-ambos>⬇ Horizontal + vertical</button>' : '') + '<button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
     '<div class="progreso" hidden><i></i></div><p class="nota ptxt" aria-live="polite"></p></div></div>';
   const clave = 'kyo_anim_' + pl.id;
   ponerForm(card, pl, Object.assign(defecto(pl), leer(clave) || {}));
@@ -177,6 +180,7 @@ function tarjeta(pl) {
   let t0 = performance.now(), o = leerForm(card, pl);
   const refrescar = () => {
     o = leerForm(card, pl); guardar(clave, Object.fromEntries(Object.entries(o).filter(([k]) => !(card._imgs && k in card._imgs) && !pl.campos.some(c => c.k === k && c.tipo === 'imagen'))));
+    $('[data-mov]', card).textContent = textoDescarga(pl, o);
     $$('[data-si]', card).forEach(el => { const [k, v] = el.dataset.si.split('='); el.hidden = !v.split('|').includes(String(o[k])); });
     const fmt = $('input[name="fmt-' + pl.id + '"]:checked', card).value, F = FORMATOS[fmt];
     cv.width = F.w / 3; cv.height = F.h / 3; cv.dataset.fmt = fmt;
@@ -208,7 +212,7 @@ function tarjeta(pl) {
   pintarV();
   if (pl.sonido) $('[data-oir]', card).addEventListener('click', async () => {
     const ok = await oir(pl, o).catch(() => false); t0 = performance.now();
-    if (!ok) $('.ptxt', card).textContent = o.sonido === 'ninguno' ? 'Elegiste "Sin sonido": el video saldrá mudo.' : 'Tu navegador no pudo generar el sonido.';
+    if (!ok) $('.ptxt', card).textContent = (o.sonido === 'ninguno' || o.musica === 'ninguna') ? 'Sin música ni sonido elegido: el video saldrá mudo.' : 'Tu navegador no pudo generar el sonido.';
   });
   // imágenes
   card._imgs = {};
