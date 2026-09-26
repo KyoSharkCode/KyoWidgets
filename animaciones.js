@@ -111,14 +111,14 @@ async function oir(pl, o) {
 }
 
 // ---------- exportar ----------
-async function exportar(pl, card, fmtElegido) {
+async function exportar(pl, card, fmtElegido, tipo) {
   if (ocupado) return;
   ocupado = true;
   const o = leerForm(card, pl), fmt = fmtElegido || $('input[name="fmt-' + pl.id + '"]:checked', card).value, F = FORMATOS[fmt];
-  const barra = $('.progreso', card), txt = $('.ptxt', card), bi = $('.progreso i', card), btn = $$('[data-mov],[data-ambos]', card);
+  const barra = $('.progreso', card), txt = $('.ptxt', card), bi = $('.progreso i', card), btn = $$('[data-mov],[data-ambos],[data-webm]', card);
   const aviso = (t, p) => { txt.textContent = t; if (p != null) bi.style.width = Math.round(p * 100) + '%'; };
   btn.forEach(b => b.disabled = true); barra.hidden = false;
-  const mp4 = esOpaco(pl, o), nombre = pl.id + '-' + fmt + (mp4 ? '.mp4' : '.mov');
+  const webm = tipo === 'webm', mp4 = !webm && esOpaco(pl, o), ext = webm ? '.webm' : mp4 ? '.mp4' : '.mov', nombre = pl.id + '-' + fmt + ext;
   try {
     await fuentesListas;
     const f = await conversor(aviso);
@@ -138,18 +138,19 @@ async function exportar(pl, card, fmtElegido) {
       const buf = await pl.sonido(o);
       if (buf) { await f.writeFile('audio.wav', aWav(buf)); conAudio = true; }
     }
-    const prog = ({ progress }) => aviso((mp4 ? 'Armando el video MP4… ' : 'Armando el video con transparencia… ') + Math.min(99, Math.round(progress * 100)) + '%', 0.5 + 0.48 * Math.min(1, progress));
+    const prog = ({ progress }) => aviso((mp4 ? 'Armando el video MP4… ' : webm ? 'Armando el WebM con transparencia… ' : 'Armando el video con transparencia… ') + Math.min(99, Math.round(progress * 100)) + '%', 0.5 + 0.48 * Math.min(1, progress));
     f.on('progress', prog);
-    const salida = mp4 ? 'salida.mp4' : 'salida.mov';
-    await f.exec(['-framerate', String(pl.fps), '-i', 'f%04d.png', ...(conAudio ? ['-i', 'audio.wav', '-map', '0:v', '-map', '1:a', '-c:a', mp4 ? 'aac' : 'pcm_s16le', ...(mp4 ? ['-b:a', '192k'] : [])] : []),
-      ...(mp4 ? ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '15', '-movflags', '+faststart']
+    const salida = 'salida' + ext;
+    await f.exec(['-framerate', String(pl.fps), '-i', 'f%04d.png', ...(conAudio ? ['-i', 'audio.wav', '-map', '0:v', '-map', '1:a', '-c:a', webm ? 'libvorbis' : mp4 ? 'aac' : 'pcm_s16le', ...(mp4 || webm ? ['-b:a', '160k'] : [])] : []),
+      ...(webm ? ['-c:v', 'libvpx', '-pix_fmt', 'yuva420p', '-b:v', '12M', '-crf', '8', '-deadline', 'realtime', '-cpu-used', '16', '-auto-alt-ref', '0']
+        : mp4 ? ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '15', '-movflags', '+faststart']
         : ['-c:v', 'prores_ks', '-profile:v', '4444', '-pix_fmt', 'yuva444p10le', '-qscale:v', '9', '-vendor', 'apl0']), '-y', salida]);
     f.off('progress', prog);
     const data = await f.readFile(salida);
     for (let i = 0; i < n; i++) { try { await f.deleteFile('f' + pad(i) + '.png'); } catch (e) {} }
     try { await f.deleteFile(salida); } catch (e) {}
     if (conAudio) { try { await f.deleteFile('audio.wav'); } catch (e) {} }
-    const url = URL.createObjectURL(new Blob([data.buffer], { type: mp4 ? 'video/mp4' : 'video/quicktime' }));
+    const url = URL.createObjectURL(new Blob([data.buffer], { type: webm ? 'video/webm' : mp4 ? 'video/mp4' : 'video/quicktime' }));
     const a = document.createElement('a'); a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     aviso('¡Listo! Se descargó ' + nombre + ' (' + (data.length / 1048576).toFixed(1) + ' MB · ' + L.toFixed(1) + ' s).', 1);
@@ -172,7 +173,7 @@ function tarjeta(pl) {
     '<div class="animgrid"><div class="animform opts">' + formulario(pl) + '</div>' +
     '<div class="animside"><div class="chips">' + FMTS(pl).map((k, i) => '<label><input type="radio" name="fmt-' + pl.id + '" value="' + k + '"' + ((pl.fmtDef ? k === pl.fmtDef : !i) ? ' checked' : '') + '>' + (k === 'horizontal' ? '🖥️ Horizontal 1920×1080' : '📱 Vertical 1080×1920') + '</label>').join('') + '</div>' +
     '<div class="animprev"><canvas></canvas></div>' +
-    '<div class="acciones"><button class="btn pri" type="button" data-mov>⬇ Descargar</button>' + (FMTS(pl).length > 1 ? '<button class="btn" type="button" data-ambos>⬇ Horizontal + vertical</button>' : '') + '<button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
+    '<div class="acciones"><button class="btn pri" type="button" data-mov>⬇ Descargar</button><button class="btn" type="button" data-webm title="WebM con transparencia: para OBS (transiciones de escena, fuentes multimedia)">⬇ .webm para OBS</button>' + (FMTS(pl).length > 1 ? '<button class="btn" type="button" data-ambos>⬇ Horizontal + vertical</button>' : '') + '<button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
     '<div class="progreso" hidden><i></i></div><p class="nota ptxt" aria-live="polite"></p></div></div>';
   const clave = 'kyo_anim_' + pl.id;
   ponerForm(card, pl, Object.assign(defecto(pl), leer(clave) || {}));
@@ -181,6 +182,7 @@ function tarjeta(pl) {
   const refrescar = () => {
     o = leerForm(card, pl); guardar(clave, Object.fromEntries(Object.entries(o).filter(([k]) => !(card._imgs && k in card._imgs) && !pl.campos.some(c => c.k === k && c.tipo === 'imagen'))));
     $('[data-mov]', card).textContent = textoDescarga(pl, o);
+    $('[data-webm]', card).hidden = esOpaco(pl, o);
     $$('[data-si]', card).forEach(el => { const [k, v] = el.dataset.si.split('='); el.hidden = !v.split('|').includes(String(o[k])); });
     const fmt = $('input[name="fmt-' + pl.id + '"]:checked', card).value, F = FORMATOS[fmt];
     cv.width = F.w / 3; cv.height = F.h / 3; cv.dataset.fmt = fmt;
@@ -191,6 +193,7 @@ function tarjeta(pl) {
   $('[data-replay]', card).addEventListener('click', () => { t0 = performance.now(); });
   $('[data-reset]', card).addEventListener('click', () => { ponerForm(card, pl, defecto(pl)); refrescar(); t0 = performance.now(); });
   $('[data-mov]', card).addEventListener('click', () => exportar(pl, card));
+  $('[data-webm]', card).addEventListener('click', () => exportar(pl, card, null, 'webm'));
   const ambos = $('[data-ambos]', card);
   if (ambos) ambos.addEventListener('click', async () => { if (ocupado) return; for (const f of FMTS(pl)) await exportar(pl, card, f); });
   // versiones guardadas (textos y opciones; las imágenes se quedan como estén)
