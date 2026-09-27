@@ -1955,7 +1955,7 @@ const anuncioCuenta = {
   duracion: o => clamp(Number(o.dur) || 10, 5, 30),
   _T1: 1.6, // segundo en el que empieza a correr la cuenta
   sonido(o) {
-    const L = this.duracion(o), v = clamp(Number(o.vol) || 70, 5, 100) / 100, tic = o.modo !== 'fecha' && o.tic !== 'no', mus = musicaElegida(o, 'burbuja');
+    const L = this.duracion(o), v = clamp(Number(o.vol) || 70, 5, 100) / 100, tic = !(this._variante || {}).hoy && o.modo !== 'fecha' && o.tic !== 'no', mus = musicaElegida(o, 'burbuja');
     if (mus === 'ninguna' && !tic) return Promise.resolve(null);
     const T1 = this._T1, total = this._total(o);
     return renderSonido(L, (ac, out) => {
@@ -1971,7 +1971,7 @@ const anuncioCuenta = {
   _capa(W, H) { this._c = this._c || {}; return this._c[W + 'x' + H] || (this._c[W + 'x' + H] = Object.assign(document.createElement('canvas'), { width: W, height: H })); },
   dibujar(ctx, t, o, fmt, W, H) {
     const P = paleta(o), vert = fmt !== 'horizontal', u = Math.min(W, H) / 1080, k = vert ? W / 1080 : W / 1920;
-    const fecha = o.modo === 'fecha', img = o.imagen, V = this._variante || {};
+    const V = this._variante || {}, hoy = !!V.hoy, fecha = o.modo === 'fecha' || hoy, img = o.imagen;
     // posiciones por formato: [con imagen, sin imagen]
     const Lx = {
       vertical: { tY: 250, tF: 145, img: [460, 450], regalo: [560, 250], fr: [390, 800], bl: [1090, 1030], F: [140, 200], hora: 100, url: 1430, env: 1545 },
@@ -1984,6 +1984,13 @@ const anuncioCuenta = {
       vertical: { img: [400, 510], regalo: [600, 230], fr: [460, 820], bl: [1060, 1040] },
       retrato: { img: [300, 270], regalo: [360, 200], fr: [650, 540], bl: [815, 720] },
       cuadrado: { img: [220, 225], regalo: [318, 140], fr: [495, 450], bl: [615, 595] }
+    }[fmt] || {});
+    // "¡Hoy hay directo!": solo 2 bloques (HH:MM), más grandes y con la frase justo encima
+    if (hoy) Object.assign(Lx, {
+      vertical: { img: [430, 470], fr: [970, 820], bl: [1120, 1060], F: [170, 250] },
+      retrato: { img: [300, 290], fr: [650, 560], bl: [800, 730], F: [140, 190] },
+      cuadrado: { img: [190, 255], fr: [510, 440], bl: [622, 580], F: [112, 150] },
+      horizontal: { F: [150, 190] }
     }[fmt] || {});
     const iI = img ? 0 : 1;
     fondoAnuncio(ctx, P, W, H, t, u, fmt === 'vertical');
@@ -2000,7 +2007,7 @@ const anuncioCuenta = {
     const cxC = !vert && img ? 1280 * k : W / 2, anchoC = vert ? W - 110 * k : img ? 1060 * k : W - 360 * k;
     const yFrase = Lx.fr[iI] * k, yBloques = Lx.bl[iI] * k;
     // frase
-    const fr = fecha ? o.fraseF : o.frase;
+    const fr = fecha && !hoy ? o.fraseF : o.frase;
     if (fr) { const a = kf(t, [[.6, { y: 24, a: 0 }], [.95, { y: 0, a: 1 }]], EASE.back);
       if (a.a > .01) { ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); fuente(ctx, `700 ${(vert ? 62 : 56) * k}px "Fredoka"`); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
         ctx.lineWidth = 10 * u; ctx.strokeStyle = P.o; ctx.strokeText(fr, cxC, yFrase + a.y * u); ctx.fillStyle = P.t; ctx.fillText(fr, cxC, yFrase + a.y * u); ctx.restore(); } }
@@ -2040,7 +2047,11 @@ const anuncioCuenta = {
     }
     // bloques
     let partes, etiquetas, seps, urg = false, cambio = [];
-    if (fecha) {
+    if (hoy) {
+      const m = String(o.horaHoy || '').trim().match(/^(\d{1,2})\D+(\d{2})/);
+      if (m) { partes = [m[1].padStart(2, '0'), m[2]]; etiquetas = ['', '']; seps = ':'; }
+      else { partes = [String(o.horaHoy || '—')]; etiquetas = ['']; seps = ''; }
+    } else if (fecha) {
       const m = String(o.fecha || '').trim().match(/^(\d{1,2})\D+(\d{1,2})\D+(\d{2,4})$/);
       if (m) { partes = [m[1].padStart(2, '0'), m[2].padStart(2, '0'), m[3]]; etiquetas = ['DÍA', 'MES', 'AÑO']; seps = '-'; }
       else { partes = [String(o.fecha || '—')]; etiquetas = ['']; seps = ''; }
@@ -2079,7 +2090,7 @@ const anuncioCuenta = {
     });
     // hora (modo fecha)
     if (fecha && o.hora) { const a = kf(t, [[1.6, { s: 0 }], [1.9, { s: 1.1 }], [2.05, { s: 1 }]], EASE.back);
-      if (a.s > .01) { ctx.save(); ctx.translate(cxC, yBloques + hB / 2 + F * .25 + Lx.hora * k); ctx.scale(a.s, a.s); ctx.rotate(rad(-2)); chipTexto(ctx, o.hora, 0, 0, u * (vert ? 1.25 : 1.1), P, '#F4C542'); ctx.restore(); } }
+      if (a.s > .01) { ctx.save(); ctx.translate(cxC, yBloques + hB / 2 + (hoy ? (vert ? 72 : 60) * k : F * .25 + Lx.hora * k)); ctx.scale(a.s, a.s); ctx.rotate(rad(-2)); chipTexto(ctx, o.hora, 0, 0, u * (vert ? 1.25 : 1.1), P, '#F4C542'); ctx.restore(); } }
     pieAnuncio(ctx, o, P, W, H, t, u, k, vert, 2.0, Lx.url, Lx.env, { url: V.iconoUrl, pie: V.iconoPie });
   }
 };
@@ -2101,8 +2112,36 @@ const anuncioDirecto = Object.assign({}, anuncioCuenta, {
   _c: null
 });
 
+// =====================================================================
+// Anuncio "¡Hoy hay directo!" (aviso rápido del día: hora + a qué juegas)
+// =====================================================================
+const anuncioHoy = Object.assign({}, anuncioCuenta, {
+  id: 'anuncio-hoy',
+  nombre: '¡Hoy hay directo!',
+  desc: 'Aviso rápido para el mismo día: a qué hora empiezas y qué vas a jugar o hacer, con la etiqueta que late, imagen opcional (portada del juego, tu avatar…) y música. Se rellena en un minuto.',
+  _variante: { evento: true, hoy: true, icono: PLAY, iconoUrl: PLAY, iconoPie: CHAT },
+  campos: [
+    { k: 'titulo', label: 'Título', tipo: 'texto', def: '¡Hoy hay directo!', max: 22 },
+    { k: 'evento', label: 'Qué vas a jugar o hacer', tipo: 'texto', def: 'Jugando Fortnite', max: 30 },
+    { k: 'frase', label: 'Frase', tipo: 'texto', def: 'a las…', max: 30 },
+    { k: 'horaHoy', label: 'Hora (HH:MM)', tipo: 'texto', def: '20:00', max: 5 },
+    { k: 'hora', label: 'Debajo de la hora (opcional: zona u otras horas)', tipo: 'texto', def: 'hora de España', max: 30 },
+    { k: 'imagen', label: 'Imagen (opcional: portada del juego, tu avatar…)', tipo: 'imagen' },
+    { k: 'misterio', label: 'Cómo se ve la imagen', tipo: 'chips', def: 'normal', opciones: [['normal', '👀 Normal'], ['borrosa', '🌫️ Borrosa'], ['silueta', '👤 Silueta']] },
+    { k: 'zoom', label: 'Zoom de la imagen (%)', tipo: 'numero', def: 100, min: 50, max: 250, paso: 5 },
+    { k: 'url', label: 'Enlace (opcional)', tipo: 'texto', def: 'twitch.tv/KyoSumiVT', max: 36 },
+    { k: 'envio', label: 'Texto de abajo (opcional)', tipo: 'texto', def: '¡Te espero en el chat!', max: 32 },
+    ...COLORES,
+    { k: 'musica', label: 'Música de fondo', tipo: 'chips', def: 'auto', opciones: [['auto', '🎨 Según el estilo'], ['burbuja', '🫧 Burbuja'], ['alegre', '🎶 Pop'], ['chill', '🌙 Chill'], ['halloween', '🎃 Halloween'], ['navidad', '🎄 Navidad'], ['ninguna', '🔇 Sin música']] },
+    { k: 'vol', label: 'Volumen (%)', tipo: 'numero', def: 70, min: 5, max: 100, paso: 5 },
+    { k: 'dur', label: 'Duración (segundos)', tipo: 'numero', def: 8, min: 5, max: 30, paso: 1 }
+  ],
+  duracion: o => clamp(Number(o.dur) || 8, 5, 30),
+  _c: null
+});
+
 // Anuncios (pestaña propia)
-export const ANUNCIOS = [anuncioMerch, anuncioCuenta, anuncioDirecto];
+export const ANUNCIOS = [anuncioHoy, anuncioMerch, anuncioCuenta, anuncioDirecto];
 // Utilidades de dibujo para otras pestañas (paneles de Twitch)
 export const UT = { TEMAS, paleta, pegatina, rr, fuente, ancho, destello, icono, azar, rad,
   ICONOS: { estrella: [ESTRELLA], corazon: [CORAZON], calendario: [CALENDARIO, CAL_LINEAS], check: [CHECK], camiseta: [CAMISETA], bolsa: [BOLSA, ASA], chat: [CHAT], regalo: [REGALO], mando: [MANDO], nota: [NOTA], play: [PLAY], campana: [CAMPANA, BADAJO], aleta: [ALETA], mundo: [MUNDO] } };

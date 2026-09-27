@@ -67,6 +67,8 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .frame{overflow:hidden;flex-shrink:0}
 .frame iframe{border:0;background:transparent;display:block;transform-origin:0 0}
 .acciones{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.copiaimg{display:flex;gap:8px;align-items:center;margin:10px 0;cursor:pointer}
+.copiaimg input{accent-color:var(--acc);width:16px;height:16px}
 .btn{font:600 14px "Fredoka",sans-serif;border:1px solid var(--line2);background:transparent;color:var(--dim);border-radius:999px;padding:8px 16px;cursor:pointer}
 .btn:hover{border-color:var(--acc);color:#fff}
 .btn.pri{background:var(--acc);border-color:var(--acc);color:#1a0d05}
@@ -339,6 +341,14 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       <div class="acciones"><button class="btn pri" type="button" id="btnFn">Probar Fortnite</button></div>
       <p class="nota">Necesita el secreto <b>FORTNITE_API_KEY</b> en Supabase y tus estadísticas públicas en el juego.</p>
     </div>
+    <div class="card" id="copia">
+      <h2>💾 Copia de seguridad</h2>
+      <p class="nota">Guarda en un archivo todo lo que el Estudio recuerda en este navegador: ajustes de los widgets, animaciones y anuncios, ⭐ Mis versiones, paneles, música e imágenes propias. Si cambias de navegador u ordenador, o se borran los datos, lo recuperas con "Restaurar". Tu código de acceso <b>no</b> se guarda en la copia.</p>
+      <label class="nota copiaimg"><input type="checkbox" id="copiaImg" checked> Incluir mis imágenes (fotos de merch, avatar…)</label>
+      <div class="acciones"><button class="btn pri" type="button" id="btnCopia">⬇ Descargar copia</button><button class="btn" type="button" id="btnRestaurar">⬆ Restaurar copia…</button><input type="file" id="archivoCopia" accept=".json,application/json" hidden></div>
+      <div class="acciones" id="copiaConfirmar" hidden><span class="nota" id="copiaResumen"></span><button class="btn pri" type="button" id="btnRestaurarYa">Restaurar ahora</button><button class="btn" type="button" id="btnRestaurarNo">Cancelar</button></div>
+      <p class="nota" id="copiaUltima"></p>
+    </div>
     <div class="card">
       <h2>🔐 Acceso</h2>
       <p class="nota">Este navegador recuerda tu código. Si usas otro ordenador te lo volverá a pedir.</p>
@@ -583,6 +593,53 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   const guardado = leer('kyo_codigo');
   if (guardado) verificar(guardado).then(r => { if (r.ok) entrar(); else $('#errPuerta').textContent = r.msg; });
   else $('#codigo').focus();
+
+  // ---------- Copia de seguridad (ajustes de localStorage + imágenes de IndexedDB) ----------
+  (() => {
+    const NO = ['kyo_codigo', 'kyo_ultima_copia'];
+    const abrirBD = () => new Promise(res => { try { const r = indexedDB.open('kyo_estudio', 1); r.onupgradeneeded = () => r.result.createObjectStore('imagenes'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } });
+    const bdTodo = async () => { const db = await abrirBD(); if (!db) return {}; return new Promise(res => { const out = {}; try { const rq = db.transaction('imagenes').objectStore('imagenes').openCursor(); rq.onsuccess = () => { const c = rq.result; if (c) { out[c.key] = c.value; c.continue(); } else res(out); }; rq.onerror = () => res(out); } catch (e) { res(out); } }); };
+    const bdPoner = async (k, v) => { const db = await abrirBD(); if (!db) return; await new Promise(res => { try { const tx = db.transaction('imagenes', 'readwrite'); tx.objectStore('imagenes').put(v, k); tx.oncomplete = res; tx.onerror = res; } catch (e) { res(); } }); };
+    const aTexto = b => new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.onerror = () => r(null); f.readAsDataURL(b); });
+    const aBlob = async u => (await fetch(u)).blob();
+    const pl = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+    const hoy = () => { const d = new Date(); return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-'); };
+    const ultima = () => {
+      const u = leer('kyo_ultima_copia'), el = $('#copiaUltima');
+      if (!u) { el.textContent = 'Todavía no has hecho ninguna copia.'; return; }
+      const dias = Math.floor((Date.now() - new Date(u).getTime()) / 864e5);
+      el.textContent = 'Última copia: ' + (dias <= 0 ? 'hoy' : dias === 1 ? 'ayer' : 'hace ' + dias + ' días') + (dias > 30 ? ' · ¡toca hacer una nueva! 💙' : '');
+    };
+    ultima();
+    $('#btnCopia').addEventListener('click', async () => {
+      const ajustes = {};
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('kyo_') && !NO.includes(k)) ajustes[k] = localStorage.getItem(k); }
+      const imagenes = {};
+      if ($('#copiaImg').checked) { const todo = await bdTodo(); for (const [k, v] of Object.entries(todo)) if (v instanceof Blob) { const t = await aTexto(v); if (t) imagenes[k] = t; } }
+      const datos = { app: 'kyo-estudio', version: 1, fecha: new Date().toISOString(), ajustes, imagenes };
+      const blob = new Blob([JSON.stringify(datos)], { type: 'application/json' }), a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'kyo-estudio-copia-' + hoy() + '.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      guardar('kyo_ultima_copia', new Date().toISOString()); ultima();
+      toast('¡Copia descargada! ' + pl(Object.keys(ajustes).length, 'ajuste', 'ajustes') + ' y ' + pl(Object.keys(imagenes).length, 'imagen', 'imágenes') + ' (' + (blob.size / 1048576).toFixed(1) + ' MB). Guárdala en tu nube 💾', 5000);
+    });
+    let pendiente = null;
+    $('#btnRestaurar').addEventListener('click', () => $('#archivoCopia').click());
+    $('#archivoCopia').addEventListener('change', async e => {
+      const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+      try { const d = JSON.parse(await f.text()); if (d.app !== 'kyo-estudio' || typeof d.ajustes !== 'object') throw 0; pendiente = d; }
+      catch (er) { pendiente = null; toast('Ese archivo no es una copia del Estudio.'); return; }
+      const fe = new Date(pendiente.fecha);
+      $('#copiaResumen').textContent = 'Copia del ' + fe.toLocaleDateString('es-ES') + ': ' + pl(Object.keys(pendiente.ajustes).length, 'ajuste', 'ajustes') + ' y ' + pl(Object.keys(pendiente.imagenes || {}).length, 'imagen', 'imágenes') + '. Se reemplazará lo que coincida.';
+      $('#copiaConfirmar').hidden = false;
+    });
+    $('#btnRestaurarNo').addEventListener('click', () => { pendiente = null; $('#copiaConfirmar').hidden = true; });
+    $('#btnRestaurarYa').addEventListener('click', async () => {
+      if (!pendiente) return;
+      for (const [k, v] of Object.entries(pendiente.ajustes)) if (k.startsWith('kyo_') && !NO.includes(k) && typeof v === 'string') guardar(k, v);
+      for (const [k, v] of Object.entries(pendiente.imagenes || {})) if (typeof v === 'string' && v.startsWith('data:image/')) await bdPoner(k, await aBlob(v));
+      toast('¡Copia restaurada! Recargando… 🦈', 2500); setTimeout(() => location.reload(), 1200);
+    });
+  })();
 })();
 </script>
 <script type="module" src="animaciones.js"></script>
