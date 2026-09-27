@@ -40,6 +40,7 @@ function limpiar(d: any) {
       hora: txt(a?.hora, 5),
       objetivo: txt(a?.objetivo, 40),
       textoFin: txt(a?.textoFin, 40),
+      imagen: /^https?:\/\//.test(String(a?.imagen ?? "")) ? txt(a.imagen, 400) : "",
     })),
   };
 }

@@ -104,6 +104,17 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 .panopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px}
 #imagenesApp{display:grid;gap:16px}
 #overlaysApp{display:grid;gap:16px}
+.ovesc-cab h2{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ovesc-cab .nota{margin-top:4px}
+.ovesc-cuerpo{display:grid;grid-template-columns:minmax(270px,380px) minmax(0,1fr);gap:22px;align-items:start;margin-top:14px}
+@media (max-width:900px){.ovesc-cuerpo{grid-template-columns:1fr}}
+.ovesc-ctl{display:grid;gap:14px}
+.ovesc-ctl input[data-url]{font:600 12.5px "Chakra Petch",monospace;color:var(--acc2)}
+.ovesc-prev{display:flex;justify-content:center;min-width:0}
+.ovesc-prev .ovmarco{flex:none;max-width:100%}
+.chips label.off{opacity:.35;cursor:not-allowed}
+.ovesc .acciones a.btn{text-decoration:none}
+.ovcampos .ancho{grid-column:1/-1}
 .ovgrupo{margin-top:18px}
 .ovgrupo h3{margin:0 0 10px;font:700 12px "Chakra Petch",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
 .ovlista{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}

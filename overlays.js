@@ -15,6 +15,17 @@ const BORRADOR = 'kyo_anuncios_borrador';
 const TEMAS = [['marea', '🌊 Marea Nocturna'], ['octubre', '🎃 Octubre de terror'], ['navidad', '🎄 Navidad']];
 const ESCENAS = [['comenzando', 'Comenzando'], ['just-chatting', 'Just Chatting'], ['screen', 'Pantalla'], ['ya-regreso', 'Ya regreso'], ['terminando', 'Terminando']];
 const CON_ANUNCIOS = ['ya-regreso', 'terminando'];
+const ICO_ESC = { comenzando: '🌅', 'just-chatting': '💬', screen: '🖥️', 'ya-regreso': '☕', terminando: '🌙' };
+const DESC_ESC = {
+  comenzando: 'Antes de empezar: título, tus redes y la cuenta atrás de 5 minutos.',
+  'just-chatting': 'Para charlar: hueco para el chat y el cielo con la luna.',
+  screen: 'Fondo limpio para compartir pantalla o jugar.',
+  'ya-regreso': 'La pausa: cuenta atrás de vuelta y tus anuncios en el lugar de Kyo.',
+  terminando: 'El final del directo: agradecimiento y tus anuncios en el lugar de Kyo.'
+};
+const SEL = 'kyo_overlays_sel';
+let selGuardada = {}; try { selGuardada = JSON.parse(localStorage.getItem(SEL) || '{}') || {}; } catch (e) {}
+const sel = e => Object.assign({ tema: 'marea', fmt: 'h' }, selGuardada[e] || {});
 const ICONOS = [['bolsa', '🛍️ Bolsa'], ['camiseta', '👕 Camiseta'], ['reloj', '⏱ Reloj'], ['aleta', '🦈 Aleta'], ['estrella', '⭐ Estrella'], ['corazon', '💙 Corazón'], ['regalo', '🎁 Regalo'], ['chat', '💬 Chat'], ['play', '▶ Play'], ['mando', '🎮 Mando'], ['campana', '🔔 Campana']];
 const TIPOS = [['merch', '🛍️ Merch ya disponible'], ['cuenta', '⏱ Cuenta atrás o fecha'], ['codigo', '🦈 Código de creador'], ['libre', '✏️ Texto libre']];
 const DONDE = [['ambos', 'Ya regreso y Terminando'], ['ya-regreso', 'Solo Ya regreso'], ['terminando', 'Solo Terminando']];
@@ -39,17 +50,18 @@ function abrir() {
   const url = (tema, e, v) => new URL('overlays/escenas/' + tema + '/' + e + (v ? '-vertical' : '') + '.html', location.href).href;
 
   app.innerHTML =
-    '<div class="card"><h2>📺 Tus escenas</h2>' +
-    '<p class="nota">Copia el enlace y pégalo en OBS como <b>Fuente de navegador</b> con el tamaño indicado (1920×1080 u 1080×1920). Cuando mejoremos algo, OBS lo recibe solo, sin cambiar el enlace. Tus archivos de siempre siguen en tu carpeta como copia de seguridad.</p>' +
-    TEMAS.map(([t, tn]) => '<div class="ovgrupo"><h3>' + tn + '</h3><div class="ovlista">' +
-      ESCENAS.flatMap(([e, en]) => [false, true].filter(v => !(v && t === 'navidad')).map(v =>
-        '<div class="ovcard' + (v ? ' vertical' : '') + '"><div class="ovmini"><img loading="lazy" src="fondos/escenas/mini/' + t + '-' + e + '-' + (v ? 'vertical' : 'horizontal') + '.jpg" alt=""></div>' +
-        '<div class="ovinfo"><b>' + en + (CON_ANUNCIOS.includes(e) ? ' <span class="ovtag">📣 anuncios</span>' : '') + '</b><span>' + (v ? '📱 1080×1920' : '🖥️ 1920×1080') + '</span></div>' +
-        '<div class="acciones"><button class="btn pri" type="button" data-copiar="' + esc(url(t, e, v)) + '">📋 Copiar enlace</button><a class="btn" href="' + esc(url(t, e, v)) + '" target="_blank" rel="noopener">↗ Abrir</a></div></div>')).join('') +
-      '</div></div>').join('') +
-    '</div>' +
+    ESCENAS.map(([e, en]) =>
+      '<form class="card ovesc" data-e="' + e + '" onsubmit="return false"><div class="ovesc-cab"><h2>' + ICO_ESC[e] + ' ' + en + (CON_ANUNCIOS.includes(e) ? ' <span class="ovtag">📣 con anuncios</span>' : '') + '</h2><p class="nota">' + DESC_ESC[e] + '</p></div>' +
+      '<div class="ovesc-cuerpo"><div class="ovesc-ctl">' +
+      '<div class="f"><span>Estilo</span><div class="chips">' + TEMAS.map(([t, tn]) => '<label><input type="radio" name="tema" value="' + t + '"' + (t === sel(e).tema ? ' checked' : '') + '>' + tn + '</label>').join('') + '</div></div>' +
+      '<div class="f"><span>Formato</span><div class="chips"><label><input type="radio" name="fmt" value="h"' + (sel(e).fmt !== 'v' ? ' checked' : '') + '>🖥️ Horizontal 1920×1080</label><label data-vert><input type="radio" name="fmt" value="v"' + (sel(e).fmt === 'v' ? ' checked' : '') + '>📱 Vertical 1080×1920</label></div></div>' +
+      '<div class="f"><span>Enlace para OBS</span><input type="text" readonly data-url></div>' +
+      '<div class="acciones"><button class="btn pri" type="button" data-copiar>📋 Copiar enlace</button><a class="btn" data-abrir target="_blank" rel="noopener">↗ Abrir</a></div>' +
+      '<p class="nota" data-tam></p>' +
+      (CON_ANUNCIOS.includes(e) ? '<p class="nota">Los anuncios se editan más abajo, en <b>📣 Anuncios</b>; la vista previa ya los muestra.</p>' : '') +
+      '</div><div class="ovesc-prev"><div class="ovmarco"><iframe loading="lazy" title="Vista previa: ' + en + '" scrolling="no" tabindex="-1"></iframe></div></div></div></form>').join('') +
     '<div class="card"><h2>📣 Anuncios de "Ya regreso" y "Terminando"</h2>' +
-    '<p class="nota">Van rotando en una tarjeta debajo del título. Pulsa <b>Guardar</b> y en unos 30 segundos OBS los cambia solo, aunque estés en directo. La cuenta atrás usa tu hora local.</p>' +
+    '<p class="nota">Salen en grande en el lugar de la imagen de Kyo y van rotando. Si no hay ninguno activo, vuelve Kyo. Pulsa <b>Guardar</b> y en unos 30 segundos OBS los cambia solo, aunque estés en directo. La cuenta atrás usa tu hora local.</p>' +
     '<div class="ovestado" id="ovEstado">Cargando anuncios…</div>' +
     '<div class="ovedit"><div class="ovcol"><div id="ovLista" class="ovads"></div>' +
     '<div class="acciones"><select id="ovTipoNuevo">' + TIPOS.map(([v, l]) => '<option value="' + v + '">' + l + '</option>').join('') + '</select><button class="btn" type="button" id="ovAnadir">＋ Añadir anuncio</button></div></div>' +
@@ -59,10 +71,32 @@ function abrir() {
     '<div class="ovmarco"><iframe id="ovFrame" title="Vista previa de la escena" scrolling="no"></iframe></div>' +
     '<div class="acciones"><button class="btn pri" type="button" id="ovGuardar">💾 Guardar (en vivo)</button><button class="btn" type="button" id="ovDeshacer">↺ Descartar cambios</button></div></div></div></div>';
 
-  // ---------- escenas ----------
-  app.addEventListener('click', async e => {
-    const c = e.target.closest('[data-copiar]'); if (!c) return;
-    try { await navigator.clipboard.writeText(c.dataset.copiar); } catch (er) { const t = document.createElement('textarea'); t.value = c.dataset.copiar; document.body.appendChild(t); t.select(); document.execCommand && document.execCommand('copy'); t.remove(); }
+  // ---------- escenas (una tarjeta por escena, con estilo, formato y vista previa) ----------
+  const marcos = [];
+  const encajar = (fr, v) => { const m = fr.parentElement, W = v ? 1080 : 1920, H = v ? 1920 : 1080, maxH = 560, disp = m.parentElement.clientWidth || 640, k = Math.min(disp / W, maxH / H); fr.style.width = W + 'px'; fr.style.height = H + 'px'; fr.style.transform = 'scale(' + k + ')'; m.style.height = Math.round(H * k) + 'px'; m.style.width = Math.round(W * k) + 'px'; };
+  $$('.ovesc', app).forEach(f => {
+    const e = f.dataset.e, fr = $('iframe', f);
+    const pintar = () => {
+      let t = $('input[name=tema]:checked', f).value, v = $('input[name=fmt]:checked', f).value === 'v';
+      const hayV = t !== 'navidad';
+      $('[data-vert]', f).classList.toggle('off', !hayV); $('[data-vert] input', f).disabled = !hayV;
+      if (v && !hayV) { v = false; $('input[name=fmt][value=h]', f).checked = true; }
+      const u = url(t, e, v);
+      $('[data-url]', f).value = u; $('[data-abrir]', f).href = u;
+      $('[data-tam]', f).textContent = 'En OBS: Fuente de navegador de ' + (v ? '1080 × 1920' : '1920 × 1080') + '.';
+      const src = 'overlays/escenas/' + t + '/' + e + (v ? '-vertical' : '') + '.html?preview=1';
+      if (fr.getAttribute('src') !== src) { fr.src = src; fr.onload = () => { encajar(fr, v); if (CON_ANUNCIOS.includes(e) && datos) fr.contentWindow.postMessage({ tipo: 'kyo-anuncios', datos: conObjetivo(datos) }, '*'); }; }
+      encajar(fr, v);
+      selGuardada[e] = { tema: t, fmt: v ? 'v' : 'h' }; try { localStorage.setItem(SEL, JSON.stringify(selGuardada)); } catch (er) {}
+    };
+    f.addEventListener('change', pintar); pintar();
+    marcos.push({ e, fr, v: () => $('input[name=fmt]:checked', f).value === 'v' });
+  });
+  window.addEventListener('resize', () => marcos.forEach(m => encajar(m.fr, m.v())));
+  app.addEventListener('click', async ev => {
+    const c = ev.target.closest('[data-copiar]'); if (!c) return;
+    const u = $('[data-url]', c.closest('.ovesc')).value;
+    try { await navigator.clipboard.writeText(u); } catch (er) { const t = document.createElement('textarea'); t.value = u; document.body.appendChild(t); t.select(); document.execCommand && document.execCommand('copy'); t.remove(); }
     const txt = c.textContent; c.textContent = '✓ Copiado'; setTimeout(() => c.textContent = txt, 1800);
   });
 
@@ -85,6 +119,7 @@ function abrir() {
             campo('Texto al llegar a cero', inp('textoFin', a.textoFin, 40, '¡Ya disponible!'))
           : campo('Texto grande', inp('texto', a.texto, 40, 'Ya disponible'))) +
         campo('Chip de abajo (enlace, opcional)', inp('enlace', a.enlace, 50, 'kyomerch.shop')) +
+        campo('Imagen (enlace https, opcional)', inp('imagen', a.imagen, 400, 'https://…/foto.png'), ' ancho') +
         campo('Dónde sale', '<select data-k="donde">' + opts(DONDE, a.donde) + '</select>') +
         campo('Segundos en pantalla', '<input type="number" data-k="seg" min="4" max="120" value="' + (a.seg || 10) + '">') +
         '</div></div>';
@@ -105,7 +140,7 @@ function abrir() {
     frame.src = 'overlays/escenas/' + t + '/' + e + '.html?preview=1';
     frame.onload = () => { escalar(); enviarPrevia(); };
   }
-  const enviarPrevia = () => { try { frame.contentWindow.postMessage({ tipo: 'kyo-anuncios', datos: conObjetivo(datos) }, '*'); } catch (e) {} };
+  const enviarPrevia = () => { const d = { tipo: 'kyo-anuncios', datos: conObjetivo(datos) }; try { frame.contentWindow.postMessage(d, '*'); } catch (e) {} marcos.forEach(m => { if (CON_ANUNCIOS.includes(m.e)) try { m.fr.contentWindow.postMessage(d, '*'); } catch (e) {} }); };
   const escalar = () => { const m = frame.parentElement, k = m.clientWidth / 1920; frame.style.transform = 'scale(' + k + ')'; m.style.height = Math.round(1080 * k) + 'px'; };
   window.addEventListener('resize', () => { if (!app.closest('[hidden]')) escalar(); });
 
