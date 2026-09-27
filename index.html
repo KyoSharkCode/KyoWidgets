@@ -102,6 +102,21 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .fila3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color-scheme:dark}
 .panopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px}
+#imagenesApp{display:grid;gap:16px}
+.imgfiltros{display:flex;flex-wrap:wrap;gap:12px 28px;margin:12px 0 16px}
+.imggal{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.imggen{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.imgcard{margin:0;display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.02)}
+.imgcard[hidden]{display:none}
+.imgmini{display:flex;align-items:center;justify-content:center;border-radius:12px;overflow:hidden;background:#0a0720;aspect-ratio:16/9}
+.imgcard.vertical .imgmini{aspect-ratio:16/9}
+.imgmini img{display:block;width:100%;height:100%;object-fit:contain}
+.imgmini canvas{display:block;max-width:100%;max-height:100%}
+.imggen .imgmini{aspect-ratio:auto;height:230px}
+.imgcard figcaption{display:grid;gap:3px}
+.imgcard figcaption b{font-family:"Fredoka",sans-serif;font-size:16px}
+.imgcard figcaption span{font-size:12.5px;color:var(--faint);line-height:1.4}
+.imgcard .acciones{margin-top:auto}
 .panlista{display:grid;gap:12px;margin-bottom:14px}
 .panfila{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:16px;background:repeating-conic-gradient(#1b1545 0 25%,#140f38 0 50%) 0 0/18px 18px}
 .panfila canvas{width:320px;max-width:100%;height:auto;display:block}
@@ -167,6 +182,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <button role="tab" data-tab="animaciones" aria-selected="false">🎬 Animaciones</button>
     <button role="tab" data-tab="anuncios" aria-selected="false">📣 Anuncios</button>
     <button role="tab" data-tab="paneles" aria-selected="false">🧩 Paneles</button>
+    <button role="tab" data-tab="imagenes" aria-selected="false">🖼 Imágenes</button>
     <button role="tab" data-tab="musica" aria-selected="false">🎶 Mis músicas</button>
     <button role="tab" data-tab="conexiones" aria-selected="false">🔌 Conexiones</button>
   </nav>
@@ -315,6 +331,15 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       <p class="nota">Crea los paneles de la sección "Acerca de" de tu canal con tu estilo pegatina. Escribe los títulos, elige un icono para cada uno y descárgalos en PNG (uno a uno o todos juntos en un .zip). Tamaño recomendado por Twitch: 320×100 (el de 640×200 se ve más nítido en pantallas grandes).</p>
     </div>
     <div id="panelesApp" class="card"><p class="nota">Cargando…</p></div>
+  </section>
+
+  <!-- ===================== IMÁGENES ===================== -->
+  <section data-panel="imagenes" hidden>
+    <div class="card animhead">
+      <h2>🖼 Imágenes</h2>
+      <p class="nota">Todos tus fondos en un solo sitio para diseños estáticos: los de las escenas de OBS y los de tus animaciones y anuncios. Descárgalos en JPG (más ligero) o PNG (sin pérdida).</p>
+    </div>
+    <div id="imagenesApp"><div class="card"><p class="nota">Cargando…</p></div></div>
   </section>
 
   <!-- ===================== MIS MÚSICAS ===================== -->
@@ -507,7 +532,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     $('#subtabs').hidden = !esWidget;
     $$('#subtabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sub === n ? 'true' : 'false'));
     $$('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== n);
-    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else comprobarSpotify();
+    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else comprobarSpotify();
   }
   $$('nav.tabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.tab)));
   $$('#subtabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.sub)));
@@ -644,5 +669,6 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 </script>
 <script type="module" src="animaciones.js"></script>
 <script type="module" src="paneles.js"></script>
+<script type="module" src="imagenes.js"></script>
 </body>
 </html>

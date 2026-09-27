@@ -1221,12 +1221,12 @@ function nivelMar(x, nivel, A, W, fase, t) { return nivel + A * Math.sin(x / W *
 function caminoMar(W, H, nivel, A, fase, t) {
   const p = new Path2D(), paso = W / 60;
   p.moveTo(-20, H + 40);
-  for (let x = -20; x <= W + 20; x += paso) p.lineTo(x, nivelMar(x, nivel, A, W, fase, t));
+  for (let x = -20; x <= W + 20 + paso; x += paso) p.lineTo(x, nivelMar(x, nivel, A, W, fase, t));
   p.lineTo(W + 20, H + 40); p.closePath(); return p;
 }
 function lineaMar(W, nivel, A, fase, t) {
   const p = new Path2D(), paso = W / 60;
-  for (let x = -20; x <= W + 20; x += paso) x === -20 ? p.moveTo(x, nivelMar(x, nivel, A, W, fase, t)) : p.lineTo(x, nivelMar(x, nivel, A, W, fase, t));
+  for (let x = -20; x <= W + 20 + paso; x += paso) x === -20 ? p.moveTo(x, nivelMar(x, nivel, A, W, fase, t)) : p.lineTo(x, nivelMar(x, nivel, A, W, fase, t));
   return p;
 }
 function burbujasEn(ctx, W, H, t, u, sem, n, vel = 1) {
@@ -1820,7 +1820,7 @@ function pieAnuncio(ctx, o, P, W, H, t, u, k, vert, tU, yUrl, yEnv, ic = {}) {
     }
 }
 // Fondo de los anuncios: degradado, rayas que se mueven, brillos y mar abajo
-function fondoAnuncio(ctx, P, W, H, t, u, vert) {
+function fondoAnuncio(ctx, P, W, H, t, u, vert, conMar = true) {
     // fondo: degradado + rayas diagonales que se mueven + brillos
     const g = ctx.createLinearGradient(0, 0, W * .3, H); g.addColorStop(0, P.c); g.addColorStop(1, P.o);
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
@@ -1829,6 +1829,7 @@ function fondoAnuncio(ctx, P, W, H, t, u, vert) {
     const rg = ctx.createRadialGradient(W / 2, H * .45, 0, W / 2, H * .45, Math.max(W, H) * .55); rg.addColorStop(0, P.a2 + '44'); rg.addColorStop(1, P.a2 + '00');
     ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
     { const r = azar(8); for (let i = 0; i < 22; i++) { const sx = r() * W, sy = r() * H, tw = .5 + .5 * Math.sin(t * (2 + r() * 2) + i); destello(ctx, sx, sy, (12 + r() * 20) * u, i % 4 ? '#ffffff' : '#F4C542', .5 + tw * .5, i * 30 + t * 25, .25 + tw * .5); } }
+    if (!conMar) return;
     // mar abajo
     const Y0 = H * (vert ? .88 : .935), A = 16 * u;
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -2139,6 +2140,57 @@ const anuncioHoy = Object.assign({}, anuncioCuenta, {
   duracion: o => clamp(Number(o.dur) || 8, 5, 30),
   _c: null
 });
+
+// =====================================================================
+// Fondos para diseños estáticos (pestaña Imágenes)
+// =====================================================================
+// Mar quieto de dos capas (como la intro en reposo), con burbujas
+function marQuieto(ctx, P, W, H, t, u, Y0) {
+  const A = 20 * u, atras = Y0 - 46 * u;
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.lineWidth = 30 * u; ctx.strokeStyle = P.o; ctx.stroke(lineaMar(W, atras, A, 1.3, t));
+  ctx.lineWidth = 16 * u; ctx.strokeStyle = P.p; ctx.stroke(lineaMar(W, atras, A, 1.3, t));
+  ctx.fillStyle = P.a; ctx.fill(caminoMar(W, H, atras, A, 1.3, t));
+  const mar = caminoMar(W, H, Y0, A, 0, t);
+  ctx.lineWidth = 30 * u; ctx.strokeStyle = P.o; ctx.stroke(lineaMar(W, Y0, A, 0, t));
+  ctx.lineWidth = 16 * u; ctx.strokeStyle = P.p; ctx.stroke(lineaMar(W, Y0, A, 0, t));
+  const gm = ctx.createLinearGradient(0, Y0, 0, H + 1); gm.addColorStop(0, P.a2); gm.addColorStop(1, P.c);
+  ctx.fillStyle = gm; ctx.fill(mar);
+  ctx.save(); ctx.clip(mar); burbujasEn(ctx, W, H, t, u, 17, Math.round(10 + 14 * W * H / 2073600)); ctx.restore();
+}
+const FORMATOS_IMG = Object.assign({}, FORMATOS, { twitch: { w: 1200, h: 480 }, youtube: { w: 2560, h: 1440 } });
+const OPC_FONDO = {
+  rayas: [{ k: 'mar', label: 'Olas abajo', opciones: [['si', '🌊 Sí'], ['no', 'No']], def: 'si' }],
+  noche: [{ k: 'luna', label: 'Luna y estrellas', opciones: [['si', '🌙 Sí'], ['no', 'No']], def: 'si' },
+    { k: 'mar', label: 'Mar', opciones: [['bajo', 'Bajito'], ['medio', 'A media altura'], ['no', 'Sin mar']], def: 'bajo' }],
+  mar: [{ k: 'rayos', label: 'Rayos de luz', opciones: [['si', '✨ Sí'], ['no', 'No']], def: 'si' },
+    { k: 'ola', label: 'Superficie arriba', opciones: [['si', '🌊 Sí'], ['no', 'No']], def: 'si' }]
+};
+export const FONDOS = {
+  formatos: FORMATOS_IMG,
+  lista: [
+    { id: 'rayas', nombre: 'Rayas de anuncio', desc: 'El fondo de tus anuncios: degradado con rayas diagonales, destellos y las olas abajo.', opciones: OPC_FONDO.rayas,
+      dibujar(ctx, o, W, H, t) { const P = paleta(o), u = Math.min(W, H) / 1080; fondoAnuncio(ctx, P, W, H, t, u, H > W, o.mar !== 'no'); } },
+    { id: 'noche', nombre: 'Noche con mar', desc: 'El cielo de la intro y la outro: estrellas, luna pegatina y el mar con burbujas.', opciones: OPC_FONDO.noche,
+      dibujar(ctx, o, W, H, t) { const P = paleta(o), u = Math.min(W, H) / 1080, vert = H > W, Y0 = o.mar === 'medio' ? H * .6 : H * (vert ? .82 : .8);
+        fondoNoche(ctx, P, W, H, t, u, o.mar === 'no' ? H : Y0, o.luna !== 'no', vert);
+        if (o.mar !== 'no') marQuieto(ctx, P, W, H, t, u, Y0); } },
+    { id: 'mar', nombre: 'Bajo el mar', desc: 'Todo mar: degradado profundo, rayos de luz y burbujas. Ideal para poner texto encima.', opciones: OPC_FONDO.mar,
+      dibujar(ctx, o, W, H, t) { const P = paleta(o), u = Math.min(W, H) / 1080;
+        const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, P.a2); g.addColorStop(.55, P.c); g.addColorStop(1, P.o);
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        if (o.rayos !== 'no') { const r = azar(5); ctx.save(); ctx.globalCompositeOperation = 'lighter';
+          for (let i = 0; i < 7; i++) { const x = r() * W * 1.2 - W * .1, w = (60 + r() * 140) * u, gr = ctx.createLinearGradient(0, 0, 0, H * .85); gr.addColorStop(0, 'rgba(255,255,255,.10)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + w, 0); ctx.lineTo(x + w * .4 - W * .12, H * .85); ctx.lineTo(x - w * .6 - W * .12, H * .85); ctx.closePath(); ctx.fill(); }
+          ctx.restore(); }
+        burbujasEn(ctx, W, H, t, u, 23, Math.round(18 + 22 * W * H / 2073600));
+        { const r = azar(9); for (let i = 0; i < 10; i++) destello(ctx, r() * W, H * .15 + r() * H * .8, (8 + r() * 14) * u, i % 3 ? '#ffffff' : P.a, .6, i * 40 + t * 20, .5); }
+        if (o.ola !== 'no') { const A = 18 * u, y = H * .07;
+          ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.fillStyle = P.o;
+          const cielo = new Path2D(); cielo.moveTo(-20, -40); for (let x = -20; x <= W + 20 + W / 60; x += W / 60) cielo.lineTo(x, nivelMar(x, y, A, W, 0, t)); cielo.lineTo(W + 20, -40); cielo.closePath(); ctx.fill(cielo);
+          ctx.lineWidth = 26 * u; ctx.strokeStyle = P.o; ctx.stroke(lineaMar(W, y, A, 0, t)); ctx.lineWidth = 14 * u; ctx.strokeStyle = P.p; ctx.stroke(lineaMar(W, y, A, 0, t)); } } }
+  ]
+};
 
 // Anuncios (pestaña propia)
 export const ANUNCIOS = [anuncioHoy, anuncioMerch, anuncioCuenta, anuncioDirecto];
