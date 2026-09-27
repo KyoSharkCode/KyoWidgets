@@ -103,6 +103,41 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color-scheme:dark}
 .panopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px}
 #imagenesApp{display:grid;gap:16px}
+#overlaysApp{display:grid;gap:16px}
+.ovgrupo{margin-top:18px}
+.ovgrupo h3{margin:0 0 10px;font:700 12px "Chakra Petch",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
+.ovlista{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.ovcard{display:flex;flex-direction:column;gap:9px;padding:10px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.02)}
+.ovmini{border-radius:10px;overflow:hidden;background:#0a0720;aspect-ratio:16/9;display:flex;justify-content:center}
+.ovmini img{height:100%;width:auto;max-width:100%;object-fit:contain;display:block}
+.ovinfo{display:grid;gap:2px}.ovinfo b{font-size:15px}.ovinfo span{font-size:12.5px;color:var(--faint)}
+.ovtag{font:700 10.5px "Chakra Petch",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--acc2);background:rgba(111,227,240,.1);border:1px solid rgba(111,227,240,.35);border-radius:999px;padding:1px 8px;margin-left:4px;vertical-align:2px}
+.ovcard .acciones .btn{padding:7px 12px;font-size:13.5px;text-decoration:none}
+.ovestado{margin:12px 0;padding:10px 14px;border-radius:12px;font-weight:600;font-size:14px;background:var(--panel2);border:1px solid var(--line)}
+.ovestado.ok{border-color:rgba(74,222,128,.45);color:#b7f5cb}.ovestado.pend{border-color:rgba(255,138,43,.5);color:#ffd2ad}.ovestado.mal{border-color:rgba(255,143,163,.5);color:#ffc2cd}
+.ovedit{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:980px){.ovedit{grid-template-columns:1fr}}
+.ovcol{display:grid;gap:12px}
+.ovprev{position:sticky;top:12px}
+.ovads{display:grid;gap:12px}
+.ovad{border:1px solid var(--line);border-radius:16px;padding:12px;background:rgba(255,255,255,.02);display:grid;gap:10px}
+.ovad.apagado{opacity:.55}
+.ovadcab{display:flex;align-items:center;gap:10px}
+.ovadcab select{flex:1}
+.ovmover{display:flex;gap:6px}.ovmover .btn{padding:6px 11px}
+.ovcampos{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.ovad select,.ovcol > .acciones select,.ovad input[type=date],.ovad input[type=time]{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color-scheme:dark}
+.ovcol > .acciones select{width:auto}
+.ovsw{position:relative;width:44px;height:24px;flex:none;cursor:pointer}
+.ovsw input{position:absolute;opacity:0}
+.ovsw span{position:absolute;inset:0;border-radius:999px;background:var(--panel2);border:1px solid var(--line2);transition:.2s}
+.ovsw span::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--faint);transition:.2s}
+.ovsw input:checked + span{background:rgba(255,138,43,.25);border-color:var(--acc)}
+.ovsw input:checked + span::after{left:23px;background:var(--acc)}
+.ovsw input:focus-visible + span{outline:2px solid var(--acc2);outline-offset:2px}
+.ovmarco{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#070b24}
+.ovmarco iframe{position:absolute;left:0;top:0;width:1920px;height:1080px;border:0;transform-origin:0 0;pointer-events:none}
+.ovprev .chips{margin-bottom:6px}
 .imgfiltros{display:flex;flex-wrap:wrap;gap:12px 28px;margin:12px 0 16px}
 .imggal{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
 .imggen{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
@@ -179,6 +214,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="widgets" aria-selected="true">🧰 Widgets</button>
+    <button role="tab" data-tab="overlays" aria-selected="false">📺 Overlays</button>
     <button role="tab" data-tab="animaciones" aria-selected="false">🎬 Animaciones</button>
     <button role="tab" data-tab="anuncios" aria-selected="false">📣 Anuncios</button>
     <button role="tab" data-tab="paneles" aria-selected="false">🧩 Paneles</button>
@@ -331,6 +367,11 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       <p class="nota">Crea los paneles de la sección "Acerca de" de tu canal con tu estilo pegatina. Escribe los títulos, elige un icono para cada uno y descárgalos en PNG (uno a uno o todos juntos en un .zip). Tamaño recomendado por Twitch: 320×100 (el de 640×200 se ve más nítido en pantallas grandes).</p>
     </div>
     <div id="panelesApp" class="card"><p class="nota">Cargando…</p></div>
+  </section>
+
+  <!-- ===================== OVERLAYS ===================== -->
+  <section data-panel="overlays" hidden>
+    <div id="overlaysApp"><div class="card"><p class="nota">Cargando…</p></div></div>
   </section>
 
   <!-- ===================== IMÁGENES ===================== -->
@@ -532,7 +573,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     $('#subtabs').hidden = !esWidget;
     $$('#subtabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sub === n ? 'true' : 'false'));
     $$('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== n);
-    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else comprobarSpotify();
+    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else comprobarSpotify();
   }
   $$('nav.tabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.tab)));
   $$('#subtabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.sub)));
@@ -670,5 +711,6 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 <script type="module" src="animaciones.js"></script>
 <script type="module" src="paneles.js"></script>
 <script type="module" src="imagenes.js"></script>
+<script type="module" src="overlays.js"></script>
 </body>
 </html>
