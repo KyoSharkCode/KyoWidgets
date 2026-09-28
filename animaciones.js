@@ -43,7 +43,8 @@ async function conversor(aviso) {
 
 const leer = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
 const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
-const defecto = pl => Object.fromEntries(pl.campos.filter(c => c.tipo !== 'imagen').map(c => [c.k, c.def]));
+const ES_IMG = c => c.tipo === 'imagen' || c.tipo === 'media';
+const defecto = pl => Object.fromEntries(pl.campos.filter(c => !ES_IMG(c)).map(c => [c.k, c.def]));
 
 // ---------- imágenes propias (se guardan solo en este navegador, con IndexedDB) ----------
 const bd = new Promise(res => {
@@ -55,8 +56,8 @@ const imgLeer = k => bdHacer('readonly', st => st.get(k));
 const imgGuardar = (k, v) => bdHacer('readwrite', st => st.put(v, k));
 const imgBorrar = k => bdHacer('readwrite', st => st.delete(k));
 // Reduce la imagen (máx. 1400 px) y la guarda como PNG para conservar la transparencia
-async function prepararImagen(file) {
-  const bmp = await createImageBitmap(file), k = Math.min(1, 1400 / Math.max(bmp.width, bmp.height));
+async function prepararImagen(file, max = 1400) {
+  const bmp = await createImageBitmap(file), k = Math.min(1, max / Math.max(bmp.width, bmp.height));
   const cv = document.createElement('canvas'); cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
   cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
   return new Promise(r => cv.toBlob(r, 'image/png'));
@@ -69,6 +70,7 @@ function formulario(pl) {
     if (c.tipo === 'texto') return '<label class="f"' + si + '><span>' + c.label + '</span><input type="text" name="' + c.k + '" maxlength="' + (c.max || 40) + '"></label>';
     if (c.tipo === 'numero') return '<label class="f"' + si + '><span>' + c.label + '</span><input type="number" name="' + c.k + '" min="' + c.min + '" max="' + c.max + '" step="' + c.paso + '"></label>';
     if (c.tipo === 'imagen') return '<div class="f"' + si + '><span>' + c.label + '</span><div class="imgpick"><label class="btn"><input type="file" accept="image/*" data-img="' + c.k + '" hidden>📁 Elegir imagen</label><button class="btn" type="button" data-quitar="' + c.k + '" hidden>✕ Quitar</button><small data-imgnom="' + c.k + '">Sin imagen</small></div></div>';
+    if (c.tipo === 'media') return '<div class="f"' + si + '><span>' + c.label + '</span><div class="imgpick"><label class="btn"><input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" data-img="' + c.k + '" data-media hidden>📁 Elegir imagen o vídeo</label><button class="btn" type="button" data-quitar="' + c.k + '" hidden>✕ Quitar</button><small data-imgnom="' + c.k + '">Sin archivo</small></div></div>';
     if (c.tipo === 'color') return '<label class="f fcolor"' + si + '><span>' + c.label + '</span><input type="color" name="' + c.k + '"></label>';
     return '<div class="f"' + si + '><span>' + c.label + '</span><div class="chips">' + c.opciones.map(([v, l]) => '<label><input type="radio" name="' + c.k + '" value="' + v + '">' + l + '</label>').join('') + '</div></div>';
   }).join('');
@@ -76,7 +78,7 @@ function formulario(pl) {
 function leerForm(card, pl) {
   const o = {};
   pl.campos.forEach(c => {
-    if (c.tipo === 'imagen') { o[c.k] = (card._imgs || {})[c.k] || null; return; }
+    if (ES_IMG(c)) { o[c.k] = (card._imgs || {})[c.k] || null; return; }
     if (c.tipo === 'chips') { const i = $('input[name="' + c.k + '"]:checked', card); o[c.k] = i ? i.value : c.def; }
     else { const i = $('[name="' + c.k + '"]', card); o[c.k] = i ? i.value : c.def; }
   });
@@ -84,7 +86,7 @@ function leerForm(card, pl) {
 }
 function ponerForm(card, pl, o) {
   pl.campos.forEach(c => {
-    if (c.tipo === 'imagen') return;
+    if (ES_IMG(c)) return;
     if (c.tipo === 'chips') $$('input[name="' + c.k + '"]', card).forEach(i => i.checked = i.value === String(o[c.k]));
     else { const i = $('[name="' + c.k + '"]', card); if (i) i.value = o[c.k]; }
   });
@@ -112,6 +114,33 @@ async function oir(pl, o) {
   return true;
 }
 
+// ---------- vídeos dentro de las plantillas ----------
+// Un campo "media" puede ser una imagen (ImageBitmap) o un vídeo: {video: <video>, esVideo: true}.
+// En la vista previa el vídeo se reproduce en bucle; al exportar se pausa y se busca cada fotograma exacto.
+const videosDe = (pl, o) => pl.campos.filter(c => c.tipo === 'media' && o[c.k] && o[c.k].esVideo).map(c => o[c.k].video);
+function buscar(v, seg) {
+  return new Promise(res => {
+    const d = v.duration || 0, x = d ? (seg % d) : 0;
+    if (Math.abs(v.currentTime - x) < 1e-3 && v.readyState >= 2) return res();
+    let listo = false; const fin = () => { if (listo) return; listo = true; v.removeEventListener('seeked', fin); res(); };
+    v.addEventListener('seeked', fin); setTimeout(fin, 1500); v.currentTime = x;
+  });
+}
+async function sincronizarMedia(pl, o, t) {
+  const vs = videosDe(pl, o); if (!vs.length) return;
+  if (t === 'pausa') { vs.forEach(v => v.pause()); return; }
+  if (t === 'seguir') { vs.forEach(v => { v.play().catch(() => {}); }); return; }
+  await Promise.all(vs.map(v => buscar(v, t)));
+}
+async function hacerFuenteVideo(blob) {
+  const v = document.createElement('video');
+  v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'; v.crossOrigin = 'anonymous';
+  v.src = URL.createObjectURL(blob);
+  await new Promise((res, rej) => { v.onloadeddata = res; v.onerror = () => rej(new Error('video')); setTimeout(res, 8000); });
+  v.play().catch(() => {});
+  return { esVideo: true, video: v, nombre: '' };
+}
+
 // ---------- exportar ----------
 async function exportar(pl, card, fmtElegido, tipo) {
   if (ocupado) return;
@@ -127,8 +156,10 @@ async function exportar(pl, card, fmtElegido, tipo) {
     const L = pl.duracion(o), n = Math.round(L * pl.fps);
     const cv = document.createElement('canvas'); cv.width = F.w; cv.height = F.h;
     const ctx = cv.getContext('2d');
+    await sincronizarMedia(pl, o, 'pausa');
     for (let i = 0; i < n; i++) {
       ctx.clearRect(0, 0, F.w, F.h);
+      await sincronizarMedia(pl, o, i / pl.fps);
       pl.dibujar(ctx, i / pl.fps, o, fmt, F.w, F.h);
       const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
       await f.writeFile('f' + pad(i) + '.png', new Uint8Array(await blob.arrayBuffer()));
@@ -159,7 +190,7 @@ async function exportar(pl, card, fmtElegido, tipo) {
   } catch (e) {
     console.error(e);
     aviso('No se pudo convertir: ' + (e && e.message ? e.message : e) + '. Recarga la página y prueba otra vez.', null);
-  } finally { ocupado = false; btn.forEach(b => b.disabled = false); }
+  } finally { ocupado = false; btn.forEach(b => b.disabled = false); sincronizarMedia(pl, o, 'seguir'); }
 }
 
 // ---------- tarjeta de cada plantilla ----------
@@ -183,7 +214,7 @@ function tarjeta(pl) {
   const cv = $('canvas', card), ctx = cv.getContext('2d');
   let t0 = performance.now(), o = leerForm(card, pl);
   const refrescar = () => {
-    o = leerForm(card, pl); guardar(clave, Object.fromEntries(Object.entries(o).filter(([k]) => !(card._imgs && k in card._imgs) && !pl.campos.some(c => c.k === k && c.tipo === 'imagen'))));
+    o = leerForm(card, pl); guardar(clave, Object.fromEntries(Object.entries(o).filter(([k]) => !(card._imgs && k in card._imgs) && !pl.campos.some(c => c.k === k && ES_IMG(c)))));
     $('[data-mov]', card).textContent = textoDescarga(pl, o);
     if (card._pintarMom) card._pintarMom();
     $('[data-webm]', card).hidden = esOpaco(pl, o);
@@ -206,8 +237,10 @@ function tarjeta(pl) {
   $('[data-png]', card).addEventListener('click', async () => {
     await fuentesListas;
     const fmt = $('input[name="fmt-' + pl.id + '"]:checked', card).value, F = FORMATOS[fmt], L = pl.duracion(o);
-    const c = document.createElement('canvas'); c.width = F.w; c.height = F.h;
-    pl.dibujar(c.getContext('2d'), Math.min(L - .001, mom.value / 100 * L), o, fmt, F.w, F.h);
+    const c = document.createElement('canvas'); c.width = F.w; c.height = F.h; const tp = Math.min(L - .001, mom.value / 100 * L);
+    await sincronizarMedia(pl, o, 'pausa'); await sincronizarMedia(pl, o, tp);
+    pl.dibujar(c.getContext('2d'), tp, o, fmt, F.w, F.h);
+    sincronizarMedia(pl, o, 'seguir');
     const blob = await new Promise(r => c.toBlob(r, 'image/png')), url = URL.createObjectURL(blob), a = document.createElement('a');
     a.href = url; a.download = pl.id + '-' + fmt + '.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
     $('.ptxt', card).textContent = '🖼 Imagen descargada (' + F.w + '×' + F.h + ', segundo ' + (mom.value / 100 * L).toFixed(1) + ').';
@@ -226,7 +259,7 @@ function tarjeta(pl) {
     ponerForm(card, pl, Object.assign(defecto(pl), v[sel.value])); nom.value = sel.value; refrescar(); t0 = performance.now(); });
   $('[data-verguardar]', card).addEventListener('click', () => {
     const n = nom.value.trim(); if (!n) { nom.focus(); $('.ptxt', card).textContent = 'Escribe un nombre para la versión.'; return; }
-    const v = leer(claveV) || {}; v[n] = Object.fromEntries(Object.entries(leerForm(card, pl)).filter(([k]) => !pl.campos.some(c => c.k === k && c.tipo === 'imagen')));
+    const v = leer(claveV) || {}; v[n] = Object.fromEntries(Object.entries(leerForm(card, pl)).filter(([k]) => !pl.campos.some(c => c.k === k && ES_IMG(c))));
     guardar(claveV, v); pintarV(n); $('.ptxt', card).textContent = '⭐ Versión "' + n + '" guardada.';
   });
   borrar.addEventListener('click', () => { const v = leer(claveV) || {}; const n = sel.value; if (!n) return; delete v[n]; guardar(claveV, v); nom.value = ''; pintarV(); $('.ptxt', card).textContent = 'Versión "' + n + '" borrada.'; });
@@ -239,8 +272,12 @@ function tarjeta(pl) {
   // imágenes
   card._imgs = {};
   const ponerImg = async (k, blob, nombre) => {
-    card._imgs[k] = blob ? await createImageBitmap(blob) : null;
-    $('[data-imgnom="' + k + '"]', card).textContent = blob ? (nombre || 'Imagen guardada') : 'Sin imagen';
+    const ant = card._imgs[k]; if (ant && ant.esVideo) { ant.video.pause(); URL.revokeObjectURL(ant.video.src); }
+    const vid = blob && /^video\//.test(blob.type);
+    try { card._imgs[k] = blob ? (vid ? await hacerFuenteVideo(blob) : await createImageBitmap(blob)) : null; }
+    catch (e) { card._imgs[k] = null; $('[data-imgnom="' + k + '"]', card).textContent = 'No se pudo abrir ese archivo'; refrescar(); return; }
+    const media = pl.campos.some(c => c.k === k && c.tipo === 'media');
+    $('[data-imgnom="' + k + '"]', card).textContent = blob ? (vid ? '🎬 ' : '') + (nombre || (vid ? 'Vídeo guardado' : 'Imagen guardada')) : (media ? 'Sin archivo' : 'Sin imagen');
     $('[data-quitar="' + k + '"]', card).hidden = !blob;
     refrescar();
   };
@@ -249,8 +286,16 @@ function tarjeta(pl) {
     imgLeer(idb).then(v => { if (v && v.blob) ponerImg(k, v.blob, v.nombre); });
     inp.addEventListener('change', async () => {
       const file = inp.files && inp.files[0]; if (!file) return;
-      try { const blob = await prepararImagen(file); await imgGuardar(idb, { blob, nombre: file.name }); await ponerImg(k, blob, file.name); }
-      catch (e) { $('[data-imgnom="' + k + '"]', card).textContent = 'No se pudo abrir esa imagen'; }
+      try {
+        let blob;
+        if (inp.hasAttribute('data-media') && /^video\//.test(file.type)) {
+          if (file.size > 300 * 1048576) throw new Error('grande');
+          blob = file.slice(0, file.size, file.type);
+        } else blob = await prepararImagen(file, inp.hasAttribute('data-media') ? 2000 : 1400);
+        $('[data-imgnom="' + k + '"]', card).textContent = 'Cargando…';
+        await imgGuardar(idb, { blob, nombre: file.name }); await ponerImg(k, blob, file.name);
+      }
+      catch (e) { $('[data-imgnom="' + k + '"]', card).textContent = e && e.message === 'grande' ? 'Vídeo demasiado grande (máx. 300 MB)' : 'No se pudo abrir ese archivo'; }
       inp.value = '';
     });
     $('[data-quitar="' + k + '"]', card).addEventListener('click', async () => { await imgBorrar(idb); ponerImg(k, null); });
