@@ -7,6 +7,8 @@
 //   ventana: season (temporada actual) | lifetime (histórico)
 //
 // Secreto necesario: FORTNITE_API_KEY
+// Secreto opcional: FORTNITE_NAME → si lo pones, SOLO se consultan las estadísticas de ese
+// nombre (nadie más puede gastar tu clave buscando a otros jugadores).
 // Tus estadísticas deben ser públicas en Fortnite (Ajustes > Cuenta y privacidad).
 
 // --- CORS (permite que los overlays llamen a esta función) ---
@@ -30,7 +32,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   const url = new URL(req.url);
-  const nombre = (url.searchParams.get("nombre") ?? Deno.env.get("FORTNITE_NAME") ?? "").trim();
+  const fijo = (Deno.env.get("FORTNITE_NAME") ?? "").trim();
+  const nombre = (url.searchParams.get("nombre") || fijo).trim().slice(0, 40);
+  if (fijo && nombre.toLowerCase() !== fijo.toLowerCase()) return json({ ok: false, error: "nombre_no_permitido" });
   const cuenta = ["epic", "psn", "xbl"].includes(url.searchParams.get("cuenta") ?? "") ? url.searchParams.get("cuenta")! : "epic";
   const ventana = url.searchParams.get("ventana") === "lifetime" ? "lifetime" : "season";
   if (!nombre) return json({ ok: false, error: "falta_nombre" });
@@ -76,6 +80,7 @@ Deno.serve(async (req) => {
       at: Date.now(),
     };
   }
+  if (cache.size >= 50) cache.clear(); // la caché no crece sin límite
   cache.set(key, { at: Date.now(), body });
   return json(body);
 });

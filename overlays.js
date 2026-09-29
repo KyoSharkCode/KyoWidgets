@@ -170,7 +170,7 @@ function abrir() {
       const r = await fetch(FN('anuncios'), { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, HDR), body: JSON.stringify({ clave: localStorage.getItem('kyo_codigo') || '', datos: conObjetivo(datos) }) });
       const d = await r.json().catch(() => ({}));
       if (d.ok) { sinFuncion = false; guardado = JSON.stringify(datos); marcar(); aviso('¡Guardado! OBS lo mostrará en unos 30 segundos 🦈', 4500); }
-      else aviso(d.error === 'clave' ? 'El código de acceso no coincide con KYO_SETUP_KEY.' : d.error === 'tabla' ? 'Falta la tabla: ejecuta 02_anuncios.sql en Supabase.' : 'No se pudo guardar (' + (d.error || r.status) + ').', 5000);
+      else aviso(d.error === 'clave' ? 'El código de acceso no coincide con KYO_SETUP_KEY.' : d.error === 'bloqueado' ? 'Demasiados intentos fallidos con el código. Espera ' + Math.ceil((d.espera || 60) / 60) + ' min.' : d.error === 'falta_intentos' ? 'Falta ejecutar 03_intentos.sql en Supabase.' : d.error === 'tabla' ? 'Falta la tabla: ejecuta 02_anuncios.sql en Supabase.' : 'No se pudo guardar (' + (d.error || r.status) + ').', 5000);
     } catch (e) { aviso('No encuentro la función "anuncios" en Supabase. Revisa que esté creada.', 5000); }
     b.disabled = false; b.textContent = '💾 Guardar (en vivo)';
   });
