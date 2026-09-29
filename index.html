@@ -445,6 +445,13 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   const HDR = { apikey: K.SUPABASE_ANON_KEY || '', Authorization: 'Bearer ' + (K.SUPABASE_ANON_KEY || '') };
   const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
   const leer = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  // Texto para los errores del código de acceso (límite de intentos en Supabase)
+  const errCodigo = d => d.error === 'bloqueado' ? 'Demasiados intentos fallidos. Espera ' + Math.ceil((d.espera || 60) / 60) + ' min y vuelve a probar.'
+    : d.error === 'clave' ? 'Código incorrecto.' + (d.quedan ? ' Te quedan ' + d.quedan + (d.quedan === 1 ? ' intento.' : ' intentos.') : '')
+    : d.error === 'falta_KYO_SETUP_KEY' ? 'Falta el secreto KYO_SETUP_KEY en Supabase.'
+    : d.error === 'falta_intentos' ? 'Falta ejecutar el archivo 03_intentos.sql en el SQL Editor.'
+    : 'No se pudo comprobar el código (' + (d.error || 'sin respuesta') + ').';
+  const pedir = (n, cuerpo) => fetch(FN(n), { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, HDR), body: JSON.stringify(cuerpo) }).then(r => r.json());
   function toast(t, ms = 3200) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), ms); }
 
   // Fecha por defecto de la cuenta atrás: mañana a las 20:00 (hora local)
@@ -610,9 +617,12 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       $('#nSpot').textContent = 'No encuentro la función spotify-auth. ¿Está creada con ese nombre y con "Verify JWT" desactivado?';
     }
   }
-  $('#btnSpot').addEventListener('click', () => {
-    const volver = location.href.split('#')[0];
-    location.href = FN('spotify-auth') + '?clave=' + encodeURIComponent(leer('kyo_codigo') || '') + '&volver=' + encodeURIComponent(volver);
+  $('#btnSpot').addEventListener('click', async () => {
+    try {
+      const d = await pedir('spotify-auth', { accion: 'conectar', clave: leer('kyo_codigo') || '', volver: location.href.split('#')[0] });
+      if (d.ok && d.url) location.href = d.url;
+      else toast(d.error === 'faltan_secretos' ? 'Faltan secretos en Supabase (SPOTIFY_CLIENT_ID o SPOTIFY_CLIENT_SECRET).' : d.error === 'volver' ? 'El Estudio tiene que abrirse con https:// para conectar Spotify.' : errCodigo(d), 5000);
+    } catch (e) { toast('No encuentro la función spotify-auth.', 5000); }
   });
   $('[data-refrescar]').addEventListener('click', comprobarSpotify);
   const hora = () => new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
@@ -623,7 +633,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     try {
       const r = await fetch(FN('fortnite-stats') + '?' + new URLSearchParams({ nombre: o.nombre, cuenta: o.cuenta || 'epic', ventana: o.ventana || 'season' }), { headers: HDR });
       const d = await r.json();
-      const msg = { privado: 'Tus estadísticas son privadas: actívalas en Fortnite (Ajustes › Cuenta y privacidad).', no_encontrado: 'No encuentro ese nombre de Epic en esa plataforma.', clave_invalida: 'La clave FORTNITE_API_KEY no es válida.', falta_nombre: 'Falta el nombre.' };
+      const msg = { privado: 'Tus estadísticas son privadas: actívalas en Fortnite (Ajustes › Cuenta y privacidad).', no_encontrado: 'No encuentro ese nombre de Epic en esa plataforma.', clave_invalida: 'La clave FORTNITE_API_KEY no es válida.', falta_nombre: 'Falta el nombre.', nombre_no_permitido: 'Ese nombre no coincide con el secreto FORTNITE_NAME de Supabase.' };
       if (d.ok) { pintarEstado($('#eFn'), true, 'Funciona'); $('#nFn').textContent = d.nombre + ': ' + d.total.wins + ' victorias y ' + d.total.kills + ' bajas (' + (d.ventana === 'lifetime' ? 'histórico' : 'temporada') + '). Comprobado a las ' + hora() + '.'; pintarEstado($('#pFn'), true, 'Fortnite'); }
       else { pintarEstado($('#eFn'), false, 'Error'); $('#nFn').textContent = msg[d.error] || ('Respuesta: ' + (d.error || r.status)); pintarEstado($('#pFn'), false, 'Fortnite'); }
       $('#pFn').title = 'Comprobado a las ' + hora();
@@ -643,7 +653,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   const h = decodeURIComponent(location.hash || '');
   if (h.startsWith('#spotify=')) {
     const v = h.slice(9);
-    const txt = { 'ok': '¡Spotify conectado! 🦈', 'error-cancelado': 'Cancelaste el permiso en Spotify.', 'error-clave': 'El código de acceso no coincide con KYO_SETUP_KEY.', 'error-spotify': 'Spotify no aceptó la conexión: revisa que la Redirect URI de tu app sea exacta.', 'error-tabla': 'No se pudo guardar: ejecuta 01_setup.sql en Supabase.' }[v] || v;
+    const txt = { 'ok': '¡Spotify conectado! 🦈', 'error-cancelado': 'Cancelaste el permiso en Spotify.', 'error-spotify': 'Spotify no aceptó la conexión: revisa que la Redirect URI de tu app sea exacta.', 'error-tabla': 'No se pudo guardar: ejecuta 01_setup.sql en Supabase.' }[v] || v;
     history.replaceState(null, '', location.pathname + location.search);
     setTimeout(() => { tab('conexiones'); toast(txt, 5000); }, 300);
   }
@@ -652,10 +662,8 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   async function verificar(c) {
     if (!K.SUPABASE_URL || /TU-PROYECTO/.test(K.SUPABASE_URL)) return { ok: false, msg: 'Rellena config.js con tu Project URL y la anon key.' };
     try {
-      const r = await fetch(FN('spotify-auth') + '?verificar=1&clave=' + encodeURIComponent(c));
-      const d = await r.json();
-      if (d.error === 'falta_KYO_SETUP_KEY') return { ok: false, msg: 'Falta el secreto KYO_SETUP_KEY en Supabase.' };
-      return { ok: !!d.ok, msg: d.ok ? '' : 'Código incorrecto.' };
+      const d = await pedir('spotify-auth', { accion: 'verificar', clave: c });
+      return { ok: !!d.ok, msg: d.ok ? '' : errCodigo(d), mal: d.error === 'clave' };
     } catch (e) { return { ok: false, msg: 'No encuentro la función spotify-auth (¿creada y con "Verify JWT" desactivado?).' }; }
   }
   function entrar() { $('#puerta').hidden = true; actualizar('spotify'); comprobarSpotify(); comprobarFortnite(false); }
@@ -668,7 +676,8 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     else $('#errPuerta').textContent = r.msg;
   });
   const guardado = leer('kyo_codigo');
-  if (guardado) verificar(guardado).then(r => { if (r.ok) entrar(); else $('#errPuerta').textContent = r.msg; });
+  // Si el código guardado ya no vale se borra, para no gastar intentos cada vez que abres el Estudio
+  if (guardado) verificar(guardado).then(r => { if (r.ok) entrar(); else { if (r.mal) { try { localStorage.removeItem('kyo_codigo'); } catch (e) {} } $('#errPuerta').textContent = r.msg; } });
   else $('#codigo').focus();
 
   // ---------- Copia de seguridad (ajustes de localStorage + imágenes de IndexedDB) ----------
