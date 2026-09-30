@@ -69,6 +69,7 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .acciones{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .copiaimg{display:flex;gap:8px;align-items:center;margin:10px 0;cursor:pointer}
 .copiaimg input{accent-color:var(--acc);width:16px;height:16px}
+.botextra input[type=text]{width:auto;flex:1;min-width:180px}
 .btn{font:600 14px "Fredoka",sans-serif;border:1px solid var(--line2);background:transparent;color:var(--dim);border-radius:999px;padding:8px 16px;cursor:pointer}
 .btn:hover{border-color:var(--acc);color:#fff}
 .btn.pri{background:var(--acc);border-color:var(--acc);color:#1a0d05}
@@ -220,7 +221,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   <header>
     <h1>Kyo <span>Estudio</span></h1>
     <small>Personaliza tus widgets y copia el enlace para OBS</small>
-    <div class="estado-pill"><span class="pill" id="pSpot"><i></i>Spotify</span><span class="pill" id="pFn"><i></i>Fortnite</span></div>
+    <div class="estado-pill"><span class="pill" id="pSpot"><i></i>Spotify</span><span class="pill" id="pFn"><i></i>Fortnite</span><span class="pill" id="pBot"><i></i>AletaBot</span></div>
   </header>
 
   <nav class="tabs" role="tablist">
@@ -418,6 +419,18 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       <div class="acciones"><button class="btn pri" type="button" id="btnFn">Probar Fortnite</button></div>
       <p class="nota">Necesita el secreto <b>FORTNITE_API_KEY</b> en Supabase y tus estadísticas públicas en el juego.</p>
     </div>
+    <div class="card">
+      <h2>🦈 AletaBot</h2>
+      <div class="estado" id="eBot"><i></i><span>Comprobando…</span></div>
+      <p class="nota" id="nBot"></p>
+      <div class="acciones"><button class="btn pri" type="button" id="btnBot">Conectar AletaBot</button><button class="btn" type="button" id="btnBotRefrescar">Comprobar de nuevo</button></div>
+      <div class="acciones botextra" id="botExtra" hidden>
+        <input type="text" id="botMensaje" placeholder="Mensaje de prueba para el chat…" maxlength="480">
+        <button class="btn" type="button" id="btnBotProbar">Enviar al chat</button>
+        <button class="btn pri" type="button" id="btnBotEscuchar">🎧 Activar escucha 24/7</button>
+      </div>
+      <p class="nota">Se conecta una sola vez, con la cuenta de AletaBot (no con la tuya). Necesita que AletaBot ya sea moderadora de tu canal: escribe <code>/mod AletaBot</code> en tu chat si aún no lo hiciste.</p>
+    </div>
     <div class="card" id="copia">
       <h2>💾 Copia de seguridad</h2>
       <p class="nota">Guarda en un archivo todo lo que el Estudio recuerda en este navegador: ajustes de los widgets, animaciones y anuncios, ⭐ Mis versiones, paneles, música e imágenes propias. Si cambias de navegador u ordenador, o se borran los datos, lo recuperas con "Restaurar". Tu código de acceso <b>no</b> se guarda en la copia.</p>
@@ -584,7 +597,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     $('#subtabs').hidden = !esWidget;
     $$('#subtabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sub === n ? 'true' : 'false'));
     $$('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== n);
-    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else comprobarSpotify();
+    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else { comprobarSpotify(); comprobarBot(); }
   }
   $$('nav.tabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.tab)));
   $$('#subtabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.sub)));
@@ -633,8 +646,61 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     }
   }
   $('#btnFn').addEventListener('click', () => comprobarFortnite(true));
+
+  // ---------- AletaBot (bot de Twitch) ----------
+  async function comprobarBot() {
+    try {
+      const r = await fetch(FN('twitch-bot-auth') + '?estado=1');
+      const d = await r.json();
+      const ok = !!d.conectado;
+      pintarEstado($('#eBot'), ok, ok ? 'Conectada' : 'Sin conectar');
+      pintarEstado($('#pBot'), ok, 'AletaBot');
+      $('#nBot').textContent = !d.secretos ? 'Faltan secretos en Supabase (TWITCH_CLIENT_SECRET o KYO_SETUP_KEY).'
+        : ok ? 'Conectada como ' + (d.cuenta || 'AletaBot') + ' desde ' + new Date(d.desde).toLocaleString('es') + '.'
+        : 'Entra en Twitch con la cuenta de AletaBot y pulsa "Conectar AletaBot".';
+      $('#btnBot').textContent = ok ? 'Volver a conectar' : 'Conectar AletaBot';
+      $('#botExtra').hidden = !ok;
+      $('#pBot').title = 'Comprobado a las ' + hora();
+    } catch (e) {
+      if ($('#pBot').classList.contains('ok')) return; // fallo puntual: se reintenta luego
+      pintarEstado($('#eBot'), false, 'No responde');
+      pintarEstado($('#pBot'), false, 'AletaBot');
+      $('#nBot').textContent = 'No encuentro la función twitch-bot-auth. ¿Está creada con ese nombre y con "Verify JWT" desactivado?';
+    }
+  }
+  $('#btnBot').addEventListener('click', () => {
+    const volver = location.href.split('#')[0];
+    location.href = FN('twitch-bot-auth') + '?clave=' + encodeURIComponent(leer('kyo_codigo') || '') + '&volver=' + encodeURIComponent(volver);
+  });
+  $('#btnBotRefrescar').addEventListener('click', comprobarBot);
+  const BOT_ERR = { sin_bot: 'AletaBot aún no está conectada.', sin_canal: 'No encuentro tu canal en Twitch.', clave: 'El código de acceso no coincide.', twitch: 'Twitch no lo aceptó: ¿AletaBot es moderadora de tu canal?', sin_token_app: 'Revisa el secreto TWITCH_CLIENT_SECRET.' };
+  async function llamarBot(fn, extra) {
+    const r = await fetch(FN(fn), { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, HDR), body: JSON.stringify(Object.assign({ clave: leer('kyo_codigo') || '' }, extra || {})) });
+    return r.json();
+  }
+  $('#btnBotProbar').addEventListener('click', async () => {
+    const msg = $('#botMensaje').value.trim();
+    if (!msg) { toast('Escribe un mensaje primero'); return; }
+    const b = $('#btnBotProbar'); b.disabled = true;
+    try {
+      const d = await llamarBot('twitch-bot-decir', { mensaje: msg });
+      if (d.ok) { toast('¡AletaBot lo escribió en tu chat! 🦈'); $('#botMensaje').value = ''; }
+      else toast(BOT_ERR[d.error] || ('No se pudo enviar: ' + (d.error || 'error')), 5000);
+    } catch (e) { toast('No encuentro la función twitch-bot-decir.'); }
+    b.disabled = false;
+  });
+  $('#btnBotEscuchar').addEventListener('click', async () => {
+    const b = $('#btnBotEscuchar'); b.disabled = true;
+    try {
+      const d = await llamarBot('twitch-bot-subscribe');
+      if (d.ok) toast(d.ya_activa ? 'La escucha 24/7 ya estaba activa 🎧' : '¡Escucha 24/7 activada! AletaBot ya oye tu chat 🎧', 5000);
+      else toast(BOT_ERR[d.error] || ('No se pudo activar: ' + (d.error || 'error')), 5000);
+    } catch (e) { toast('No encuentro la función twitch-bot-subscribe.'); }
+    b.disabled = false;
+  });
+
   // Comprobación automática: al entrar, cada 5 minutos y al volver a la pestaña
-  function comprobarTodo() { if (!$('#puerta').hidden) return; comprobarSpotify(); comprobarFortnite(false); }
+  function comprobarTodo() { if (!$('#puerta').hidden) return; comprobarSpotify(); comprobarFortnite(false); comprobarBot(); }
   setInterval(() => { if (document.visibilityState === 'visible') comprobarTodo(); }, 5 * 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') comprobarTodo(); });
   $('#btnSalir').addEventListener('click', () => { try { localStorage.removeItem('kyo_codigo'); } catch (e) {} location.reload(); });
@@ -647,6 +713,13 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     history.replaceState(null, '', location.pathname + location.search);
     setTimeout(() => { tab('conexiones'); toast(txt, 5000); }, 300);
   }
+  // Vuelta de Twitch (AletaBot): #bot=ok o #bot=error-...
+  if (h.startsWith('#bot=')) {
+    const v = h.slice(5);
+    const txt = { 'ok': '¡AletaBot conectada! 🦈', 'error-cancelado': 'Cancelaste el permiso en Twitch.', 'error-clave': 'El código de acceso no coincide con KYO_SETUP_KEY.', 'error-twitch': 'Twitch no aceptó la conexión: revisa que la Redirect URL de tu app sea exacta.', 'error-usuario': 'Twitch no devolvió la cuenta. Inténtalo otra vez.', 'error-tabla': 'No se pudo guardar: ejecuta 01_setup.sql en Supabase.' }[v] || v;
+    history.replaceState(null, '', location.pathname + location.search);
+    setTimeout(() => { tab('conexiones'); toast(txt, 6000); }, 300);
+  }
 
   // ---------- Puerta de acceso ----------
   async function verificar(c) {
@@ -658,7 +731,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       return { ok: !!d.ok, msg: d.ok ? '' : 'Código incorrecto.' };
     } catch (e) { return { ok: false, msg: 'No encuentro la función spotify-auth (¿creada y con "Verify JWT" desactivado?).' }; }
   }
-  function entrar() { $('#puerta').hidden = true; actualizar('spotify'); comprobarSpotify(); comprobarFortnite(false); }
+  function entrar() { $('#puerta').hidden = true; actualizar('spotify'); comprobarSpotify(); comprobarFortnite(false); comprobarBot(); }
   $('#formPuerta').addEventListener('submit', async e => {
     e.preventDefault();
     const c = $('#codigo').value.trim(); if (!c) return;
