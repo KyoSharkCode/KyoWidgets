@@ -71,7 +71,7 @@
   }
   function pintar(a) {
     ic.innerHTML = ICON[a.icono] || ICON.estrella;
-    var u = /^https?:\/\//.test(a.imagen || '') ? a.imagen : '';
+    var u = /^https:\/\//.test(a.imagen || '') ? a.imagen : '';
     inn.classList.toggle('con-img', !!u); if (u && img.getAttribute('src') !== u) img.src = u;
     lbl.textContent = a.etiqueta || ''; lbl.style.display = a.etiqueta ? '' : 'none';
     sub.textContent = a.enlace || ''; sub.style.display = a.enlace ? '' : 'none';
