@@ -732,12 +732,15 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       $('#nBot').textContent = 'No encuentro la función twitch-bot-auth. ¿Está creada con ese nombre y con "Verify JWT" desactivado?';
     }
   }
-  $('#btnBot').addEventListener('click', () => {
-    const volver = location.href.split('#')[0];
-    location.href = FN('twitch-bot-auth') + '?clave=' + encodeURIComponent(leer('kyo_codigo') || '') + '&volver=' + encodeURIComponent(volver);
+  $('#btnBot').addEventListener('click', async () => {
+    try {
+      const d = await pedir('twitch-bot-auth', { accion: 'conectar', clave: leer('kyo_codigo') || '', volver: location.href.split('#')[0] });
+      if (d.ok && d.url) location.href = d.url;
+      else toast(d.error === 'faltan_secretos' ? 'Falta el secreto TWITCH_CLIENT_SECRET en Supabase.' : d.error === 'volver' ? 'El Estudio tiene que abrirse con https:// para conectar AletaBot.' : errCodigo(d), 5000);
+    } catch (e) { toast('No encuentro la función twitch-bot-auth.', 5000); }
   });
   $('#btnBotRefrescar').addEventListener('click', comprobarBot);
-  const BOT_ERR = { sin_bot: 'AletaBot aún no está conectada.', sin_canal: 'No encuentro tu canal en Twitch.', clave: 'El código de acceso no coincide.', twitch: 'Twitch no lo aceptó: ¿AletaBot es moderadora de tu canal?', sin_token_app: 'Revisa el secreto TWITCH_CLIENT_SECRET.' };
+  const BOT_ERR = { sin_bot: 'AletaBot aún no está conectada.', sin_canal: 'No encuentro tu canal en Twitch.', twitch: 'Twitch no lo aceptó: ¿AletaBot es moderadora de tu canal?', sin_token_app: 'Revisa el secreto TWITCH_CLIENT_SECRET.' };
   async function llamarBot(fn, extra) {
     const r = await fetch(FN(fn), { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, HDR), body: JSON.stringify(Object.assign({ clave: leer('kyo_codigo') || '' }, extra || {})) });
     return r.json();
@@ -749,7 +752,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     try {
       const d = await llamarBot('twitch-bot-decir', { mensaje: msg });
       if (d.ok) { toast('¡AletaBot lo escribió en tu chat! 🦈'); $('#botMensaje').value = ''; }
-      else toast(BOT_ERR[d.error] || ('No se pudo enviar: ' + (d.error || 'error')), 5000);
+      else toast(BOT_ERR[d.error] || (['clave', 'bloqueado', 'falta_intentos', 'falta_KYO_SETUP_KEY'].includes(d.error) ? errCodigo(d) : 'No se pudo enviar: ' + (d.error || 'error')), 5000);
     } catch (e) { toast('No encuentro la función twitch-bot-decir.'); }
     b.disabled = false;
   });
@@ -758,7 +761,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     try {
       const d = await llamarBot('twitch-bot-subscribe');
       if (d.ok) toast(d.ya_activa ? 'La escucha 24/7 ya estaba activa 🎧' : '¡Escucha 24/7 activada! AletaBot ya oye tu chat 🎧', 5000);
-      else toast(BOT_ERR[d.error] || ('No se pudo activar: ' + (d.error || 'error')), 5000);
+      else toast(BOT_ERR[d.error] || (['clave', 'bloqueado', 'falta_intentos', 'falta_KYO_SETUP_KEY'].includes(d.error) ? errCodigo(d) : 'No se pudo activar: ' + (d.error || 'error')), 5000);
     } catch (e) { toast('No encuentro la función twitch-bot-subscribe.'); }
     b.disabled = false;
   });
@@ -780,7 +783,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   // Vuelta de Twitch (AletaBot): #bot=ok o #bot=error-...
   if (h.startsWith('#bot=')) {
     const v = h.slice(5);
-    const txt = { 'ok': '¡AletaBot conectada! 🦈', 'error-cancelado': 'Cancelaste el permiso en Twitch.', 'error-clave': 'El código de acceso no coincide con KYO_SETUP_KEY.', 'error-twitch': 'Twitch no aceptó la conexión: revisa que la Redirect URL de tu app sea exacta.', 'error-usuario': 'Twitch no devolvió la cuenta. Inténtalo otra vez.', 'error-tabla': 'No se pudo guardar: ejecuta 01_setup.sql en Supabase.' }[v] || v;
+    const txt = { 'ok': '¡AletaBot conectada! 🦈', 'error-cancelado': 'Cancelaste el permiso en Twitch.', 'error-twitch': 'Twitch no aceptó la conexión: revisa que la Redirect URL de tu app sea exacta.', 'error-usuario': 'Twitch no devolvió la cuenta. Inténtalo otra vez.', 'error-tabla': 'No se pudo guardar: ejecuta 01_setup.sql en Supabase.' }[v] || v;
     history.replaceState(null, '', location.pathname + location.search);
     setTimeout(() => { tab('conexiones'); toast(txt, 6000); }, 300);
   }
