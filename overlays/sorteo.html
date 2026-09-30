@@ -2,17 +2,19 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Kyo · Sorteo</title>
+<title>Kyo · Sorteo y encuesta</title>
 <meta name="robots" content="noindex">
 <!--
-  KyoWidgets · Sorteo · Fuente de navegador para OBS. La URL la arma Kyo Estudio.
-  Tamaño base 720x600 (multiplícalo por "escala"). Solo se ve mientras hay un sorteo.
-  Lee el estado de la función "sorteo" de Supabase cada 2 s: premio, nombres que entran
-  (salen como burbujas) y el ganador (la ola tapa todo y aparece su nombre con confeti).
+  KyoWidgets · Sorteo y encuesta · Fuente de navegador para OBS. La URL la arma Kyo Estudio.
+  Tamaño base 720x600 (multiplícalo por "escala"). Solo se ve mientras hay un sorteo o una encuesta.
+  Lee la función "encuesta" de Supabase cada 2 s (trae los dos; si no existe, usa "sorteo"):
+  - Sorteo: premio, nombres que entran (burbujas) y el ganador (la ola tapa todo y aparece con confeti).
+  - Encuesta: pregunta y opciones como barras de agua que se llenan con los votos; al cerrar brilla la ganadora.
+  - Si hay los dos a la vez se turnan cada 10 s con una ola. El ganador y el resultado pasan delante.
   Parámetros:
     tema    marea | octubre | navidad          escala  0.5 … 2
     acento, borde, caja, texto   colores (hex sin #)
-    demo=1  sorteo de ejemplo (vista previa del Estudio)
+    demo=1  ejemplo para la vista previa del Estudio
 -->
 <script src="../config.js"></script>
 <style>
@@ -24,12 +26,12 @@
 html,body{margin:0;background:transparent!important;overflow:hidden}
 body{width:720px;height:600px;display:grid;place-items:center;font-family:"Fredoka",system-ui,sans-serif}
 #w{--a:#6FE3F0;--a2:#3A7BD5;--c:#0f1a4a;--t:#F5F3FB;--s:#C9E6F2;--o:#0A1030;--p:#fff;--oro:#F4C542;--m1:#3A7BD5;--m2:#15296e;--bu:rgba(201,230,242,.9);
-  position:relative;color:var(--t);transition:opacity .6s ease,transform .7s cubic-bezier(.34,1.56,.64,1)}
+  position:relative;display:grid;place-items:center;color:var(--t);transition:opacity .6s ease,transform .7s cubic-bezier(.34,1.56,.64,1)}
 #w.octubre{--a:#FF8A2B;--a2:#9B6BFF;--c:#1a1240;--s:#e3d9ff;--o:#0a0720;--m1:#7b4fe0;--m2:#2a1560;--bu:rgba(227,217,255,.9)}
 #w.navidad{--a:#FF5A6E;--a2:#F4C542;--c:#0e1a48;--s:#f3e7c4;--o:#060b22;--m1:#2E6FD0;--m2:#0e2a70;--bu:rgba(243,231,196,.92)}
 #w.oculto{opacity:0;transform:scale(.6) translateY(40px)}
 .pega{box-shadow:0 0 0 6px var(--p),0 0 0 11px var(--o),0 11px 0 11px var(--o)}
-.caja{position:relative;width:640px;height:520px;border-radius:40px;background:var(--c);padding:24px 28px 20px;display:grid;grid-template-rows:auto auto 1fr auto;gap:10px;transform:rotate(-1.5deg);animation:boing 5s ease-in-out infinite;overflow:hidden}
+.caja{grid-area:1/1;position:relative;width:640px;height:520px;border-radius:40px;background:var(--c);padding:24px 28px 20px;display:grid;grid-template-rows:auto auto 1fr auto;gap:10px;transform:rotate(-1.5deg);animation:boing 5s ease-in-out infinite;overflow:hidden}
 @keyframes boing{0%,100%{transform:rotate(-1.5deg) translateY(0)}50%{transform:rotate(-.6deg) translateY(-6px)}}
 .cab{display:flex;align-items:center;justify-content:center;gap:10px}
 .chip{font:700 20px "Chakra Petch",monospace;letter-spacing:.2em;text-transform:uppercase;color:var(--o);background:var(--a);padding:5px 18px 5px 20px;border-radius:999px;white-space:nowrap}
@@ -82,13 +84,39 @@ body{width:720px;height:600px;display:grid;place-items:center;font-family:"Fredo
 @keyframes salta{0%{transform:translateY(40px) scale(.3);opacity:0}100%{transform:none;opacity:1}}
 .gana .brillo{position:absolute;width:var(--t2);height:var(--t2);animation:titila 1.6s ease-in-out var(--del) infinite}
 @keyframes titila{0%,100%{transform:scale(.4) rotate(0);opacity:.3}50%{transform:scale(1) rotate(45deg);opacity:1}}
-#confeti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6}
+.confeti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6}
+.caja.fuera{display:none}
+.ola.cubre{transform:translateY(-12%)}
+/* ---------- encuesta ---------- */
+.opciones{display:grid;gap:12px;align-content:center;padding:0 4px}
+.op{display:grid;grid-template-columns:42px 1fr 78px;align-items:center;gap:12px;transition:opacity .6s}
+.num{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:var(--a);color:var(--o);font:700 22px "Chakra Petch",monospace;box-shadow:0 0 0 3px var(--o)}
+.vaso{position:relative;height:var(--h,56px);border-radius:999px;background:rgba(255,255,255,.07);box-shadow:0 0 0 3px var(--p),0 0 0 6px var(--o);overflow:hidden}
+.agua{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(180deg,var(--m1),var(--m2));transition:width 1s cubic-bezier(.34,1.3,.64,1)}
+.agua::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(100deg,transparent 0 34px,rgba(255,255,255,.13) 34px 50px);background-size:200% 100%;animation:brilloAgua 3s linear infinite}
+.agua::after{content:"";position:absolute;right:-9px;top:-20px;bottom:-20px;width:18px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 40'%3E%3Cpath d='M9 0 Q18 10 9 20 T9 40' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round' opacity='.9'/%3E%3C/svg%3E") repeat-y;background-size:18px 40px;animation:espuma 1.1s linear infinite}
+.agua.vacia::after{display:none}
+@keyframes brilloAgua{to{background-position:-200% 0}}
+@keyframes espuma{to{background-position:0 40px}}
+.agua i{position:absolute;bottom:-10px;left:var(--x);width:var(--s);height:var(--s);border-radius:50%;border:2px solid rgba(255,255,255,.6);animation:burbAgua var(--d) linear var(--del) infinite}
+@keyframes burbAgua{to{bottom:110%}}
+.etq{position:absolute;left:18px;right:14px;top:50%;transform:translateY(-50%);font:700 22px "Fredoka",sans-serif;color:#fff;text-shadow:0 2px 0 var(--o),0 0 5px var(--o),0 0 2px var(--o);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:2}
+.pct{font:700 26px "Fredoka",sans-serif;text-align:right;color:var(--t);font-variant-numeric:tabular-nums}
+.pct small{display:block;font:700 13px "Chakra Petch",monospace;letter-spacing:.06em;color:var(--s);opacity:.85}
+.op.gano .vaso{box-shadow:0 0 0 3px var(--oro),0 0 0 6px var(--o),0 0 22px rgba(244,197,66,.75);animation:latido 1.6s ease-in-out infinite}
+.op.gano .num{background:var(--oro)}
+.op.gano .pct{color:var(--oro)}
+.op.pierde{opacity:.5}
+@keyframes latido{50%{transform:scale(1.025)}}
+.op .brillo{position:absolute;width:var(--t2);height:var(--t2);z-index:3;animation:titila 1.6s ease-in-out var(--del) infinite}
+.op{position:relative}
 @media (prefers-reduced-motion:reduce){.caja,.ico,.instr{animation:none}}
 </style>
 </head>
 <body>
 <div id="w" class="oculto">
-  <div class="caja pega">
+  <div class="caja pega fuera" id="cSorteo">
     <div class="cab">
       <svg class="ico" viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="26" width="48" height="32" rx="6" fill="var(--a2)" stroke="var(--o)" stroke-width="4"/><rect x="4" y="18" width="56" height="12" rx="5" fill="var(--a)" stroke="var(--o)" stroke-width="4"/><rect x="28" y="18" width="8" height="40" fill="var(--oro)" stroke="var(--o)" stroke-width="3"/><path d="M32 18c-6-12-20-10-16-2 3 5 12 3 16 2zm0 0c6-12 20-10 16-2-3 5-12 3-16 2z" fill="var(--oro)" stroke="var(--o)" stroke-width="3.5" stroke-linejoin="round"/></svg>
       <span class="chip">Sorteo</span>
@@ -100,13 +128,32 @@ body{width:720px;height:600px;display:grid;place-items:center;font-family:"Fredo
       <span class="dato"><span class="reloj" id="reloj" hidden></span><span class="cont" id="cont">0</span></span>
     </div>
     <div class="gana" id="gana"><span class="chip oro">¡Ganador!</span><div class="gnombre" id="gnombre"></div><div class="lleva">se lleva <b id="gpremio"></b></div></div>
-    <div class="ola" id="ola"><svg viewBox="0 0 800 1200" preserveAspectRatio="none" aria-hidden="true">
+    <div class="ola"><svg viewBox="0 0 800 1200" preserveAspectRatio="none" aria-hidden="true">
       <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--m1)"/><stop offset="1" stop-color="var(--m2)"/></linearGradient></defs>
       <path d="M0 60 Q50 10 100 60 T200 60 T300 60 T400 60 T500 60 T600 60 T700 60 T800 60 V1200 H0Z" fill="url(#g)" stroke="var(--o)" stroke-width="22"/>
       <path d="M0 60 Q50 10 100 60 T200 60 T300 60 T400 60 T500 60 T600 60 T700 60 T800 60" fill="none" stroke="var(--p)" stroke-width="9"/>
       <g fill="none" stroke="rgba(255,255,255,.55)" stroke-width="4"><circle cx="140" cy="220" r="16"/><circle cx="520" cy="300" r="22"/><circle cx="330" cy="420" r="12"/><circle cx="660" cy="180" r="10"/><circle cx="240" cy="560" r="18"/></g>
     </svg></div>
-    <canvas id="confeti"></canvas>
+    <canvas class="confeti"></canvas>
+  </div>
+  <div class="caja pega fuera" id="cEnc">
+    <div class="cab">
+      <svg class="ico" viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="34" width="14" height="24" rx="4" fill="var(--a2)" stroke="var(--o)" stroke-width="4"/><rect x="25" y="12" width="14" height="46" rx="4" fill="var(--oro)" stroke="var(--o)" stroke-width="4"/><rect x="44" y="24" width="14" height="34" rx="4" fill="var(--a)" stroke="var(--o)" stroke-width="4"/><circle cx="32" cy="7" r="4" fill="var(--p)" stroke="var(--o)" stroke-width="3"/></svg>
+      <span class="chip" id="eChip">Encuesta</span>
+    </div>
+    <div class="premio" id="ePregunta"></div>
+    <div class="opciones" id="eOps"></div>
+    <div class="pie">
+      <span class="instr" id="eInstr"></span>
+      <span class="dato"><span class="reloj" id="eReloj" hidden></span><span class="cont" id="eCont">0 votos</span></span>
+    </div>
+    <div class="ola"><svg viewBox="0 0 800 1200" preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--m1)"/><stop offset="1" stop-color="var(--m2)"/></linearGradient></defs>
+      <path d="M0 60 Q50 10 100 60 T200 60 T300 60 T400 60 T500 60 T600 60 T700 60 T800 60 V1200 H0Z" fill="url(#g2)" stroke="var(--o)" stroke-width="22"/>
+      <path d="M0 60 Q50 10 100 60 T200 60 T300 60 T400 60 T500 60 T600 60 T700 60 T800 60" fill="none" stroke="var(--p)" stroke-width="9"/>
+      <g fill="none" stroke="rgba(255,255,255,.55)" stroke-width="4"><circle cx="140" cy="220" r="16"/><circle cx="520" cy="300" r="22"/><circle cx="330" cy="420" r="12"/><circle cx="660" cy="180" r="10"/><circle cx="240" cy="560" r="18"/></g>
+    </svg></div>
+    <canvas class="confeti"></canvas>
   </div>
 </div>
 <script>
@@ -119,19 +166,50 @@ body{width:720px;height:600px;display:grid;place-items:center;font-family:"Fredo
   const escala = Math.min(2, Math.max(0.5, Number(q.get('escala')) || 1)); if (escala !== 1) document.documentElement.style.zoom = escala;
   const DEMO = q.get('demo') === '1';
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const pecera = $('pecera');
-  const VER_GANADOR = 45000; // cuánto se queda el ganador en pantalla
+  const VER_FINAL = 45000;   // cuánto se queda en pantalla el ganador o el resultado
+  const URGENTE = 14000;     // durante este rato, el ganador o el resultado no se turnan
+  const TURNO = 10000;       // si hay sorteo y encuesta a la vez, cambian cada 10 s
+  const CAMBIO = 1300;       // lo que tarda la ola en tapar la tarjeta
+  const tarjeta = { sorteo: $('cSorteo'), encuesta: $('cEnc') };
+  const olaDe = n => tarjeta[n].querySelector('.ola');
+  let desfase = 0;
+  const ahora = () => Date.now() + desfase;
+  const SPARK = '<path d="M50 0C53 38 62 47 100 50 62 53 53 62 50 100 47 62 38 53 0 50 38 47 47 38 50 0Z" fill="COL"/>';
 
-  // ---------- burbujas ----------
+  // ---------- confeti (en la tarjeta que se le diga) ----------
+  function confeti(n) {
+    const cv = tarjeta[n].querySelector('.confeti'), ctx = cv.getContext('2d');
+    const W = cv.width = cv.clientWidth * 2, H = cv.height = cv.clientHeight * 2;
+    const css = getComputedStyle(w), cols = ['#F4C542', '#fff', css.getPropertyValue('--a').trim(), css.getPropertyValue('--a2').trim()];
+    const P = Array.from({ length: 160 }, () => ({ x: W / 2 + (Math.random() - .5) * 260, y: H * .42, vx: (Math.random() - .5) * 22, vy: -Math.random() * 22 - 10, bam: Math.random() * 6, r: Math.random() * Math.PI, vr: (Math.random() - .5) * .4, w: 8 + Math.random() * 10, h: 5 + Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)] }));
+    const t0 = performance.now();
+    (function paso(t) {
+      ctx.clearRect(0, 0, W, H);
+      P.forEach(p => { p.vy = Math.min(p.vy + .45, 5 + p.bam * .4); p.vx *= .985; p.x += p.vx + Math.sin((t - t0) / 300 + p.bam) * 1.2; p.y += p.vy; p.r += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore(); });
+      if (t - t0 < 6000) requestAnimationFrame(paso); else ctx.clearRect(0, 0, W, H);
+    })(t0);
+  }
+  function burbujitas(el, n, grande) {
+    for (let i = 0; i < n; i++) {
+      const m = document.createElement('i'); m.className = grande ? 'mini' : '';
+      m.style.setProperty('--x', (Math.random() * 95) + '%'); m.style.setProperty('--s', (grande ? 8 + Math.random() * 16 : 4 + Math.random() * 7) + 'px');
+      m.style.setProperty('--d', (grande ? 5 + Math.random() * 5 : 2 + Math.random() * 2.5) + 's'); m.style.setProperty('--del', (-Math.random() * 8) + 's');
+      el.appendChild(m);
+    }
+  }
+
+  // =====================================================================
+  // SORTEO
+  // =====================================================================
+  const S = { visible: false, urgenteHasta: 0 };
+  const pecera = $('pecera');
   const MAX_BUB = 22;
   let burbujas = [], vistos = new Set(), hueco = 0;
-  function decoracion() {
-    for (let i = 0; i < 12; i++) {
-      const m = document.createElement('i'); m.className = 'mini';
-      m.style.setProperty('--x', (Math.random() * 95) + '%'); m.style.setProperty('--s', (6 + Math.random() * 12) + 'px');
-      m.style.setProperty('--d', (6 + Math.random() * 6) + 's'); m.style.setProperty('--del', (-Math.random() * 10) + 's');
-      pecera.appendChild(m);
-    }
+  for (let i = 0; i < 12; i++) {
+    const m = document.createElement('i'); m.className = 'mini';
+    m.style.setProperty('--x', (Math.random() * 95) + '%'); m.style.setProperty('--s', (6 + Math.random() * 12) + 'px');
+    m.style.setProperty('--d', (6 + Math.random() * 6) + 's'); m.style.setProperty('--del', (-Math.random() * 10) + 's');
+    pecera.appendChild(m);
   }
   function burbuja(nombre, nueva) {
     const b = document.createElement('div'); b.className = 'bub' + (nueva ? ' nueva' : '');
@@ -147,126 +225,247 @@ body{width:720px;height:600px;display:grid;place-items:center;font-family:"Fredo
     if (nueva) { pecera.classList.remove('toque'); void pecera.offsetWidth; pecera.classList.add('toque'); }
     $('vacio').hidden = true;
   }
-  function limpiarBurbujas() { burbujas.forEach(b => b.remove()); burbujas = []; vistos = new Set(); $('vacio').hidden = false; }
-
-  // ---------- textos ----------
   function ponerPremio(t) { const p = $('premio'); p.textContent = t || 'Sorteo'; p.classList.toggle('largo', (t || '').length > 18); p.classList.toggle('muy', (t || '').length > 30); }
-  let cierre = null, desfase = 0, estadoAct = 'inactivo', palabra = '!participar', soloSubs = false, totalAct = 0;
-  function ponerPie(total) {
-    totalAct = total;
+  let sCierre = null, sEstado = 'inactivo', palabra = '!participar', soloSubs = false, sTotal = 0;
+  function pieSorteo(total) {
+    sTotal = total;
     $('cont').textContent = total + (total === 1 ? ' burbuja' : ' burbujas');
-    const abierto = estadoAct === 'abierto' && (!cierre || cierre > Date.now() + desfase);
+    const abierto = sEstado === 'abierto' && (!sCierre || sCierre > ahora());
     $('instr').innerHTML = abierto ? 'Escribe <b>' + esc(palabra) + '</b>' + (soloSubs ? ' <small>(solo subs)</small>' : '') : '¡Entradas cerradas!';
     $('instr').style.animationPlayState = abierto ? 'running' : 'paused';
   }
-  function reloj() {
+  const mmss = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  function relojSorteo() {
     const r = $('reloj');
-    if (estadoAct !== 'abierto' || !cierre) { r.hidden = true; return; }
-    const s = Math.max(0, Math.round((cierre - (Date.now() + desfase)) / 1000));
-    r.hidden = false; r.textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
-    if (s === 0) ponerPie(totalAct);
+    if (sEstado !== 'abierto' || !sCierre) { r.hidden = true; return; }
+    const s = Math.max(0, Math.round((sCierre - ahora()) / 1000));
+    r.hidden = false; r.textContent = mmss(s);
+    if (s === 0) pieSorteo(sTotal);
   }
-  setInterval(reloj, 500);
-
-  // ---------- revelación del ganador ----------
-  let temporizador = null;
+  let sTemporizador = null;
   function mostrarGanador(nombre, premio, animar) {
-    clearTimeout(temporizador);
+    clearTimeout(sTemporizador);
     const g = $('gnombre');
     g.innerHTML = Array.from(nombre).map((ch, i) => '<span style="animation-delay:' + (animar ? .9 + i * .06 : 0) + 's">' + (ch === ' ' ? '&nbsp;' : esc(ch)) + '</span>').join('');
     g.classList.toggle('largo', nombre.length > 10); g.classList.toggle('muy', nombre.length > 16);
     $('gpremio').textContent = premio || '';
     const gana = $('gana');
     gana.querySelectorAll('.brillo,.mini').forEach(b => b.remove());
-    for (let i = 0; i < 14; i++) {
-      const m = document.createElement('i'); m.className = 'mini';
-      m.style.setProperty('--x', (Math.random() * 95) + '%'); m.style.setProperty('--s', (8 + Math.random() * 16) + 'px');
-      m.style.setProperty('--d', (5 + Math.random() * 5) + 's'); m.style.setProperty('--del', (-Math.random() * 8) + 's');
-      gana.appendChild(m);
-    }
+    burbujitas(gana, 14, true);
     for (let i = 0; i < 10; i++) {
       const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 100 100'); s.setAttribute('class', 'brillo');
-      s.innerHTML = '<path d="M50 0C53 38 62 47 100 50 62 53 53 62 50 100 47 62 38 53 0 50 38 47 47 38 50 0Z" fill="' + (i % 3 ? '#F4C542' : '#fff') + '"/>';
+      s.innerHTML = SPARK.replace('COL', i % 3 ? '#F4C542' : '#fff');
       const ang = i / 10 * Math.PI * 2; s.style.left = (50 + Math.cos(ang) * 42) + '%'; s.style.top = (50 + Math.sin(ang) * 38) + '%';
       s.style.setProperty('--t2', (18 + Math.random() * 20) + 'px'); s.style.setProperty('--del', (Math.random() * 1.5) + 's');
       gana.appendChild(s);
     }
-    mostrar(true);
     if (!animar) { gana.classList.add('ver'); return; }
+    // Si ahora se está viendo la encuesta, la ola del cambio de tarjeta ya hace de telón
+    if (cambiando) { gana.classList.add('ver'); setTimeout(() => confeti('sorteo'), CAMBIO + 700); return; }
     // 1) las burbujas corren  2) la ola lo tapa todo  3) baja y aparece el ganador con confeti
     burbujas.forEach(b => b.style.animationDuration = '1.4s, 2.6s');
-    const ola = $('ola');
+    const ola = olaDe('sorteo');
     ola.className = 'ola'; void ola.offsetWidth; ola.classList.add('sube');
     setTimeout(() => { gana.classList.add('ver'); ola.className = 'ola baja'; }, 1400);
-    setTimeout(confeti, 2200);
+    setTimeout(() => confeti('sorteo'), 2200);
   }
+  function nuevoSorteo() { clearTimeout(sTemporizador); burbujas.forEach(b => b.remove()); burbujas = []; vistos = new Set(); $('vacio').hidden = false; $('gana').classList.remove('ver'); olaDe('sorteo').className = 'ola'; }
 
-  // ---------- confeti ----------
-  function confeti() {
-    const cv = $('confeti'), ctx = cv.getContext('2d');
-    const W = cv.width = cv.clientWidth * 2, H = cv.height = cv.clientHeight * 2;
-    const css = getComputedStyle(w), cols = ['#F4C542', '#fff', css.getPropertyValue('--a').trim(), css.getPropertyValue('--a2').trim()];
-    const P = Array.from({ length: 160 }, () => ({ x: W / 2 + (Math.random() - .5) * 260, y: H * .42, vx: (Math.random() - .5) * 22, vy: -Math.random() * 22 - 10, bam: Math.random() * 6, r: Math.random() * Math.PI, vr: (Math.random() - .5) * .4, w: 8 + Math.random() * 10, h: 5 + Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)] }));
-    const t0 = performance.now();
-    (function paso(t) {
-      ctx.clearRect(0, 0, W, H);
-      P.forEach(p => { p.vy = Math.min(p.vy + .45, 5 + p.bam * .4); p.vx *= .985; p.x += p.vx + Math.sin((t - t0) / 300 + p.bam) * 1.2; p.y += p.vy; p.r += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore(); });
-      if (t - t0 < 6000) requestAnimationFrame(paso); else ctx.clearRect(0, 0, W, H);
-    })(t0);
-  }
-
-  function mostrar(si) { w.classList.toggle('oculto', !si); }
-  function nuevoSorteo() { clearTimeout(temporizador); limpiarBurbujas(); $('gana').classList.remove('ver'); $('ola').className = 'ola'; }
-
-  // ---------- aplicar el estado que llega de Supabase ----------
-  let rondaAct = null, ganadorVisto = null;
-  function aplicar(d) {
-    desfase = d.ahora ? Date.parse(d.ahora) - Date.now() : 0;
-    if (d.ronda !== rondaAct) { nuevoSorteo(); rondaAct = d.ronda; ganadorVisto = null; }
-    estadoAct = d.estado; palabra = d.palabra || '!participar'; soloSubs = !!d.soloSubs; cierre = d.cierra ? Date.parse(d.cierra) : null;
-    if (d.estado === 'inactivo') { mostrar(false); return; }
+  let sRonda = null, ganadorVisto = null, primeraS = true;
+  function aplicarSorteo(d) {
+    if (!d) return;
+    if (d.ahora) desfase = Date.parse(d.ahora) - Date.now();
+    if (d.ronda !== sRonda) { nuevoSorteo(); sRonda = d.ronda; ganadorVisto = null; S.urgenteHasta = 0; }
+    sEstado = d.estado; palabra = d.palabra || '!participar'; soloSubs = !!d.soloSubs; sCierre = d.cierra ? Date.parse(d.cierra) : null;
+    if (d.estado === 'inactivo') { S.visible = false; primeraS = false; return; }
     ponerPremio(d.premio);
-    (d.nombres || []).forEach(n => { if (!vistos.has(n)) { vistos.add(n); burbuja(n, !primeraCarga); } });
-    ponerPie(d.total || 0); reloj();
+    (d.nombres || []).forEach(n => { if (!vistos.has(n)) { vistos.add(n); burbuja(n, !primeraS); } });
+    primeraS = false;
+    pieSorteo(d.total || 0); relojSorteo();
     if (d.estado === 'ganador' && d.ganador) {
       if (ganadorVisto === d.ganador.en) return;
       ganadorVisto = d.ganador.en;
-      const hace = Date.now() + desfase - Date.parse(d.ganador.en);
-      if (hace > VER_GANADOR) { mostrar(false); return; }
+      const hace = ahora() - Date.parse(d.ganador.en);
+      if (hace > VER_FINAL) { S.visible = false; return; }
+      S.visible = true;
+      if (hace < URGENTE) S.urgenteHasta = Date.now() + (URGENTE - hace);
+      decidir();
       mostrarGanador(d.ganador.nombre, d.premio, hace < 15000);
-      temporizador = setTimeout(() => mostrar(false), VER_GANADOR - Math.max(0, hace));
+      sTemporizador = setTimeout(() => { S.visible = false; decidir(); }, VER_FINAL - Math.max(0, hace));
       return;
     }
     $('gana').classList.remove('ver');
-    mostrar(true);
+    S.visible = true;
   }
-  let primeraCarga = true;
 
-  // ---------- origen de los datos ----------
-  decoracion();
+  // =====================================================================
+  // ENCUESTA
+  // =====================================================================
+  const E = { visible: false, urgenteHasta: 0 };
+  let eRonda = null, eCierre = null, eEstado = 'inactivo', cerradaVista = null, eTemporizador = null;
+  function pintarOpciones(opciones) {
+    const n = opciones.length, h = Math.max(42, Math.min(62, (272 - (n - 1) * 12) / n));
+    const cont = $('eOps');
+    cont.style.setProperty('--h', h + 'px');
+    cont.innerHTML = opciones.map((o, i) => '<div class="op" data-i="' + i + '"><span class="num">' + (i + 1) + '</span>' +
+      '<div class="vaso"><div class="agua vacia"></div><span class="etq">' + esc(o) + '</span></div><span class="pct">0%<small>0</small></span></div>').join('');
+    cont.querySelectorAll('.agua').forEach(a => burbujitas(a, 5, false));
+  }
+  function ponerPregunta(t) { const p = $('ePregunta'); p.textContent = t || 'Encuesta'; p.classList.toggle('largo', (t || '').length > 22); p.classList.toggle('muy', (t || '').length > 40); }
+  function ponerVotos(votos, total) {
+    $('eOps').querySelectorAll('.op').forEach((op, i) => {
+      const v = votos[i] || 0, p = total ? Math.round(v / total * 100) : 0;
+      const a = op.querySelector('.agua');
+      a.style.width = (total ? Math.max(4, v / total * 100) : 0) + '%';
+      a.classList.toggle('vacia', !v);
+      op.querySelector('.pct').innerHTML = p + '%<small>' + v + (v === 1 ? ' voto' : ' votos') + '</small>';
+    });
+    $('eCont').textContent = total + (total === 1 ? ' voto' : ' votos');
+  }
+  function pieEncuesta(d) {
+    const abierta = eEstado === 'abierta' && (!eCierre || eCierre > ahora());
+    const n = (d.opciones || []).length;
+    if (abierta) $('eInstr').innerHTML = 'Vota escribiendo <b>1</b>' + (n > 1 ? ' – <b>' + n + '</b>' : '');
+    else if ((d.ganadoras || []).length > 1) $('eInstr').innerHTML = '¡Empate!';
+    else if ((d.ganadoras || []).length === 1) $('eInstr').innerHTML = 'Ganó <b>' + esc(d.opciones[d.ganadoras[0]]) + '</b>';
+    else $('eInstr').innerHTML = '¡Encuesta cerrada!';
+    $('eInstr').style.animationPlayState = abierta ? 'running' : 'paused';
+    $('eChip').textContent = abierta ? 'Encuesta' : 'Resultado';
+  }
+  function relojEncuesta() {
+    const r = $('eReloj');
+    if (eEstado !== 'abierta' || !eCierre) { r.hidden = true; return; }
+    const s = Math.max(0, Math.round((eCierre - ahora()) / 1000));
+    r.hidden = false; r.textContent = mmss(s);
+  }
+  function marcarGanadoras(g) {
+    $('eOps').querySelectorAll('.op').forEach((op, i) => {
+      const gana = g.includes(i);
+      op.classList.toggle('gano', gana); op.classList.toggle('pierde', g.length > 0 && !gana);
+      op.querySelectorAll('.brillo').forEach(b => b.remove());
+      if (gana) for (let k = 0; k < 4; k++) {
+        const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 100 100'); s.setAttribute('class', 'brillo');
+        s.innerHTML = SPARK.replace('COL', k % 2 ? '#fff' : '#F4C542');
+        s.style.left = [44, 70, 88, 58][k] + '%'; s.style.top = [-30, 70, -20, 80][k] + '%';
+        s.style.setProperty('--t2', (16 + Math.random() * 12) + 'px'); s.style.setProperty('--del', (k * .35) + 's');
+        op.appendChild(s);
+      }
+    });
+  }
+  function aplicarEncuesta(d) {
+    if (!d) return;
+    if (d.ahora) desfase = Date.parse(d.ahora) - Date.now();
+    if (d.ronda !== eRonda) { clearTimeout(eTemporizador); eRonda = d.ronda; cerradaVista = null; E.urgenteHasta = 0; if (d.estado !== 'inactivo') pintarOpciones(d.opciones || []); }
+    eEstado = d.estado; eCierre = d.cierra ? Date.parse(d.cierra) : null;
+    if (d.estado === 'inactivo') { E.visible = false; return; }
+    if ($('eOps').children.length !== (d.opciones || []).length) pintarOpciones(d.opciones || []);
+    ponerPregunta(d.pregunta);
+    ponerVotos(d.votos || [], d.total || 0);
+    pieEncuesta(d); relojEncuesta();
+    if (d.estado === 'cerrada') {
+      const cerrada = d.cerradaEn || d.cierra;
+      const hace = ahora() - Date.parse(cerrada);
+      if (hace > VER_FINAL) { E.visible = false; return; }
+      E.visible = true;
+      if (cerradaVista !== cerrada) {
+        cerradaVista = cerrada;
+        marcarGanadoras(d.ganadoras || []);
+        if (hace < URGENTE) {
+          E.urgenteHasta = Date.now() + (URGENTE - hace);
+          decidir();
+          if ((d.ganadoras || []).length) setTimeout(() => confeti('encuesta'), cambiando ? CAMBIO + 500 : 400);
+        }
+        clearTimeout(eTemporizador);
+        eTemporizador = setTimeout(() => { E.visible = false; decidir(); }, VER_FINAL - Math.max(0, hace));
+      }
+      return;
+    }
+    marcarGanadoras([]);
+    E.visible = true;
+  }
+  setInterval(() => { relojSorteo(); relojEncuesta(); }, 500);
+
+  // =====================================================================
+  // QUÉ TARJETA SE VE (y los turnos con ola)
+  // =====================================================================
+  let turno = null, desde = 0, cambiando = false;
+  function decidir() {
+    if (cambiando) return;
+    const quiere = [];
+    if (S.visible) quiere.push('sorteo');
+    if (E.visible) quiere.push('encuesta');
+    let meta;
+    if (!quiere.length) meta = null;
+    else if (S.visible && S.urgenteHasta > Date.now()) meta = 'sorteo';
+    else if (E.visible && E.urgenteHasta > Date.now()) meta = 'encuesta';
+    else if (quiere.length === 1) meta = quiere[0];
+    else if (!quiere.includes(turno)) meta = quiere[0];
+    else meta = Date.now() - desde > TURNO ? (turno === 'sorteo' ? 'encuesta' : 'sorteo') : turno;
+    if (meta !== turno) cambiar(meta);
+  }
+  function cambiar(meta) {
+    desde = Date.now();
+    if (!meta) { w.classList.add('oculto'); const t = turno; turno = null; setTimeout(() => { if (!turno && t) tarjeta[t].classList.add('fuera'); }, 700); return; }
+    if (!turno) {
+      Object.keys(tarjeta).forEach(n => tarjeta[n].classList.toggle('fuera', n !== meta));
+      olaDe(meta).className = 'ola';
+      turno = meta; w.classList.remove('oculto');
+      return;
+    }
+    // La ola tapa la tarjeta que se va y, al bajar, deja ver la nueva
+    const sale = turno; turno = meta; cambiando = true;
+    const o1 = olaDe(sale); o1.className = 'ola'; void o1.offsetWidth; o1.classList.add('sube');
+    setTimeout(() => {
+      tarjeta[sale].classList.add('fuera'); olaDe(sale).className = 'ola';
+      tarjeta[meta].classList.remove('fuera');
+      const o2 = olaDe(meta); o2.className = 'ola cubre'; void o2.offsetWidth; o2.className = 'ola baja';
+      cambiando = false; desde = Date.now();
+    }, CAMBIO);
+  }
+  setInterval(decidir, 400);
+
+  // =====================================================================
+  // DE DÓNDE LLEGAN LOS DATOS
+  // =====================================================================
   if (DEMO) {
     const NOM = ['marea_mod', 'lunadorada', 'aleta_azul', 'burbuja_22', 'calabacita', 'Tiburoncin', 'nube_de_sal', 'KrakenFan', 'coral_rosa', 'perlita', 'medusa_lila', 'Olita', 'arrecife77', 'PezGlobo', 'Estrellita', 'caracola'];
-    let d, n, reloj0;
-    const reiniciar = () => { n = 0; reloj0 = Date.now(); d = { estado: 'abierto', ronda: Date.now(), premio: 'Peluche de Kyo', palabra: '!participar', soloSubs: false, cierra: null, total: 0, nombres: [], ganador: null, ahora: new Date().toISOString() }; aplicar(d); primeraCarga = false; };
-    const entra = k => { for (let i = 0; i < k; i++) { const nom = NOM[n % NOM.length] + (n >= NOM.length ? n : ''); n++; d.nombres = d.nombres.concat(nom).slice(-40); d.total = n; } d.ahora = new Date().toISOString(); aplicar(d); };
-    reiniciar();
-    const auto = setInterval(() => { if (d.estado === 'abierto' && n < 12) entra(1); }, 700);
+    const INACT_S = { estado: 'inactivo', ronda: 0 }, INACT_E = { estado: 'inactivo', ronda: 0 };
+    let ds, de, n = 0;
+    const t = () => new Date().toISOString();
+    const abrirS = () => { n = 0; ds = { estado: 'abierto', ronda: Date.now(), premio: 'Peluche de Kyo', palabra: '!participar', soloSubs: false, cierra: null, total: 0, nombres: [], ganador: null, ahora: t() }; aplicarSorteo(ds); };
+    const abrirE = () => { de = { estado: 'abierta', ronda: Date.now(), pregunta: '¿Qué jugamos hoy?', opciones: ['League of Legends', 'Fortnite', 'Zenless Zone Zero', 'Just Chatting'], votos: [0, 0, 0, 0], total: 0, cierra: null, cerradaEn: null, ganadoras: [], ahora: t() }; aplicarEncuesta(de); };
+    const entra = k => { for (let i = 0; i < k; i++) { const nom = NOM[n % NOM.length] + (n >= NOM.length ? n : ''); n++; ds.nombres = ds.nombres.concat(nom).slice(-40); ds.total = n; } ds.ahora = t(); aplicarSorteo(ds); };
+    const vota = k => { for (let i = 0; i < k; i++) { const r = Math.random(), o = r < .42 ? 0 : r < .7 ? 2 : r < .9 ? 1 : 3; de.votos[o]++; de.total++; } de.ahora = t(); aplicarEncuesta(de); };
+    ds = INACT_S; de = INACT_E;
+    abrirS(); decidir();
+    setInterval(() => {
+      if (ds.estado === 'abierto' && n < 12) entra(1);
+      if (de.estado === 'abierta' && de.total < 40) vota(2);
+    }, 800);
     window.addEventListener('message', e => {
       if (!e.data || e.data.type !== 'kyo-test') return;
-      if (e.data.accion === 'participantes') { if (d.estado !== 'abierto') reiniciar(); entra(5); }
-      else if (e.data.accion === 'ganador') { if (!n) entra(6); d.estado = 'ganador'; d.ganador = { nombre: d.nombres[Math.floor(Math.random() * d.nombres.length)], en: new Date().toISOString() }; d.ahora = d.ganador.en; aplicar(d); }
-      else if (e.data.accion === 'reiniciar') reiniciar();
+      const a = e.data.accion;
+      if (a === 'participantes') { if (ds.estado !== 'abierto') abrirS(); entra(5); }
+      else if (a === 'ganador') { if (ds.estado === 'inactivo') { abrirS(); entra(6); } if (!n) entra(6); ds.estado = 'ganador'; ds.ganador = { nombre: ds.nombres[Math.floor(Math.random() * ds.nombres.length)], en: t() }; ds.ahora = ds.ganador.en; aplicarSorteo(ds); }
+      else if (a === 'reiniciar') { de = INACT_E; aplicarEncuesta(de); abrirS(); }
+      else if (a === 'encuesta') { ds = INACT_S; aplicarSorteo(ds); abrirE(); vota(6); }
+      else if (a === 'votos') { if (de.estado !== 'abierta') abrirE(); vota(8); }
+      else if (a === 'cerrarEnc') { if (de.estado !== 'abierta') { abrirE(); vota(12); } const max = Math.max(...de.votos); de.estado = 'cerrada'; de.cerradaEn = t(); de.cierra = de.cerradaEn; de.ganadoras = de.votos.map((v, i) => v === max ? i : -1).filter(i => i >= 0); de.ahora = t(); aplicarEncuesta(de); }
+      else if (a === 'ambos') { abrirS(); entra(6); abrirE(); vota(10); }
+      decidir();
     });
     return;
   }
   const K = window.KYO || {};
   if (!K.SUPABASE_URL || /TU-PROYECTO/.test(K.SUPABASE_URL)) return;
   const HDR = { apikey: K.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + K.SUPABASE_ANON_KEY };
+  const pedir = n => fetch(K.SUPABASE_URL + '/functions/v1/' + n + '?t=' + Date.now(), { headers: HDR, cache: 'no-store' }).then(r => r.ok ? r.json() : null);
   async function leer() {
     try {
-      const r = await fetch(K.SUPABASE_URL + '/functions/v1/sorteo?t=' + Date.now(), { headers: HDR, cache: 'no-store' });
-      const d = await r.json();
-      if (d && d.ok) { aplicar(d); primeraCarga = false; }
+      let d = await pedir('encuesta').catch(() => null);
+      if (d && d.ok) { aplicarSorteo(d.sorteo); aplicarEncuesta(d.encuesta); }
+      else { d = await pedir('sorteo'); if (d && d.ok) aplicarSorteo(d); }   // sin la función "encuesta" sigue funcionando el sorteo
+      decidir();
     } catch (e) { /* sin conexión: se reintenta */ }
     setTimeout(leer, 2000);
   }

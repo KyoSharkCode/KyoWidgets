@@ -94,6 +94,13 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .sopart{display:grid;gap:4px;font-size:14px}.sopart span{color:var(--dim);font-size:13px;overflow-wrap:anywhere}
 .soopts summary{cursor:pointer;font-weight:700;color:var(--dim);margin:4px 0 10px}
 .soopts .bopts input{width:100%}
+.enops{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.enops input[hidden]{display:none}
+.enres{display:grid;gap:6px}
+.enfila{position:relative;display:flex;justify-content:space-between;gap:10px;padding:7px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;font-size:14px}
+.enfila span,.enfila b{position:relative;z-index:1}
+.enfila i{position:absolute;left:0;top:0;bottom:0;background:rgba(111,227,240,.18);transition:width .6s}
+.enfila.gano{border-color:#F4C542}.enfila.gano i{background:rgba(244,197,66,.28)}
 .btn{font:600 14px "Fredoka",sans-serif;border:1px solid var(--line2);background:transparent;color:var(--dim);border-radius:999px;padding:8px 16px;cursor:pointer}
 .btn:hover{border-color:var(--acc);color:#fff}
 .btn.pri{background:var(--acc);border-color:var(--acc);color:#1a0d05}
@@ -264,7 +271,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <button type="button" data-sub="fortnite" aria-pressed="false">🏆 Fortnite</button>
     <button type="button" data-sub="cuenta" aria-pressed="false">⏱ Cuenta atrás</button>
     <button type="button" data-sub="chat" aria-pressed="false">💬 Chat</button>
-    <button type="button" data-sub="sorteo" aria-pressed="false">🎁 Sorteo</button>
+    <button type="button" data-sub="sorteo" aria-pressed="false">🎁 Sorteo y encuesta</button>
   </nav>
 
   <!-- ===================== MÚSICA ===================== -->
@@ -425,13 +432,17 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   <section data-panel="sorteo" class="grid" hidden>
     <form class="card opts" id="fSorteo" onsubmit="return false">
       <div class="grupo"><h3>Cómo funciona</h3>
-        <p class="nota">Solo aparece en pantalla mientras hay un sorteo. Se controla desde la pestaña <b>🦈 AletaBot</b> o desde el chat (tú y tus mods):</p>
+        <p class="nota">Una sola fuente de OBS para los dos. Solo aparece mientras hay un sorteo o una encuesta; si hay los dos a la vez, se turnan cada 10 s con una ola (el ganador y el resultado pasan delante). Se controlan desde la pestaña <b>🦈 AletaBot</b> o desde el chat (tú y tus mods):</p>
         <ul class="botvars">
           <li><code>!sorteo Peluche de Kyo</code><span>abre un sorteo con ese premio</span></li>
           <li><code>!participar</code><span>la gente entra y sale como una burbuja con su nombre</span></li>
           <li><code>!sorteo cerrar</code><span>cierra las entradas</span></li>
           <li><code>!ganador</code><span>la ola tapa todo y aparece el ganador (otra vez = vuelve a sortear)</span></li>
           <li><code>!sorteo cancelar</code><span>lo quita de la pantalla</span></li>
+          <li><code>!encuesta ¿Qué jugamos? | LoL | Fortnite</code><span>abre una encuesta (2 a 6 opciones separadas por |)</span></li>
+          <li><code>1 · 2 · 3 …</code><span>el chat vota escribiendo solo el número (puede cambiar su voto)</span></li>
+          <li><code>!encuesta cerrar</code><span>la cierra: brilla la ganadora y AletaBot dice el resultado</span></li>
+          <li><code>!encuesta cancelar</code><span>la quita de la pantalla</span></li>
         </ul>
       </div>
       <div class="grupo"><h3>Estilo</h3>
@@ -588,7 +599,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       pruebas: [['mensaje', '💬 Mensaje de ejemplo'], ['limpiar', '🧹 Limpiar el chat']] },
     sorteo: { w: 720, h: 600,
       def: { tema: 'marea', escala: '1' },
-      pruebas: [['participantes', '🫧 Entran 5 personas'], ['ganador', '🎉 Probar ganador'], ['reiniciar', '↺ Empezar de nuevo']] }
+      pruebas: [['participantes', '🫧 Entran 5 personas'], ['ganador', '🎉 Probar ganador'], ['encuesta', '📊 Probar encuesta'], ['votos', '🗳 Llegan votos'], ['cerrarEnc', '🏆 Cerrar encuesta'], ['ambos', '🔀 Los dos a la vez'], ['reiniciar', '↺ Empezar de nuevo']] }
   };
   const CHAT_OCULTOS = 'streamelements,nightbot,streamlabs,moobot,fossabot';
 

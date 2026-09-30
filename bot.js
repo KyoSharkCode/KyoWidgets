@@ -91,6 +91,20 @@ function abrir() {
           '</details>' +
           '<p class="nota">En el chat, tú y tus mods: <code>!sorteo premio</code> · <code>!sorteo cerrar</code> · <code>!ganador</code> · <code>!sorteo cancelar</code>. El overlay está en Widgets → 🎁 Sorteo.</p>' +
         '</div>' +
+        '<div class="card" id="encCard"><h2>📊 Encuesta</h2>' +
+          '<div class="ovestado" id="enEstado">Cargando…</div>' +
+          '<label class="f"><span>Pregunta</span><input type="text" id="enPregunta" maxlength="90" placeholder="¿Qué jugamos hoy?"></label>' +
+          '<div class="enops" id="enOps">' + [1, 2, 3, 4, 5, 6].map(i => '<input type="text" data-op maxlength="40" placeholder="Opción ' + i + (i > 2 ? ' (opcional)' : '') + '"' + (i > 3 ? ' hidden' : '') + '>').join('') + '</div>' +
+          '<div class="acciones"><button class="btn" type="button" id="enMas">+ Otra opción</button><button class="btn pri" type="button" data-en="abrir">Abrir encuesta</button></div>' +
+          '<div class="acciones"><button class="btn pri" type="button" data-en="cerrar">🏁 Cerrar y anunciar</button><button class="btn" type="button" data-en="cancelar">✖ Quitar</button></div>' +
+          '<div class="enres" id="enRes"></div>' +
+          '<details class="soopts"><summary>⚙️ Opciones</summary>' +
+            '<div class="bopts"><label><span>Minutos abierta (0 = hasta que la cierres)</span><input type="number" id="enMin" min="0" max="120"></label></div>' +
+            '<div class="acciones"><button class="btn" type="button" id="enGuardar">Guardar opciones</button></div>' +
+            '<p class="nota">Con tiempo límite se cierra sola y AletaBot anuncia el resultado.</p>' +
+          '</details>' +
+          '<p class="nota">En el chat, tú y tus mods: <code>!encuesta ¿Pregunta? | opción 1 | opción 2</code> · <code>!encuesta cerrar</code> · <code>!encuesta cancelar</code>. Se vota escribiendo solo el número.</p>' +
+        '</div>' +
         '<div class="card"><h2>🧪 Probar</h2>' +
           '<p class="nota">Escribe como si fueras alguien del chat. Te muestra lo que contestaría AletaBot <b>sin escribir nada en tu chat</b> ni sumar contadores. Usa también los cambios que aún no has guardado.</p>' +
           '<div class="acciones botbarra"><input type="text" id="botProbarTxt" placeholder="!beso @alguien"><button class="btn pri" type="button" id="botProbar">Probar</button></div>' +
@@ -262,6 +276,52 @@ function abrir() {
   leerSorteo();
   // Mientras la pestaña está a la vista, el estado del sorteo se refresca solo
   setInterval(() => { if (document.visibilityState === 'visible' && !app.closest('[data-panel]').hidden) leerSorteo(); }, 3000);
+
+  // ---------- Encuesta ----------
+  const enEst = $('#enEstado', app);
+  const ERR_EN = { faltan_opciones: 'Escribe la pregunta y al menos 2 opciones.' };
+  function pintarEncuesta(e) {
+    if (!e) { enEst.className = 'ovestado mal'; enEst.textContent = 'No encuentro la función encuesta. ¿Está creada en Supabase? (y ejecutado 06_encuestas.sql)'; $('#enRes', app).innerHTML = ''; return; }
+    const abierta = e.estado === 'abierta' && (!e.cierra || Date.parse(e.cierra) > Date.parse(e.ahora || new Date().toISOString()));
+    enEst.className = 'ovestado ' + (e.estado === 'inactivo' ? '' : 'ok');
+    enEst.textContent = e.estado === 'inactivo' ? 'No hay ninguna encuesta activa.' : (abierta ? '🗳 Abierta: ' : '🏁 Cerrada: ') + e.pregunta;
+    const t = e.total || 0;
+    $('#enRes', app).innerHTML = e.estado === 'inactivo' ? '' : (e.opciones || []).map((o, i) => {
+      const v = (e.votos || [])[i] || 0, p = t ? Math.round(v / t * 100) : 0, g = (e.ganadoras || []).includes(i);
+      return '<div class="enfila' + (g ? ' gano' : '') + '"><span>' + (i + 1) + '. ' + esc(o) + (g ? ' 🏆' : '') + '</span><b>' + p + '% · ' + v + '</b><i style="width:' + p + '%"></i></div>';
+    }).join('') + '<p class="nota">' + t + (t === 1 ? ' voto' : ' votos') + '</p>';
+  }
+  async function leerEncuesta() {
+    try { const r = await fetch(FN('encuesta') + '?t=' + Date.now(), { headers: HDR, cache: 'no-store' }); const d = await r.json(); pintarEncuesta(d && d.ok ? d.encuesta : null); }
+    catch (er) { pintarEncuesta(null); }
+  }
+  $('#enMas', app).addEventListener('click', () => { const h = $('#enOps [data-op][hidden]', app); if (h) { h.hidden = false; h.focus(); } if (!$('#enOps [data-op][hidden]', app)) $('#enMas', app).hidden = true; });
+  $('#encCard', app).addEventListener('click', async e => {
+    const b = e.target.closest('[data-en]'); if (!b) return;
+    const accion = b.dataset.en, cuerpo = { accion };
+    if (accion === 'abrir') {
+      cuerpo.pregunta = $('#enPregunta', app).value.trim();
+      cuerpo.opciones = $$('#enOps [data-op]', app).map(i => i.value.trim()).filter(Boolean);
+      if (!cuerpo.pregunta || cuerpo.opciones.length < 2) { aviso(ERR_EN.faltan_opciones); return; }
+    }
+    b.disabled = true;
+    try {
+      const d = await pedirA('encuesta', cuerpo);
+      if (d.ok) {
+        pintarEncuesta(d.encuesta);
+        aviso({ abrir: '¡Encuesta abierta! AletaBot la anuncia en el chat 📊', cerrar: 'Encuesta cerrada: AletaBot anuncia el resultado 🏁', cancelar: 'Encuesta quitada de la pantalla' }[accion]);
+        if (accion === 'abrir') { $('#enPregunta', app).value = ''; $$('#enOps [data-op]', app).forEach((i, k) => { i.value = ''; i.hidden = k > 2; }); $('#enMas', app).hidden = false; }
+      } else aviso(ERR_EN[d.error] || errTexto(d), 5000);
+    } catch (er) { aviso('No encuentro la función encuesta.', 5000); }
+    b.disabled = false;
+  });
+  $('#enGuardar', app).addEventListener('click', async () => {
+    try { const d = await pedirA('encuesta', { accion: 'ajustes', ajustes: { minutos: $('#enMin', app).value } }); if (d.ok) { $('#enMin', app).value = d.ajustes.minutos; aviso('Opciones de la encuesta guardadas ✓'); } else aviso(errTexto(d), 5000); }
+    catch (er) { aviso('No encuentro la función encuesta.', 5000); }
+  });
+  pedirA('encuesta', { accion: 'ajustes' }).then(d => { if (d.ok) $('#enMin', app).value = d.ajustes.minutos; }).catch(() => {});
+  leerEncuesta();
+  setInterval(() => { if (document.visibilityState === 'visible' && !app.closest('[data-panel]').hidden) leerEncuesta(); }, 3000);
 
   // Carga: lo guardado en Supabase, salvo que haya un borrador sin guardar en este navegador
   (async () => {
