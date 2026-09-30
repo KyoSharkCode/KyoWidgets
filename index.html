@@ -91,6 +91,9 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .botvars li{display:grid;gap:2px}
 .botvars code{color:var(--acc2);font-size:13px}
 .botvars span{font-size:13px;color:var(--dim)}
+.sopart{display:grid;gap:4px;font-size:14px}.sopart span{color:var(--dim);font-size:13px;overflow-wrap:anywhere}
+.soopts summary{cursor:pointer;font-weight:700;color:var(--dim);margin:4px 0 10px}
+.soopts .bopts input{width:100%}
 .btn{font:600 14px "Fredoka",sans-serif;border:1px solid var(--line2);background:transparent;color:var(--dim);border-radius:999px;padding:8px 16px;cursor:pointer}
 .btn:hover{border-color:var(--acc);color:#fff}
 .btn.pri{background:var(--acc);border-color:var(--acc);color:#1a0d05}
@@ -261,6 +264,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <button type="button" data-sub="fortnite" aria-pressed="false">🏆 Fortnite</button>
     <button type="button" data-sub="cuenta" aria-pressed="false">⏱ Cuenta atrás</button>
     <button type="button" data-sub="chat" aria-pressed="false">💬 Chat</button>
+    <button type="button" data-sub="sorteo" aria-pressed="false">🎁 Sorteo</button>
   </nav>
 
   <!-- ===================== MÚSICA ===================== -->
@@ -417,6 +421,36 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <div class="prev" data-prev="chat"></div>
   </section>
 
+  <!-- ===================== SORTEO ===================== -->
+  <section data-panel="sorteo" class="grid" hidden>
+    <form class="card opts" id="fSorteo" onsubmit="return false">
+      <div class="grupo"><h3>Cómo funciona</h3>
+        <p class="nota">Solo aparece en pantalla mientras hay un sorteo. Se controla desde la pestaña <b>🦈 AletaBot</b> o desde el chat (tú y tus mods):</p>
+        <ul class="botvars">
+          <li><code>!sorteo Peluche de Kyo</code><span>abre un sorteo con ese premio</span></li>
+          <li><code>!participar</code><span>la gente entra y sale como una burbuja con su nombre</span></li>
+          <li><code>!sorteo cerrar</code><span>cierra las entradas</span></li>
+          <li><code>!ganador</code><span>la ola tapa todo y aparece el ganador (otra vez = vuelve a sortear)</span></li>
+          <li><code>!sorteo cancelar</code><span>lo quita de la pantalla</span></li>
+        </ul>
+      </div>
+      <div class="grupo"><h3>Estilo</h3>
+        <div class="f"><span>Temporada</span><div class="chips" data-radio="tema" data-val="marea:🌊 Normal,octubre:🎃 Halloween,navidad:🎄 Navidad"></div></div>
+        <div class="f"><span>Tamaño</span><div class="chips" data-radio="escala" data-val="0.75:Pequeño,1:Normal,1.25:Grande,1.5:Muy grande"></div></div>
+      </div>
+      <div class="grupo"><h3>Colores</h3>
+        <div class="chips"><label><input type="checkbox" name="colores"> Usar mis propios colores</label></div>
+        <div class="colores off" data-colores>
+          <label>Acento<input type="color" name="acento" value="#6fe3f0"></label>
+          <label>Borde / pegatina<input type="color" name="borde" value="#ffffff"></label>
+          <label>Caja<input type="color" name="caja" value="#0f1a4a"></label>
+          <label>Texto<input type="color" name="texto" value="#f5f3fb"></label>
+        </div>
+      </div>
+    </form>
+    <div class="prev" data-prev="sorteo"></div>
+  </section>
+
   <!-- ===================== ANIMACIONES ===================== -->
   <section data-panel="animaciones" hidden>
     <div class="card animhead">
@@ -551,7 +585,10 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       pruebas: [['diez', '⏱ Probar últimos 10 s'], ['final', '🎉 Probar el final'], ['reset', '↺ Volver al tiempo real']] },
     chat: { w: 580, h: 840, tam: { horizontal: [580, 840], vertical: [900, 740] },
       def: { diseno: 'horizontal', tema: 'marea', anim: 'rebote', insignias: 'kyo', fs: '26', nombres: 'rol', comandos: 'ocultar', extra: 'si' },
-      pruebas: [['mensaje', '💬 Mensaje de ejemplo'], ['limpiar', '🧹 Limpiar el chat']] }
+      pruebas: [['mensaje', '💬 Mensaje de ejemplo'], ['limpiar', '🧹 Limpiar el chat']] },
+    sorteo: { w: 720, h: 600,
+      def: { tema: 'marea', escala: '1' },
+      pruebas: [['participantes', '🫧 Entran 5 personas'], ['ganador', '🎉 Probar ganador'], ['reiniciar', '↺ Empezar de nuevo']] }
   };
   const CHAT_OCULTOS = 'streamelements,nightbot,streamlabs,moobot,fossabot';
 
@@ -617,6 +654,8 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       if (Number(o.seg) > 0) p.set('seg', o.seg);
       const ocu = (o.ocultos || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean).join(',');
       if (ocu !== CHAT_OCULTOS) p.set('ocultos', ocu);
+    } else if (id === 'sorteo') {
+      // solo estilo: el premio y los participantes llegan en vivo desde Supabase
     } else {
       p.set('nombre', o.nombre || 'TuNombreEpic');
       if (o.titulo) p.set('titulo', o.titulo);
@@ -657,7 +696,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       prev.ver = (prev.ver || []).map(v => v === 'disco' ? 'portada' : v === 'sonar' ? 'progreso' : v);
       if (prev.fuente === 'fredoka') prev.fuente = 'auto';
     }
-    const extra = id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : id === 'cuenta' ? { titulo: 'REVELACIÓN EN', final: '¡YA!', fecha: fechaPorDefecto(), h: '1', m: '0', s: '0', sesion: '1' } : id === 'chat' ? { canal: 'kyosumivt', max: '12', seg: '0', ocultos: CHAT_OCULTOS } : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' };
+    const extra = id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : id === 'cuenta' ? { titulo: 'REVELACIÓN EN', final: '¡YA!', fecha: fechaPorDefecto(), h: '1', m: '0', s: '0', sesion: '1' } : id === 'chat' ? { canal: 'kyosumivt', max: '12', seg: '0', ocultos: CHAT_OCULTOS } : id === 'sorteo' ? {} : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' };
     aplicarForm(id, Object.assign({}, W[id].def, extra, prev || {}));
     const panel = $('[data-panel="' + id + '"]');
     panel.addEventListener('change', () => actualizar(id));

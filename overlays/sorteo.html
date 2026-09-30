@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Kyo · Sorteo</title>
+<meta name="robots" content="noindex">
+<!--
+  KyoWidgets · Sorteo · Fuente de navegador para OBS. La URL la arma Kyo Estudio.
+  Tamaño base 720x600 (multiplícalo por "escala"). Solo se ve mientras hay un sorteo.
+  Lee el estado de la función "sorteo" de Supabase cada 2 s: premio, nombres que entran
+  (salen como burbujas) y el ganador (la ola tapa todo y aparece su nombre con confeti).
+  Parámetros:
+    tema    marea | octubre | navidad          escala  0.5 … 2
+    acento, borde, caja, texto   colores (hex sin #)
+    demo=1  sorteo de ejemplo (vista previa del Estudio)
+-->
+<script src="../config.js"></script>
+<style>
+@font-face{font-family:"Cherry Bomb One";src:url(../fonts/cherry-bomb-one-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Fredoka";font-weight:600;src:url(../fonts/fredoka-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Fredoka";font-weight:700;src:url(../fonts/fredoka-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-weight:700;src:url(../fonts/chakra-petch-latin-700-normal.woff2) format("woff2")}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent!important;overflow:hidden}
+body{width:720px;height:600px;display:grid;place-items:center;font-family:"Fredoka",system-ui,sans-serif}
+#w{--a:#6FE3F0;--a2:#3A7BD5;--c:#0f1a4a;--t:#F5F3FB;--s:#C9E6F2;--o:#0A1030;--p:#fff;--oro:#F4C542;--m1:#3A7BD5;--m2:#15296e;--bu:rgba(201,230,242,.9);
+  position:relative;color:var(--t);transition:opacity .6s ease,transform .7s cubic-bezier(.34,1.56,.64,1)}
+#w.octubre{--a:#FF8A2B;--a2:#9B6BFF;--c:#1a1240;--s:#e3d9ff;--o:#0a0720;--m1:#7b4fe0;--m2:#2a1560;--bu:rgba(227,217,255,.9)}
+#w.navidad{--a:#FF5A6E;--a2:#F4C542;--c:#0e1a48;--s:#f3e7c4;--o:#060b22;--m1:#2E6FD0;--m2:#0e2a70;--bu:rgba(243,231,196,.92)}
+#w.oculto{opacity:0;transform:scale(.6) translateY(40px)}
+.pega{box-shadow:0 0 0 6px var(--p),0 0 0 11px var(--o),0 11px 0 11px var(--o)}
+.caja{position:relative;width:640px;height:520px;border-radius:40px;background:var(--c);padding:24px 28px 20px;display:grid;grid-template-rows:auto auto 1fr auto;gap:10px;transform:rotate(-1.5deg);animation:boing 5s ease-in-out infinite;overflow:hidden}
+@keyframes boing{0%,100%{transform:rotate(-1.5deg) translateY(0)}50%{transform:rotate(-.6deg) translateY(-6px)}}
+.cab{display:flex;align-items:center;justify-content:center;gap:10px}
+.chip{font:700 20px "Chakra Petch",monospace;letter-spacing:.2em;text-transform:uppercase;color:var(--o);background:var(--a);padding:5px 18px 5px 20px;border-radius:999px;white-space:nowrap}
+.ico{width:40px;height:40px;animation:mece 2.4s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes mece{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.premio{font:400 46px/1.08 "Cherry Bomb One",sans-serif;text-align:center;color:var(--t);-webkit-text-stroke:10px var(--o);paint-order:stroke fill;overflow-wrap:anywhere;max-height:104px;overflow:hidden}
+.premio.largo{font-size:36px}.premio.muy{font-size:28px}
+/* la pecera de burbujas */
+.pecera{position:relative;border-radius:28px;overflow:hidden;background:linear-gradient(180deg,var(--m1),var(--m2));box-shadow:0 0 0 4px var(--p),0 0 0 8px var(--o)}
+.pecera::before{content:"";position:absolute;inset:0;background:radial-gradient(120px 60px at 20% 0%,rgba(255,255,255,.22),transparent),repeating-linear-gradient(100deg,transparent 0 60px,rgba(255,255,255,.05) 60px 90px)}
+.bub{position:absolute;bottom:-60px;left:var(--x);display:grid;place-items:center;padding:8px 16px 9px;border-radius:999px;background:radial-gradient(circle at 25% 25%,rgba(255,255,255,.55),rgba(255,255,255,.12) 40%,rgba(255,255,255,.06));border:3px solid var(--bu);
+  font:700 21px "Fredoka",sans-serif;color:#fff;text-shadow:0 2px 0 var(--o),0 0 6px var(--o);white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis;
+  animation:sube var(--d) linear var(--del) infinite,vaiven 2.6s ease-in-out infinite alternate}
+.bub.nueva{animation:pop .5s cubic-bezier(.34,1.56,.64,1) both,subeUna var(--d) linear forwards,vaiven 2.6s ease-in-out infinite alternate}
+.bub::after{content:"";position:absolute;right:10px;top:6px;width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.8)}
+@keyframes sube{from{bottom:-60px}to{bottom:calc(100% + 20px)}}
+@keyframes vaiven{from{margin-left:-14px}to{margin-left:14px}}
+@keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+@keyframes subeUna{from{bottom:-6px}to{bottom:calc(100% + 20px)}}
+.mini{position:absolute;bottom:-20px;left:var(--x);width:var(--s);height:var(--s);border-radius:50%;border:2px solid rgba(255,255,255,.6);background:rgba(255,255,255,.1);animation:sube var(--d) linear var(--del) infinite}
+.vacio[hidden]{display:none}
+.vacio{position:absolute;inset:0;display:grid;place-items:center;font:600 22px "Fredoka",sans-serif;color:var(--s);opacity:.85;text-align:center;padding:20px}
+.pie{display:flex;align-items:center;justify-content:space-between;gap:12px;font:700 22px "Fredoka",sans-serif}
+.instr b{color:var(--a);font-family:"Chakra Petch",monospace;letter-spacing:.04em}
+.instr{animation:late 2s ease-in-out infinite}
+@keyframes late{50%{transform:scale(1.04)}}
+.dato{display:flex;gap:10px;align-items:center}
+.cont,.reloj{font:700 20px "Chakra Petch",monospace;letter-spacing:.06em;color:var(--o);background:var(--s);border-radius:999px;padding:4px 14px;white-space:nowrap}
+.reloj{background:var(--oro)}
+.reloj[hidden]{display:none}
+/* rebote de la pecera cuando alguien entra */
+.pecera.toque{animation:toque .35s ease}
+@keyframes toque{50%{transform:scale(1.015)}}
+/* ola que lo tapa todo */
+.ola{position:absolute;left:-40px;right:-40px;top:0;height:200%;transform:translateY(110%);pointer-events:none;z-index:5}
+.ola svg{width:100%;height:100%;display:block}
+.ola.sube{animation:olaSube 1.3s cubic-bezier(.55,0,.35,1) forwards}
+.ola.baja{animation:olaBaja 1.2s cubic-bezier(.55,0,.35,1) forwards}
+@keyframes olaSube{from{transform:translateY(110%)}to{transform:translateY(-12%)}}
+@keyframes olaBaja{from{transform:translateY(-12%)}to{transform:translateY(-120%)}}
+/* ganador */
+.gana{position:absolute;inset:0;z-index:4;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:30px;background:radial-gradient(closest-side,rgba(244,197,66,.18),transparent),var(--c);text-align:center}
+.gana.ver{display:flex}
+.chip.oro{background:var(--oro);font-size:24px;animation:salta .7s cubic-bezier(.34,1.56,.64,1) both}
+.gnombre{font:400 72px/1.05 "Cherry Bomb One",sans-serif;color:var(--oro);-webkit-text-stroke:12px var(--o);paint-order:stroke fill;overflow-wrap:anywhere;max-width:100%}
+.gnombre span{display:inline-block;animation:salta .6s cubic-bezier(.34,1.56,.64,1) both}
+.gnombre.largo{font-size:54px}.gnombre.muy{font-size:40px}
+.lleva{font:600 24px "Fredoka",sans-serif;color:var(--s)}
+.lleva b{color:var(--t)}
+@keyframes salta{0%{transform:translateY(40px) scale(.3);opacity:0}100%{transform:none;opacity:1}}
+.gana .brillo{position:absolute;width:var(--t2);height:var(--t2);animation:titila 1.6s ease-in-out var(--del) infinite}
+@keyframes titila{0%,100%{transform:scale(.4) rotate(0);opacity:.3}50%{transform:scale(1) rotate(45deg);opacity:1}}
+#confeti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6}
+@media (prefers-reduced-motion:reduce){.caja,.ico,.instr{animation:none}}
+</style>
+</head>
+<body>
+<div id="w" class="oculto">
+  <div class="caja pega">
+    <div class="cab">
+      <svg class="ico" viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="26" width="48" height="32" rx="6" fill="var(--a2)" stroke="var(--o)" stroke-width="4"/><rect x="4" y="18" width="56" height="12" rx="5" fill="var(--a)" stroke="var(--o)" stroke-width="4"/><rect x="28" y="18" width="8" height="40" fill="var(--oro)" stroke="var(--o)" stroke-width="3"/><path d="M32 18c-6-12-20-10-16-2 3 5 12 3 16 2zm0 0c6-12 20-10 16-2-3 5-12 3-16 2z" fill="var(--oro)" stroke="var(--o)" stroke-width="3.5" stroke-linejoin="round"/></svg>
+      <span class="chip">Sorteo</span>
+    </div>
+    <div class="premio" id="premio"></div>
+    <div class="pecera" id="pecera"><div class="vacio" id="vacio">¡Sé la primera burbuja!</div></div>
+    <div class="pie">
+      <span class="instr" id="instr"></span>
+      <span class="dato"><span class="reloj" id="reloj" hidden></span><span class="cont" id="cont">0</span></span>
+    </div>
+    <div class="gana" id="gana"><span class="chip oro">¡Ganador!</span><div class="gnombre" id="gnombre"></div><div class="lleva">se lleva <b id="gpremio"></b></div></div>
+    <div class="ola" id="ola"><svg viewBox="0 0 800 1200" preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--m1)"/><stop offset="1" stop-color="var(--m2)"/></linearGradient></defs>
+      <path d="M0 60 Q50 10 100 60 T200 60 T300 60 T400 60 T500 60 T600 60 T700 60 T800 60 V1200 H0Z" fill="url(#g)" stroke="var(--o)" stroke-width="22"/>
+      <path d="M0 60 Q50 10 100 60 T200 60 T300 60 T400 60 T500 60 T600 60 T700 60 T800 60" fill="none" stroke="var(--p)" stroke-width="9"/>
+      <g fill="none" stroke="rgba(255,255,255,.55)" stroke-width="4"><circle cx="140" cy="220" r="16"/><circle cx="520" cy="300" r="22"/><circle cx="330" cy="420" r="12"/><circle cx="660" cy="180" r="10"/><circle cx="240" cy="560" r="18"/></g>
+    </svg></div>
+    <canvas id="confeti"></canvas>
+  </div>
+</div>
+<script>
+(function () {
+  const q = new URLSearchParams(location.search), $ = id => document.getElementById(id), w = $('w');
+  const tema = ['marea', 'octubre', 'navidad'].includes(q.get('tema')) ? q.get('tema') : 'marea';
+  w.classList.add(tema);
+  const hex = v => /^[0-9a-f]{3,8}$/i.test(v || '') ? '#' + v : null;
+  [['acento', '--a'], ['borde', '--p'], ['caja', '--c'], ['texto', '--t']].forEach(([k, v]) => { const c = hex(q.get(k)); if (c) w.style.setProperty(v, c); });
+  const escala = Math.min(2, Math.max(0.5, Number(q.get('escala')) || 1)); if (escala !== 1) document.documentElement.style.zoom = escala;
+  const DEMO = q.get('demo') === '1';
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const pecera = $('pecera');
+  const VER_GANADOR = 45000; // cuánto se queda el ganador en pantalla
+
+  // ---------- burbujas ----------
+  const MAX_BUB = 22;
+  let burbujas = [], vistos = new Set(), hueco = 0;
+  function decoracion() {
+    for (let i = 0; i < 12; i++) {
+      const m = document.createElement('i'); m.className = 'mini';
+      m.style.setProperty('--x', (Math.random() * 95) + '%'); m.style.setProperty('--s', (6 + Math.random() * 12) + 'px');
+      m.style.setProperty('--d', (6 + Math.random() * 6) + 's'); m.style.setProperty('--del', (-Math.random() * 10) + 's');
+      pecera.appendChild(m);
+    }
+  }
+  function burbuja(nombre, nueva) {
+    const b = document.createElement('div'); b.className = 'bub' + (nueva ? ' nueva' : '');
+    b.textContent = nombre;
+    const HUECOS = [3, 40, 68, 20, 55, 8, 46, 30, 62]; // saltando de un lado a otro para que no se pisen
+    hueco = (hueco + 1) % HUECOS.length;
+    b.style.setProperty('--x', (HUECOS[hueco] + Math.random() * 3) + '%');
+    b.style.setProperty('--d', (8 + Math.random() * 5) + 's');
+    b.style.setProperty('--del', nueva ? '0s' : (-Math.random() * 12) + 's');
+    if (nueva) b.addEventListener('animationend', e => { if (e.animationName === 'subeUna') { b.classList.remove('nueva'); b.style.setProperty('--del', '0s'); } });
+    pecera.appendChild(b); burbujas.push(b);
+    if (burbujas.length > MAX_BUB) burbujas.shift().remove();
+    if (nueva) { pecera.classList.remove('toque'); void pecera.offsetWidth; pecera.classList.add('toque'); }
+    $('vacio').hidden = true;
+  }
+  function limpiarBurbujas() { burbujas.forEach(b => b.remove()); burbujas = []; vistos = new Set(); $('vacio').hidden = false; }
+
+  // ---------- textos ----------
+  function ponerPremio(t) { const p = $('premio'); p.textContent = t || 'Sorteo'; p.classList.toggle('largo', (t || '').length > 18); p.classList.toggle('muy', (t || '').length > 30); }
+  let cierre = null, desfase = 0, estadoAct = 'inactivo', palabra = '!participar', soloSubs = false, totalAct = 0;
+  function ponerPie(total) {
+    totalAct = total;
+    $('cont').textContent = total + (total === 1 ? ' burbuja' : ' burbujas');
+    const abierto = estadoAct === 'abierto' && (!cierre || cierre > Date.now() + desfase);
+    $('instr').innerHTML = abierto ? 'Escribe <b>' + esc(palabra) + '</b>' + (soloSubs ? ' <small>(solo subs)</small>' : '') : '¡Entradas cerradas!';
+    $('instr').style.animationPlayState = abierto ? 'running' : 'paused';
+  }
+  function reloj() {
+    const r = $('reloj');
+    if (estadoAct !== 'abierto' || !cierre) { r.hidden = true; return; }
+    const s = Math.max(0, Math.round((cierre - (Date.now() + desfase)) / 1000));
+    r.hidden = false; r.textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    if (s === 0) ponerPie(totalAct);
+  }
+  setInterval(reloj, 500);
+
+  // ---------- revelación del ganador ----------
+  let temporizador = null;
+  function mostrarGanador(nombre, premio, animar) {
+    clearTimeout(temporizador);
+    const g = $('gnombre');
+    g.innerHTML = Array.from(nombre).map((ch, i) => '<span style="animation-delay:' + (animar ? .9 + i * .06 : 0) + 's">' + (ch === ' ' ? '&nbsp;' : esc(ch)) + '</span>').join('');
+    g.classList.toggle('largo', nombre.length > 10); g.classList.toggle('muy', nombre.length > 16);
+    $('gpremio').textContent = premio || '';
+    const gana = $('gana');
+    gana.querySelectorAll('.brillo,.mini').forEach(b => b.remove());
+    for (let i = 0; i < 14; i++) {
+      const m = document.createElement('i'); m.className = 'mini';
+      m.style.setProperty('--x', (Math.random() * 95) + '%'); m.style.setProperty('--s', (8 + Math.random() * 16) + 'px');
+      m.style.setProperty('--d', (5 + Math.random() * 5) + 's'); m.style.setProperty('--del', (-Math.random() * 8) + 's');
+      gana.appendChild(m);
+    }
+    for (let i = 0; i < 10; i++) {
+      const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 100 100'); s.setAttribute('class', 'brillo');
+      s.innerHTML = '<path d="M50 0C53 38 62 47 100 50 62 53 53 62 50 100 47 62 38 53 0 50 38 47 47 38 50 0Z" fill="' + (i % 3 ? '#F4C542' : '#fff') + '"/>';
+      const ang = i / 10 * Math.PI * 2; s.style.left = (50 + Math.cos(ang) * 42) + '%'; s.style.top = (50 + Math.sin(ang) * 38) + '%';
+      s.style.setProperty('--t2', (18 + Math.random() * 20) + 'px'); s.style.setProperty('--del', (Math.random() * 1.5) + 's');
+      gana.appendChild(s);
+    }
+    mostrar(true);
+    if (!animar) { gana.classList.add('ver'); return; }
+    // 1) las burbujas corren  2) la ola lo tapa todo  3) baja y aparece el ganador con confeti
+    burbujas.forEach(b => b.style.animationDuration = '1.4s, 2.6s');
+    const ola = $('ola');
+    ola.className = 'ola'; void ola.offsetWidth; ola.classList.add('sube');
+    setTimeout(() => { gana.classList.add('ver'); ola.className = 'ola baja'; }, 1400);
+    setTimeout(confeti, 2200);
+  }
+
+  // ---------- confeti ----------
+  function confeti() {
+    const cv = $('confeti'), ctx = cv.getContext('2d');
+    const W = cv.width = cv.clientWidth * 2, H = cv.height = cv.clientHeight * 2;
+    const css = getComputedStyle(w), cols = ['#F4C542', '#fff', css.getPropertyValue('--a').trim(), css.getPropertyValue('--a2').trim()];
+    const P = Array.from({ length: 160 }, () => ({ x: W / 2 + (Math.random() - .5) * 260, y: H * .42, vx: (Math.random() - .5) * 22, vy: -Math.random() * 22 - 10, bam: Math.random() * 6, r: Math.random() * Math.PI, vr: (Math.random() - .5) * .4, w: 8 + Math.random() * 10, h: 5 + Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)] }));
+    const t0 = performance.now();
+    (function paso(t) {
+      ctx.clearRect(0, 0, W, H);
+      P.forEach(p => { p.vy = Math.min(p.vy + .45, 5 + p.bam * .4); p.vx *= .985; p.x += p.vx + Math.sin((t - t0) / 300 + p.bam) * 1.2; p.y += p.vy; p.r += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore(); });
+      if (t - t0 < 6000) requestAnimationFrame(paso); else ctx.clearRect(0, 0, W, H);
+    })(t0);
+  }
+
+  function mostrar(si) { w.classList.toggle('oculto', !si); }
+  function nuevoSorteo() { clearTimeout(temporizador); limpiarBurbujas(); $('gana').classList.remove('ver'); $('ola').className = 'ola'; }
+
+  // ---------- aplicar el estado que llega de Supabase ----------
+  let rondaAct = null, ganadorVisto = null;
+  function aplicar(d) {
+    desfase = d.ahora ? Date.parse(d.ahora) - Date.now() : 0;
+    if (d.ronda !== rondaAct) { nuevoSorteo(); rondaAct = d.ronda; ganadorVisto = null; }
+    estadoAct = d.estado; palabra = d.palabra || '!participar'; soloSubs = !!d.soloSubs; cierre = d.cierra ? Date.parse(d.cierra) : null;
+    if (d.estado === 'inactivo') { mostrar(false); return; }
+    ponerPremio(d.premio);
+    (d.nombres || []).forEach(n => { if (!vistos.has(n)) { vistos.add(n); burbuja(n, !primeraCarga); } });
+    ponerPie(d.total || 0); reloj();
+    if (d.estado === 'ganador' && d.ganador) {
+      if (ganadorVisto === d.ganador.en) return;
+      ganadorVisto = d.ganador.en;
+      const hace = Date.now() + desfase - Date.parse(d.ganador.en);
+      if (hace > VER_GANADOR) { mostrar(false); return; }
+      mostrarGanador(d.ganador.nombre, d.premio, hace < 15000);
+      temporizador = setTimeout(() => mostrar(false), VER_GANADOR - Math.max(0, hace));
+      return;
+    }
+    $('gana').classList.remove('ver');
+    mostrar(true);
+  }
+  let primeraCarga = true;
+
+  // ---------- origen de los datos ----------
+  decoracion();
+  if (DEMO) {
+    const NOM = ['marea_mod', 'lunadorada', 'aleta_azul', 'burbuja_22', 'calabacita', 'Tiburoncin', 'nube_de_sal', 'KrakenFan', 'coral_rosa', 'perlita', 'medusa_lila', 'Olita', 'arrecife77', 'PezGlobo', 'Estrellita', 'caracola'];
+    let d, n, reloj0;
+    const reiniciar = () => { n = 0; reloj0 = Date.now(); d = { estado: 'abierto', ronda: Date.now(), premio: 'Peluche de Kyo', palabra: '!participar', soloSubs: false, cierra: null, total: 0, nombres: [], ganador: null, ahora: new Date().toISOString() }; aplicar(d); primeraCarga = false; };
+    const entra = k => { for (let i = 0; i < k; i++) { const nom = NOM[n % NOM.length] + (n >= NOM.length ? n : ''); n++; d.nombres = d.nombres.concat(nom).slice(-40); d.total = n; } d.ahora = new Date().toISOString(); aplicar(d); };
+    reiniciar();
+    const auto = setInterval(() => { if (d.estado === 'abierto' && n < 12) entra(1); }, 700);
+    window.addEventListener('message', e => {
+      if (!e.data || e.data.type !== 'kyo-test') return;
+      if (e.data.accion === 'participantes') { if (d.estado !== 'abierto') reiniciar(); entra(5); }
+      else if (e.data.accion === 'ganador') { if (!n) entra(6); d.estado = 'ganador'; d.ganador = { nombre: d.nombres[Math.floor(Math.random() * d.nombres.length)], en: new Date().toISOString() }; d.ahora = d.ganador.en; aplicar(d); }
+      else if (e.data.accion === 'reiniciar') reiniciar();
+    });
+    return;
+  }
+  const K = window.KYO || {};
+  if (!K.SUPABASE_URL || /TU-PROYECTO/.test(K.SUPABASE_URL)) return;
+  const HDR = { apikey: K.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + K.SUPABASE_ANON_KEY };
+  async function leer() {
+    try {
+      const r = await fetch(K.SUPABASE_URL + '/functions/v1/sorteo?t=' + Date.now(), { headers: HDR, cache: 'no-store' });
+      const d = await r.json();
+      if (d && d.ok) { aplicar(d); primeraCarga = false; }
+    } catch (e) { /* sin conexión: se reintenta */ }
+    setTimeout(leer, 2000);
+  }
+  leer();
+})();
+</script>
+</body>
+</html>

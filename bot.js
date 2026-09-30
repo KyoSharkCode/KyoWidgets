@@ -12,6 +12,7 @@ const HDR = { apikey: K.SUPABASE_ANON_KEY || '', Authorization: 'Bearer ' + (K.S
 const aviso = (t, ms = 3200) => { const el = $('#toast'); if (!el) return; el.textContent = t; el.classList.add('on'); clearTimeout(aviso.t); aviso.t = setTimeout(() => el.classList.remove('on'), ms); };
 const BORRADOR = 'kyo_comandos_borrador';
 const clave = () => { try { return localStorage.getItem('kyo_codigo') || ''; } catch (e) { return ''; } };
+const pedirA = (fn, cuerpo) => fetch(FN(fn), { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, HDR), body: JSON.stringify(Object.assign({ clave: clave() }, cuerpo)) }).then(r => r.json());
 const pedir = cuerpo => fetch(FN('bot-comandos'), { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, HDR), body: JSON.stringify(Object.assign({ clave: clave() }, cuerpo)) }).then(r => r.json());
 const errTexto = d => d.error === 'bloqueado' ? 'Demasiados intentos fallidos con el código. Espera ' + Math.ceil((d.espera || 60) / 60) + ' min.'
   : d.error === 'clave' ? 'El código de acceso no es válido. Vuelve a entrar al Estudio.'
@@ -72,6 +73,24 @@ function abrir() {
         '<div class="botlista" id="botLista"></div>' +
       '</div>' +
       '<div class="ovprev ovcol">' +
+        '<div class="card" id="sorteoCard"><h2>🎁 Sorteo</h2>' +
+          '<div class="ovestado" id="soEstado">Cargando…</div>' +
+          '<div class="acciones botbarra"><input type="text" id="soPremio" maxlength="60" placeholder="Premio: Peluche de Kyo"><button class="btn pri" type="button" data-so="abrir">Abrir sorteo</button></div>' +
+          '<div class="acciones"><button class="btn" type="button" data-so="cerrar">🔒 Cerrar entradas</button><button class="btn pri" type="button" data-so="ganador">🎉 Elegir ganador</button><button class="btn" type="button" data-so="cancelar">✖ Quitar</button></div>' +
+          '<div class="sopart" id="soPart"></div>' +
+          '<details class="soopts"><summary>⚙️ Opciones</summary>' +
+            '<div class="bopts">' +
+              '<label><span>Palabra para entrar</span><input type="text" id="soPalabra" maxlength="30" placeholder="!participar"></label>' +
+              '<label><span>Minutos abierto (0 = sin límite)</span><input type="number" id="soMin" min="0" max="120"></label>' +
+            '</div>' +
+            '<label class="copiaimg"><input type="checkbox" id="soSubs"> Solo pueden participar subs</label>' +
+            '<label class="copiaimg"><input type="checkbox" id="soSuerte"> Suerte doble para subs</label>' +
+            '<label class="copiaimg"><input type="checkbox" id="soRepetir"> Que no gane nadie de los últimos 5 ganadores</label>' +
+            '<div class="acciones"><button class="btn" type="button" id="soGuardar">Guardar opciones</button></div>' +
+            '<p class="nota">Se aplican al abrir el siguiente sorteo.</p>' +
+          '</details>' +
+          '<p class="nota">En el chat, tú y tus mods: <code>!sorteo premio</code> · <code>!sorteo cerrar</code> · <code>!ganador</code> · <code>!sorteo cancelar</code>. El overlay está en Widgets → 🎁 Sorteo.</p>' +
+        '</div>' +
         '<div class="card"><h2>🧪 Probar</h2>' +
           '<p class="nota">Escribe como si fueras alguien del chat. Te muestra lo que contestaría AletaBot <b>sin escribir nada en tu chat</b> ni sumar contadores. Usa también los cambios que aún no has guardado.</p>' +
           '<div class="acciones botbarra"><input type="text" id="botProbarTxt" placeholder="!beso @alguien"><button class="btn pri" type="button" id="botProbar">Probar</button></div>' +
@@ -200,6 +219,49 @@ function abrir() {
   };
   $('#botProbar', app).addEventListener('click', probar);
   $('#botProbarTxt', app).addEventListener('keydown', e => { if (e.key === 'Enter') probar(); });
+
+  // ---------- Sorteo ----------
+  const soEst = $('#soEstado', app);
+  const TXT_EST = { inactivo: 'No hay ningún sorteo activo.', abierto: '🫧 Abierto: la gente puede entrar.', cerrado: '🔒 Entradas cerradas: elige ganador.', ganador: '🎉 Ganó:' };
+  const ERR_SO = { vacio: 'Nadie ha participado todavía.', sin_mas: 'Ya no quedan participantes sin premio.', sin_sorteo: 'No hay ningún sorteo abierto.' };
+  function pintarSorteo(d) {
+    if (!d || !d.ok) { soEst.className = 'ovestado mal'; soEst.textContent = d && d.error === 'tabla' ? 'Falta ejecutar 05_sorteos.sql en Supabase.' : 'No encuentro la función sorteo. ¿Está creada en Supabase?'; return; }
+    soEst.className = 'ovestado ' + (d.estado === 'inactivo' ? '' : 'ok');
+    soEst.textContent = (d.premio && d.estado !== 'inactivo' ? '🎁 ' + d.premio + ' · ' : '') + TXT_EST[d.estado] + (d.ganador && d.estado === 'ganador' ? ' ' + d.ganador.nombre + ' 💙' : '');
+    const n = d.total || 0;
+    $('#soPart', app).innerHTML = d.estado === 'inactivo' ? '' : '<b>' + n + (n === 1 ? ' participante' : ' participantes') + '</b>' +
+      (d.nombres && d.nombres.length ? '<span>' + d.nombres.slice(-12).reverse().map(esc).join(' · ') + (n > 12 ? ' …' : '') + '</span>' : '');
+  }
+  async function leerSorteo() {
+    try { const r = await fetch(FN('sorteo') + '?t=' + Date.now(), { headers: HDR, cache: 'no-store' }); pintarSorteo(await r.json()); }
+    catch (er) { pintarSorteo(null); }
+  }
+  $('#sorteoCard', app).addEventListener('click', async e => {
+    const b = e.target.closest('[data-so]'); if (!b) return;
+    const accion = b.dataset.so, cuerpo = { accion };
+    if (accion === 'abrir') { cuerpo.premio = $('#soPremio', app).value.trim(); if (!cuerpo.premio) { aviso('Escribe el premio primero'); $('#soPremio', app).focus(); return; } }
+    b.disabled = true;
+    try {
+      const d = await pedirA('sorteo', cuerpo);
+      if (d.ok) { pintarSorteo(d); aviso({ abrir: '¡Sorteo abierto! AletaBot lo anuncia en el chat 🎁', cerrar: 'Entradas cerradas 🔒', ganador: '¡Ganador elegido! Míralo en el overlay 🎉', cancelar: 'Sorteo quitado de la pantalla' }[accion]); if (accion === 'abrir') $('#soPremio', app).value = ''; }
+      else aviso(ERR_SO[d.error] || errTexto(d), 5000);
+    } catch (er) { aviso('No encuentro la función sorteo.', 5000); }
+    b.disabled = false;
+  });
+  $('#soGuardar', app).addEventListener('click', async () => {
+    const ajustes = { palabra: $('#soPalabra', app).value, minutos: $('#soMin', app).value, soloSubs: $('#soSubs', app).checked, suerteSubs: $('#soSuerte', app).checked, sinRepetir: $('#soRepetir', app).checked };
+    try { const d = await pedirA('sorteo', { accion: 'ajustes', ajustes }); if (d.ok) { ponerOpciones(d.ajustes); aviso('Opciones del sorteo guardadas ✓'); } else aviso(errTexto(d), 5000); }
+    catch (er) { aviso('No encuentro la función sorteo.', 5000); }
+  });
+  function ponerOpciones(a) {
+    if (!a) return;
+    $('#soPalabra', app).value = a.palabra || '!participar'; $('#soMin', app).value = a.minutos || 0;
+    $('#soSubs', app).checked = !!a.soloSubs; $('#soSuerte', app).checked = !!a.suerteSubs; $('#soRepetir', app).checked = !!a.sinRepetir;
+  }
+  pedirA('sorteo', { accion: 'ajustes' }).then(d => { if (d.ok) ponerOpciones(d.ajustes); }).catch(() => {});
+  leerSorteo();
+  // Mientras la pestaña está a la vista, el estado del sorteo se refresca solo
+  setInterval(() => { if (document.visibilityState === 'visible' && !app.closest('[data-panel]').hidden) leerSorteo(); }, 3000);
 
   // Carga: lo guardado en Supabase, salvo que haya un borrador sin guardar en este navegador
   (async () => {

@@ -1,13 +1,18 @@
-// KyoWidgets · twitch-bot-events
-// Aquí es donde Twitch llama SOLO, 24/7, cada vez que alguien escribe en tu chat
-// (no lo abre nadie a mano). Guarda los últimos mensajes en la tabla kyo_chat (para el
-// Chat propio, los Sorteos y las Encuestas) y responde a los COMANDOS del chat que
-// configuras en Kyo Estudio → 🦈 AletaBot (se guardan en kyo_ajustes, fila "comandos").
-// También lleva los SORTEOS: !participar (todos) y !sorteo / !ganador (tú y tus mods).
+// KyoWidgets · sorteo
+// Los sorteos de AletaBot.
 //
-// "Verify JWT" debe estar DESACTIVADO en esta función (Twitch la llama sin tus claves).
-// Secretos: KYO_SETUP_KEY y TWITCH_CLIENT_SECRET (la firma se calcula con KYO_SETUP_KEY).
-// Tablas: kyo_chat (sql/03_bot.sql), kyo_contadores + función kyo_usar (sql/04_comandos.sql) y kyo_sorteo (sql/05_sorteos.sql).
+//   GET                                       → estado público (lo lee el overlay de OBS cada 2 s)
+//   POST {clave, accion:"abrir", premio}       → abre un sorteo nuevo y AletaBot lo anuncia
+//   POST {clave, accion:"cerrar"}              → cierra las entradas
+//   POST {clave, accion:"ganador"}             → elige ganador (otra vez = vuelve a sortear sin repetir)
+//   POST {clave, accion:"cancelar"}            → lo quita de la pantalla
+//   POST {clave, accion:"ajustes", ajustes?}   → lee o guarda las opciones (palabra, solo subs…)
+//
+// En el chat también se maneja con !sorteo <premio>, !sorteo cerrar, !sorteo cancelar y
+// !ganador (tú y tus mods), y la gente entra con !participar (eso lo hace twitch-bot-events).
+// "Verify JWT" puede quedarse ACTIVADO (el overlay y el Estudio envían la anon key).
+// Con 3 fallos seguidos del código se bloquea un rato (tabla kyo_intentos, sql/03_intentos.sql).
+// Secretos: TWITCH_CLIENT_SECRET, KYO_SETUP_KEY. Tablas: kyo_ajustes y kyo_sorteo (sql/05_sorteos.sql).
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -87,96 +92,37 @@ async function idCanal(): Promise<string | null> {
 }
 // ---------- fin de los ayudantes ----------
 
-// ---------- Motor de comandos (igual en twitch-bot-events y bot-comandos) ----------
-// Entiende la misma sintaxis que Nightbot, para poder copiar los comandos tal cual:
-//   $(user) $(touser) $(channel) $(query) $(1)…$(9) $(count) $(random 1-100)
-//   $(urlfetch URL) $(customapi URL) $(twitch usuario "texto con {{url}} {{game}} {{name}} {{title}}")
-type Comando = { nombre: string; respuesta: string; activo: boolean; nivel: string; espera: number };
-type Quien = { nombre: string; login: string; badges: string[] };
-const NIVELES = ["todos", "subs", "vips", "mods", "streamer"];
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
+const json = (b: unknown, s = 200) =>
+  new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
 
-let _cmds: { ts: number; lista: Comando[] } | null = null;
-async function leerComandos(db: any, fresco = false): Promise<Comando[]> {
-  if (!fresco && _cmds && Date.now() - _cmds.ts < 10_000) return _cmds.lista;
-  const { data } = await db.from("kyo_ajustes").select("datos").eq("id", "comandos").maybeSingle();
-  const lista = Array.isArray(data?.datos?.comandos) ? data.datos.comandos : [];
-  _cmds = { ts: Date.now(), lista };
-  return lista;
+// ---------- Código de acceso con límite de intentos (igual que en spotify-auth y anuncios) ----------
+// Compara las huellas SHA-256 en tiempo constante (no da pistas de cuántas letras acertaste)
+async function igual(a: string, b: string) {
+  const h = async (t: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)));
+  const [x, y] = await Promise.all([h(a), h(b)]);
+  let d = 0;
+  for (let i = 0; i < x.length; i++) d |= x[i] ^ y[i];
+  return d === 0;
 }
-
-// El comando se reconoce por la primera palabra del mensaje: "!amor", "hola", "f"…
-function buscarComando(lista: Comando[], texto: string): Comando | null {
-  const primera = (texto.trim().split(/\s+/)[0] || "").toLowerCase();
-  if (!primera) return null;
-  return lista.find((c) => c.activo !== false && c.nombre === primera) || null;
-}
-
-function nivelDe(badges: string[]) {
-  if (badges.includes("broadcaster")) return 4;
-  if (badges.includes("moderator")) return 3;
-  if (badges.includes("vip")) return 2;
-  if (badges.includes("subscriber") || badges.includes("founder")) return 1;
-  return 0;
-}
-const puedeUsar = (c: Comando, q: Quien) => nivelDe(q.badges) >= Math.max(0, NIVELES.indexOf(c.nivel || "todos"));
-
-async function traerTexto(url: string) {
-  try {
-    const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 6000);
-    const r = await fetch(url, { signal: ctl.signal, headers: { "User-Agent": "AletaBot (KyoWidgets)" } });
-    clearTimeout(t);
-    return (await r.text()).trim().replace(/\s+/g, " ").slice(0, 400);
-  } catch { return ""; }
-}
-
-async function datosTwitch(login: string, plantilla: string) {
-  const l = login.toLowerCase();
-  let nombre = login, juego = "", titulo = "";
-  const app = await tokenApp();
-  if (app) {
-    const u = await helix("/users?login=" + encodeURIComponent(l), app);
-    const yo = u.body?.data?.[0];
-    if (yo) {
-      nombre = yo.display_name || login;
-      const ch = await helix("/channels?broadcaster_id=" + yo.id, app);
-      juego = ch.body?.data?.[0]?.game_name || "";
-      titulo = ch.body?.data?.[0]?.title || "";
-    }
+async function comprobarClave(db: any, req: Request, clave: unknown) {
+  const setupKey = Deno.env.get("KYO_SETUP_KEY") ?? "";
+  if (!setupKey) return { ok: false, error: "falta_KYO_SETUP_KEY" };
+  const ip = "ip:" + (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim().slice(0, 64);
+  const { data: r, error } = await db.rpc("kyo_intento", { p_ip: ip });
+  if (error || !r) return { ok: false, error: "falta_intentos" };
+  if (r.bloqueado) return { ok: false, error: "bloqueado", espera: r.espera };
+  if (!(await igual(String(clave ?? ""), setupKey))) {
+    return r.espera > 0 ? { ok: false, error: "bloqueado", espera: r.espera } : { ok: false, error: "clave", quedan: r.quedan };
   }
-  return plantilla
-    .replace(/\{\{url\}\}/g, "https://twitch.tv/" + l)
-    .replace(/\{\{(name|displayName)\}\}/g, nombre)
-    .replace(/\{\{game\}\}/g, juego)
-    .replace(/\{\{title\}\}/g, titulo);
+  await db.rpc("kyo_intento_ok", { p_ip: ip });
+  return { ok: true };
 }
-
-// Rellena las variables y devuelve el texto que escribirá AletaBot
-async function componerRespuesta(c: Comando, texto: string, q: Quien, canal: string, count: number) {
-  const args = texto.trim().split(/\s+/).slice(1);
-  const touser = (args[0] || q.nombre).replace(/^@/, "");
-  const simples: Record<string, string> = { user: q.nombre, sender: q.nombre, touser, channel: canal, query: args.join(" ") };
-  let r = String(c.respuesta || "");
-  r = r.replace(/\$\((user|sender|touser|channel|query)\)/gi, (_, k) => simples[String(k).toLowerCase()]);
-  r = r.replace(/\$\(([1-9])\)/g, (_, n) => args[Number(n) - 1] || "");
-  r = r.replace(/\$\(count\)/gi, () => String(count));
-  r = r.replace(/\$\(random\s+(-?\d+)\s*-\s*(-?\d+)\)/gi, (_, a, b) => {
-    const x = Math.min(+a, +b), y = Math.max(+a, +b);
-    return String(x + Math.floor(Math.random() * (y - x + 1)));
-  });
-  for (const m of [...r.matchAll(/\$\(twitch\s+@?(\w+)(?:\s+"([^"]*)")?\)/gi)]) {
-    const v = await datosTwitch(m[1], m[2] ?? "{{url}}");
-    r = r.replace(m[0], () => v);
-  }
-  for (const m of [...r.matchAll(/\$\((?:urlfetch|customapi)\s+([^\s)]+)\)/gi)]) {
-    const v = await traerTexto(m[1]);
-    r = r.replace(m[0], () => v);
-  }
-  // Twitch no acepta "/me" desde la API: se quita y el mensaje sale normal
-  return r.replace(/^\/me\s+/i, "").trim().slice(0, 480);
-}
-// ---------- fin del motor de comandos ----------
-
+const estadoError = (e: string) => e === "clave" ? 401 : e === "bloqueado" ? 429 : 500;
 // ---------- Motor de sorteos (igual en twitch-bot-events y sorteo) ----------
 // Estado en kyo_ajustes (filas "sorteo" y "sorteo_ajustes"); participantes en kyo_sorteo.
 type Ganador = { login: string; nombre: string; en: string };
@@ -317,122 +263,49 @@ const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const PAUSA_GANADOR = 6500;
 // ---------- fin del motor de sorteos ----------
 
-// Sorteos por el chat. Devuelve true si el mensaje era del sorteo (y ya está atendido).
-let _sorteo: { ts: number; s: Sorteo } | null = null;
-async function sorteoReciente(db: any) {
-  if (_sorteo && Date.now() - _sorteo.ts < 2000) return _sorteo.s;
-  const s = await leerSorteo(db);
-  _sorteo = { ts: Date.now(), s };
-  return s;
-}
-async function atenderSorteo(db: any, ev: any, txt: string, badges: string[]): Promise<boolean> {
-  const primera = (txt.trim().split(/\s+/)[0] || "").toLowerCase();
-  const esMod = badges.includes("broadcaster") || badges.includes("moderator");
-  if (primera === "!sorteo" && esMod) {
-    _sorteo = null;
-    const arg = txt.trim().slice(primera.length).trim(), a = arg.toLowerCase();
-    if (!arg) { const s = await leerSorteo(db); await decirEnChat(db, TXT_SORTEO.estado(s, s.ronda ? await contarSorteo(db, s.ronda) : 0)); }
-    else if (a === "cerrar") { const s = await cerrarSorteo(db); if (s.estado !== "inactivo") await decirEnChat(db, TXT_SORTEO.cerrado(s, await contarSorteo(db, s.ronda))); }
-    else if (a === "cancelar") { await cancelarSorteo(db); await decirEnChat(db, TXT_SORTEO.cancelado()); }
-    else { const s = await abrirSorteo(db, arg); await decirEnChat(db, TXT_SORTEO.abierto(s)); }
-    return true;
-  }
-  if (primera === "!ganador" && esMod) {
-    _sorteo = null;
-    const r = await elegirGanador(db);
-    if (r.error) { await decirEnChat(db, r.error === "vacio" ? TXT_SORTEO.vacio() : r.error === "sin_mas" ? TXT_SORTEO.sin_mas() : TXT_SORTEO.estado(r.s, 0)); return true; }
-    await esperar(PAUSA_GANADOR);
-    await decirEnChat(db, TXT_SORTEO.ganador(r.s));
-    return true;
-  }
-  const s = await sorteoReciente(db);
-  if (s.estado !== "inactivo" && primera === s.palabra) {
-    const sub = badges.includes("subscriber") || badges.includes("founder");
-    await participar(db, s, { login: ev.chatter_user_login, nombre: ev.chatter_user_name || ev.chatter_user_login, sub });
-    return true;
-  }
-  return false;
-}
-
-// Responde a un mensaje del chat si es un comando
-const vistos = new Set<string>(); // por si Twitch reenvía el mismo aviso
-async function atender(db: any, ev: any, idBot: string, idMensaje: string) {
-  const txt = String(ev?.message?.text || "");
-  if (!txt || ev.chatter_user_id === idBot) return; // AletaBot no se responde a sí misma
-  if (vistos.has(idMensaje)) return;
-  vistos.add(idMensaje); if (vistos.size > 500) vistos.clear();
-
-  const badges: string[] = (ev.badges || []).map((b: any) => b.set_id);
-  try { if (await atenderSorteo(db, ev, txt, badges)) return; }
-  catch { /* si el sorteo falla (p. ej. falta 05_sorteos.sql), los comandos siguen funcionando */ }
-
-  const c = buscarComando(await leerComandos(db), txt);
-  if (!c) return;
-  const q: Quien = { nombre: ev.chatter_user_name || ev.chatter_user_login, login: ev.chatter_user_login, badges };
-  if (!puedeUsar(c, q)) return;
-
-  // Espera entre usos + contador, de forma segura aunque lo escriban varios a la vez
-  const { data: v, error } = await db.rpc("kyo_usar", { p_nombre: c.nombre, p_espera: c.espera ?? 5, p_sumar: /\$\(count\)/i.test(c.respuesta) });
-  if (!error && Number(v) === -1) return; // aún en espera
-  const respuesta = await componerRespuesta(c, txt, q, ev.broadcaster_user_login || CANAL, error ? 0 : Number(v));
-  if (!respuesta) return;
-
-  const bot = await tokenBot(db);
-  if (!bot) return;
-  await helix("/chat/messages", bot.access_token, {
-    method: "POST",
-    body: JSON.stringify({ broadcaster_id: ev.broadcaster_user_id, sender_id: bot.id, message: respuesta }),
-  });
-}
-
-async function guardarEnChat(db: any, ev: any) {
-  await db.from("kyo_chat").insert({ usuario: ev?.chatter_user_login || "?", texto: String(ev?.message?.text || "").slice(0, 500) });
-  // se queda solo con los últimos 300 mensajes
-  const { data: viejo } = await db.from("kyo_chat").select("id").order("id", { ascending: false }).range(300, 300).maybeSingle();
-  if (viejo?.id) await db.from("kyo_chat").delete().lte("id", viejo.id);
-}
-
 declare const EdgeRuntime: { waitUntil: (p: Promise<unknown>) => void } | undefined;
-
-const texto = (b: ArrayBuffer) => new TextDecoder().decode(b);
-async function firmaValida(id: string, ts: string, cuerpo: string, firma: string) {
-  const clave = await crypto.subtle.importKey("raw", new TextEncoder().encode(await secretoEventos()), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const mac = await crypto.subtle.sign("HMAC", clave, new TextEncoder().encode(id + ts + cuerpo));
-  const hex = [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return firma === "sha256=" + hex;
-}
+const enSegundoPlano = (p: Promise<unknown>) => { if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(p); };
 
 Deno.serve(async (req) => {
-  if (req.method !== "POST") return new Response("ok", { status: 200 });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-  const tipo = req.headers.get("Twitch-Eventsub-Message-Type") || "";
-  const id = req.headers.get("Twitch-Eventsub-Message-Id") || "";
-  const ts = req.headers.get("Twitch-Eventsub-Message-Timestamp") || "";
-  const firma = req.headers.get("Twitch-Eventsub-Message-Signature") || "";
-  const cuerpo = texto(await req.arrayBuffer());
-
-  if (!await firmaValida(id, ts, cuerpo, firma)) return new Response("firma", { status: 403 });
-
-  let datos: any = null;
-  try { datos = JSON.parse(cuerpo); } catch { return new Response("json", { status: 400 }); }
-
-  // Twitch comprueba que la función existe antes de activar la suscripción
-  if (tipo === "webhook_callback_verification") {
-    return new Response(datos.challenge || "", { status: 200, headers: { "Content-Type": "text/plain" } });
+  if (req.method === "GET") {
+    try { return json({ ok: true, ...(await sorteoPublico(db)) }); }
+    catch { return json({ ok: false, error: "tabla" }, 500); }
   }
+  if (req.method !== "POST") return json({ ok: false, error: "metodo" }, 405);
 
-  if (tipo === "notification" && datos.subscription?.type === "channel.chat.message") {
-    const ev = datos.event;
-    const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const trabajo = Promise.allSettled([
-      guardarEnChat(db, ev),
-      atender(db, ev, datos.subscription?.condition?.user_id || "", id),
-    ]);
-    // Se contesta a Twitch enseguida y el trabajo sigue en segundo plano
-    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(trabajo);
-    else await trabajo;
+  let body: any = null;
+  try { body = await req.json(); } catch { return json({ ok: false, error: "json" }, 400); }
+  const c = await comprobarClave(db, req, body?.clave);
+  if (!c.ok) return json(c, estadoError(c.error!));
+
+  switch (body.accion) {
+    case "abrir": {
+      const s = await abrirSorteo(db, String(body.premio ?? ""));
+      enSegundoPlano(decirEnChat(db, TXT_SORTEO.abierto(s)));
+      return json({ ok: true, ...(await sorteoPublico(db)) });
+    }
+    case "cerrar": {
+      const s = await cerrarSorteo(db);
+      if (s.estado !== "inactivo") { const n = await contarSorteo(db, s.ronda); enSegundoPlano(decirEnChat(db, TXT_SORTEO.cerrado(s, n))); }
+      return json({ ok: true, ...(await sorteoPublico(db)) });
+    }
+    case "ganador": {
+      const r = await elegirGanador(db);
+      if (r.error) return json({ ok: false, error: r.error });
+      enSegundoPlano(esperar(PAUSA_GANADOR).then(() => decirEnChat(db, TXT_SORTEO.ganador(r.s))));
+      return json({ ok: true, ...(await sorteoPublico(db)) });
+    }
+    case "cancelar": {
+      await cancelarSorteo(db);
+      return json({ ok: true, ...(await sorteoPublico(db)) });
+    }
+    case "ajustes": {
+      if (body.ajustes) { const a = limpiarAjustesSorteo(body.ajustes); await guardarFila(db, "sorteo_ajustes", a); return json({ ok: true, ajustes: a }); }
+      return json({ ok: true, ajustes: limpiarAjustesSorteo(await leerAjustesSorteo(db)) });
+    }
   }
-
-  // revocation u otros tipos: solo confirmamos que llegó
-  return new Response("ok", { status: 200 });
+  return json({ ok: false, error: "accion" }, 400);
 });
