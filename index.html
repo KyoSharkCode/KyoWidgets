@@ -211,7 +211,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   <form class="card" id="formPuerta">
     <h2>Kyo Estudio 🦈</h2>
     <p>Escribe tu código de acceso<br><small style="color:var(--faint)">(es tu <b>KYO_SETUP_KEY</b> de Supabase)</small></p>
-    <input type="text" id="codigo" autocomplete="current-password" aria-label="Código de acceso" style="-webkit-text-security:disc;text-align:center">
+    <input type="text" id="codigo" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Código de acceso" style="-webkit-text-security:disc;text-align:center">
     <button class="btn pri" type="submit">Entrar</button>
     <div class="err" id="errPuerta" role="alert"></div>
   </form>
@@ -795,7 +795,12 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     else $('#errPuerta').textContent = r.msg;
   });
   const guardado = leer('kyo_codigo');
-  if (guardado) verificar(guardado).then(r => { if (r.ok) entrar(); else $('#errPuerta').textContent = r.msg; });
+  if (guardado) verificar(guardado).then(r => {
+    if (r.ok) return entrar();
+    // El código recordado ya no vale (p. ej. cambiaste KYO_SETUP_KEY): se olvida y se pide el nuevo
+    if (r.msg === 'Código incorrecto.') { try { localStorage.removeItem('kyo_codigo'); } catch (e) {} $('#codigo').value = ''; $('#codigo').focus(); $('#errPuerta').textContent = 'Tu código guardado ya no vale. Escribe el nuevo.'; }
+    else $('#errPuerta').textContent = r.msg;
+  });
   else $('#codigo').focus();
 
   // ---------- Copia de seguridad (ajustes de localStorage + imágenes de IndexedDB) ----------

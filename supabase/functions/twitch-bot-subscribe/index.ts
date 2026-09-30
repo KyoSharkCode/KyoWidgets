@@ -1,7 +1,7 @@
 // KyoWidgets · twitch-bot-subscribe
 // Activa la "oreja" 24/7: le pide a Twitch que le avise a AletaBot (vía twitch-bot-events)
 // cada vez que alguien escribe en tu chat, aunque no tengas OBS ni el Estudio abiertos.
-// Se pulsa UNA SOLA VEZ (o de nuevo si algún día cambias el proyecto de Supabase).
+// Se pulsa UNA VEZ, y otra vez si cambias tu KYO_SETUP_KEY o el proyecto de Supabase.
 //
 //   POST {clave}   → crea la suscripción de EventSub "channel.chat.message"
 //
@@ -114,10 +114,12 @@ Deno.serve(async (req) => {
   const app = await tokenApp();
   if (!app) return json({ ok: false, error: "sin_token_app" }, 500);
 
-  // Si ya existe una suscripción activa igual, no crea otra
-  const existentes = await helix("/eventsub/subscriptions?type=channel.chat.message&status=enabled", app);
-  const yaEsta = (existentes.body?.data || []).some((s: any) => s.condition?.broadcaster_user_id === canal && s.condition?.user_id === bot.id);
-  if (yaEsta) return json({ ok: true, ya_activa: true });
+  // Borra las suscripciones anteriores y crea una nueva. Así, si cambias tu KYO_SETUP_KEY
+  // (con la que se firma cada aviso), basta con volver a pulsar "Activar escucha 24/7".
+  const existentes = await helix("/eventsub/subscriptions?type=channel.chat.message", app);
+  for (const s of existentes.body?.data || []) {
+    if (s.condition?.broadcaster_user_id === canal) await helix("/eventsub/subscriptions?id=" + encodeURIComponent(s.id), app, { method: "DELETE" });
+  }
 
   const callback = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twitch-bot-events`;
   const r = await helix("/eventsub/subscriptions", app, {
