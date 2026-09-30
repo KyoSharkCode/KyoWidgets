@@ -32,8 +32,8 @@ header small{color:var(--faint);font-weight:600}
 .pill i{width:8px;height:8px;border-radius:50%;background:var(--faint)}
 .pill.ok i{background:var(--ok);box-shadow:0 0 8px var(--ok)}
 .pill.bad i{background:var(--bad)}
-nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
-nav.tabs button{font:600 14.5px "Fredoka",sans-serif;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:9px 14px;cursor:pointer}
+nav.tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px}
+nav.tabs button{font:600 13.5px "Fredoka",sans-serif;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:9px 11px;cursor:pointer}
 nav.tabs button[aria-selected="true"]{background:var(--acc);border-color:var(--acc);color:#1a0d05}
 nav.tabs button:focus-visible,.btn:focus-visible,.chips label:focus-within{outline:2px solid var(--acc2);outline-offset:2px}
 .grid{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:18px;align-items:start}
@@ -101,6 +101,24 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .enfila span,.enfila b{position:relative;z-index:1}
 .enfila i{position:absolute;left:0;top:0;bottom:0;background:rgba(111,227,240,.18);transition:width .6s}
 .enfila.gano{border-color:#F4C542}.enfila.gano i{background:rgba(244,197,66,.28)}
+/* Pestaña Prensa */
+.prpar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.prpar > *{min-width:0}
+.prpar em{display:none}
+.prpar textarea,.prlista input,.prlista select,#prForm select{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color-scheme:dark;box-sizing:border-box}
+.prpar textarea{resize:vertical;line-height:1.45}
+#prForm input[type=email]{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;box-sizing:border-box}
+.prlista{display:grid;gap:8px;margin-bottom:8px}
+.prfila{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
+.prfila input{flex:1 1 120px;width:auto}
+.prfila input.corto{flex:0 1 100px}
+.prfila input.ancho{flex:1 1 100%}
+.prfila select{flex:0 1 150px;width:auto}
+.prfila .prx{padding:6px 11px;margin-left:auto}
+.prmarco{position:relative;height:72vh;min-height:520px;overflow:hidden;border-radius:14px;border:1px solid var(--line);background:#050820}
+.prmarco iframe{position:absolute;left:0;top:0;border:0;transform-origin:0 0;display:block}
+.ovprev .prmarco{width:100%}
+@media (max-width:700px){.prpar{grid-template-columns:1fr}}
 .btn{font:600 14px "Fredoka",sans-serif;border:1px solid var(--line2);background:transparent;color:var(--dim);border-radius:999px;padding:8px 16px;cursor:pointer}
 .btn:hover{border-color:var(--acc);color:#fff}
 .btn.pri{background:var(--acc);border-color:var(--acc);color:#1a0d05}
@@ -264,6 +282,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <button role="tab" data-tab="imagenes" aria-selected="false">🖼 Imágenes</button>
     <button role="tab" data-tab="musica" aria-selected="false">🎶 Mis músicas</button>
     <button role="tab" data-tab="aletabot" aria-selected="false">🦈 AletaBot</button>
+    <button role="tab" data-tab="prensa" aria-selected="false">📰 Prensa</button>
     <button role="tab" data-tab="conexiones" aria-selected="false">🔌 Conexiones</button>
   </nav>
   <nav class="subtabs" id="subtabs" aria-label="Widgets para OBS">
@@ -505,6 +524,11 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   </section>
 
   <!-- ===================== MIS MÚSICAS ===================== -->
+  <!-- ===================== KIT DE PRENSA ===================== -->
+  <section data-panel="prensa" hidden>
+    <div id="prensaApp"><div class="card"><p class="nota">Cargando…</p></div></div>
+  </section>
+
   <!-- ===================== ALETABOT (comandos del chat) ===================== -->
   <section data-panel="aletabot" hidden>
     <div id="botApp"><div class="card"><p class="nota">Cargando…</p></div></div>
@@ -735,7 +759,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     $('#subtabs').hidden = !esWidget;
     $$('#subtabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sub === n ? 'true' : 'false'));
     $$('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== n);
-    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else if (n === 'aletabot') { if (window.kyoBot) window.kyoBot.abrir(); } else { comprobarSpotify(); comprobarBot(); }
+    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else if (n === 'aletabot') { if (window.kyoBot) window.kyoBot.abrir(); } else if (n === 'prensa') { if (window.kyoPrensa) window.kyoPrensa.abrir(); } else { comprobarSpotify(); comprobarBot(); }
   }
   $$('nav.tabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.tab)));
   $$('#subtabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.sub)));
@@ -944,5 +968,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 <script type="module" src="imagenes.js"></script>
 <script type="module" src="overlays.js"></script>
 <script type="module" src="bot.js"></script>
+<script src="prensa/datos.js"></script>
+<script type="module" src="prensa.js"></script>
 </body>
 </html>
