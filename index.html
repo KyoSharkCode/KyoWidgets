@@ -32,8 +32,8 @@ header small{color:var(--faint);font-weight:600}
 .pill i{width:8px;height:8px;border-radius:50%;background:var(--faint)}
 .pill.ok i{background:var(--ok);box-shadow:0 0 8px var(--ok)}
 .pill.bad i{background:var(--bad)}
-nav.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-nav.tabs button{font:600 15px "Fredoka",sans-serif;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:9px 18px;cursor:pointer}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+nav.tabs button{font:600 14.5px "Fredoka",sans-serif;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:9px 14px;cursor:pointer}
 nav.tabs button[aria-selected="true"]{background:var(--acc);border-color:var(--acc);color:#1a0d05}
 nav.tabs button:focus-visible,.btn:focus-visible,.chips label:focus-within{outline:2px solid var(--acc2);outline-offset:2px}
 .grid{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:18px;align-items:start}
@@ -70,6 +70,27 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .copiaimg{display:flex;gap:8px;align-items:center;margin:10px 0;cursor:pointer}
 .copiaimg input{accent-color:var(--acc);width:16px;height:16px}
 .botextra input[type=text]{width:auto;flex:1;min-width:180px}
+/* Pestaña AletaBot: comandos */
+.botbarra input[type=text]{width:auto;flex:1;min-width:160px}
+.botimport{display:grid;gap:10px;margin-top:12px}
+.botlista{display:grid;gap:10px}
+.botcuenta{margin:0 4px}
+.bcmd textarea,.botimport textarea{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;resize:vertical;min-height:44px;box-sizing:border-box}
+.bcmd textarea:focus,.botimport textarea:focus{outline:none;border-color:var(--acc2)}
+.bcmd .bnombre{flex:1;font:700 15px ui-monospace,Menlo,Consolas,monospace;color:var(--acc2)}
+.bcmd .bborrar{padding:6px 12px;flex:none}
+.bopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.bopts label{display:grid;gap:4px}
+.bopts label span{font:700 11px "Chakra Petch",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.bopts select{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color-scheme:dark}
+.botres{display:grid;gap:4px;padding:12px 14px;border-radius:14px;background:var(--panel2);border:1px solid var(--line)}
+.botres b{font-family:"Fredoka",sans-serif;color:var(--acc2)}
+.botres span{overflow-wrap:anywhere}
+.botres.mal{color:#ffc2cd;border-color:rgba(255,143,163,.5)}
+.botvars{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.botvars li{display:grid;gap:2px}
+.botvars code{color:var(--acc2);font-size:13px}
+.botvars span{font-size:13px;color:var(--dim)}
 .btn{font:600 14px "Fredoka",sans-serif;border:1px solid var(--line2);background:transparent;color:var(--dim);border-radius:999px;padding:8px 16px;cursor:pointer}
 .btn:hover{border-color:var(--acc);color:#fff}
 .btn.pri{background:var(--acc);border-color:var(--acc);color:#1a0d05}
@@ -232,6 +253,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <button role="tab" data-tab="paneles" aria-selected="false">🧩 Paneles</button>
     <button role="tab" data-tab="imagenes" aria-selected="false">🖼 Imágenes</button>
     <button role="tab" data-tab="musica" aria-selected="false">🎶 Mis músicas</button>
+    <button role="tab" data-tab="aletabot" aria-selected="false">🦈 AletaBot</button>
     <button role="tab" data-tab="conexiones" aria-selected="false">🔌 Conexiones</button>
   </nav>
   <nav class="subtabs" id="subtabs" aria-label="Widgets para OBS">
@@ -438,6 +460,11 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   </section>
 
   <!-- ===================== MIS MÚSICAS ===================== -->
+  <!-- ===================== ALETABOT (comandos del chat) ===================== -->
+  <section data-panel="aletabot" hidden>
+    <div id="botApp"><div class="card"><p class="nota">Cargando…</p></div></div>
+  </section>
+
   <section data-panel="musica" hidden>
     <div class="card animhead">
       <h2>🎶 Mis músicas</h2>
@@ -658,7 +685,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     $('#subtabs').hidden = !esWidget;
     $$('#subtabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sub === n ? 'true' : 'false'));
     $$('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== n);
-    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else { comprobarSpotify(); comprobarBot(); }
+    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else if (n === 'aletabot') { if (window.kyoBot) window.kyoBot.abrir(); } else { comprobarSpotify(); comprobarBot(); }
   }
   $$('nav.tabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.tab)));
   $$('#subtabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.sub)));
@@ -866,5 +893,6 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 <script type="module" src="paneles.js"></script>
 <script type="module" src="imagenes.js"></script>
 <script type="module" src="overlays.js"></script>
+<script type="module" src="bot.js"></script>
 </body>
 </html>
