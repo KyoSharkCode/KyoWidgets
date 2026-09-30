@@ -238,6 +238,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <button type="button" data-sub="spotify" aria-pressed="true">🎵 Música (Spotify)</button>
     <button type="button" data-sub="fortnite" aria-pressed="false">🏆 Fortnite</button>
     <button type="button" data-sub="cuenta" aria-pressed="false">⏱ Cuenta atrás</button>
+    <button type="button" data-sub="chat" aria-pressed="false">💬 Chat</button>
   </nav>
 
   <!-- ===================== MÚSICA ===================== -->
@@ -353,6 +354,47 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <div class="prev" data-prev="cuenta"></div>
   </section>
 
+  <!-- ===================== CHAT ===================== -->
+  <section data-panel="chat" class="grid" hidden>
+    <form class="card opts" id="fChat" onsubmit="return false">
+      <div class="grupo"><h3>Tu canal</h3>
+        <label class="f"><span>Canal de Twitch</span><input type="text" name="canal" maxlength="25"></label>
+        <p class="nota">Lee tu chat directamente de Twitch, sin StreamElements ni ninguna cuenta. Los mensajes borrados por un mod o un timeout desaparecen solos.</p>
+      </div>
+      <div class="grupo"><h3>Estilo</h3>
+        <div class="f"><span>Temporada</span><div class="chips" data-radio="tema" data-val="marea:🌊 Normal,octubre:🎃 Halloween,navidad:🎄 Navidad"></div></div>
+        <div class="f"><span>Dónde va</span><div class="chips" data-radio="diseno" data-val="horizontal:🖥️ Escena horizontal,vertical:📱 Escena vertical"></div></div>
+        <div class="f"><span>Animación de entrada</span><div class="chips" data-radio="anim" data-val="rebote:Rebote,burbuja:Burbuja,deslizar:Deslizar"></div></div>
+        <div class="f"><span>Insignias</span><div class="chips" data-radio="insignias" data-val="kyo:Estilo Kyo (★ M V S),twitch:Insignias de Twitch,ninguna:Sin insignias"></div></div>
+        <div class="f"><span>Tamaño del texto</span><div class="chips" data-radio="fs" data-val="20:Pequeño,26:Normal,32:Grande,40:Muy grande"></div></div>
+      </div>
+      <div class="grupo"><h3>Colores</h3>
+        <div class="f"><span>Color de los nombres</span><div class="chips" data-radio="nombres" data-val="rol:Según el rol (★ M V S),twitch:El color de Twitch de cada persona"></div></div>
+        <div class="chips"><label><input type="checkbox" name="colores"> Usar mis propios colores</label></div>
+        <div class="colores off" data-colores>
+          <label>Burbuja<input type="color" name="caja" value="#f5f3fb"></label>
+          <label>Mensaje<input type="color" name="texto" value="#1b1f4a"></label>
+          <label>Tú (streamer)<input type="color" name="acento" value="#b3263f"></label>
+          <label>Resto del chat<input type="color" name="borde" value="#4a5aa8"></label>
+        </div>
+      </div>
+      <div class="grupo"><h3>Comportamiento</h3>
+        <div class="fila2">
+          <label class="f"><span>Mensajes en pantalla</span><input type="number" name="max" min="1" max="50"></label>
+          <label class="f"><span>Desaparecen a los… seg (0 = nunca)</span><input type="number" name="seg" min="0" max="600"></label>
+        </div>
+        <div class="f"><span>Comandos (mensajes con !)</span><div class="chips" data-radio="comandos" data-val="ocultar:Ocultar,mostrar:Mostrar"></div></div>
+        <label class="f"><span>Usuarios a ocultar (separados por comas)</span><input type="text" name="ocultos" maxlength="300"></label>
+        <div class="f"><span>Emotes de 7TV, BTTV y FFZ</span><div class="chips" data-radio="extra" data-val="si:Cargar,no:Solo los de Twitch"></div></div>
+      </div>
+      <div class="grupo"><h3>Dónde colocarlo en OBS</h3>
+        <p class="nota" data-si="diseno=horizontal">Escena Just Chatting horizontal: <b>X 100 · Y 150</b>, tamaño <b>580 × 840</b>. Cae justo dentro del marco del chat.</p>
+        <p class="nota" data-si="diseno=vertical">Escena Just Chatting vertical: <b>X 90 · Y 920</b>, tamaño <b>900 × 740</b>. Cae justo dentro del marco del chat.</p>
+      </div>
+    </form>
+    <div class="prev" data-prev="chat"></div>
+  </section>
+
   <!-- ===================== ANIMACIONES ===================== -->
   <section data-panel="animaciones" hidden>
     <div class="card animhead">
@@ -458,13 +500,6 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   const HDR = { apikey: K.SUPABASE_ANON_KEY || '', Authorization: 'Bearer ' + (K.SUPABASE_ANON_KEY || '') };
   const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
   const leer = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
-  // Texto para los errores del código de acceso (límite de intentos en Supabase)
-  const errCodigo = d => d.error === 'bloqueado' ? 'Demasiados intentos fallidos. Espera ' + Math.ceil((d.espera || 60) / 60) + ' min y vuelve a probar.'
-    : d.error === 'clave' ? 'Código incorrecto.' + (d.quedan ? ' Te quedan ' + d.quedan + (d.quedan === 1 ? ' intento.' : ' intentos.') : '')
-    : d.error === 'falta_KYO_SETUP_KEY' ? 'Falta el secreto KYO_SETUP_KEY en Supabase.'
-    : d.error === 'falta_intentos' ? 'Falta ejecutar el archivo 03_intentos.sql en el SQL Editor.'
-    : 'No se pudo comprobar el código (' + (d.error || 'sin respuesta') + ').';
-  const pedir = (n, cuerpo) => fetch(FN(n), { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, HDR), body: JSON.stringify(cuerpo) }).then(r => r.json());
   function toast(t, ms = 3200) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), ms); }
 
   // Fecha por defecto de la cuenta atrás: mañana a las 20:00 (hora local)
@@ -479,8 +514,12 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       pruebas: [['victoria', '🏆 Probar victoria'], ['bajas', '⚔️ Probar bajas']] },
     cuenta: { w: 860, h: 280, tam: { pegatina: [860, 280], barra: [860, 150], texto: [860, 240] }, sinDatos: true,
       def: { diseno: 'pegatina', tema: 'marea', escala: '1', modo: 'hasta', etiquetas: 'si', alfinal: 'final' },
-      pruebas: [['diez', '⏱ Probar últimos 10 s'], ['final', '🎉 Probar el final'], ['reset', '↺ Volver al tiempo real']] }
+      pruebas: [['diez', '⏱ Probar últimos 10 s'], ['final', '🎉 Probar el final'], ['reset', '↺ Volver al tiempo real']] },
+    chat: { w: 580, h: 840, tam: { horizontal: [580, 840], vertical: [900, 740] },
+      def: { diseno: 'horizontal', tema: 'marea', anim: 'rebote', insignias: 'kyo', fs: '26', nombres: 'rol', comandos: 'ocultar', extra: 'si' },
+      pruebas: [['mensaje', '💬 Mensaje de ejemplo'], ['limpiar', '🧹 Limpiar el chat']] }
   };
+  const CHAT_OCULTOS = 'streamelements,nightbot,streamlabs,moobot,fossabot';
 
   // Construye chips a partir de data-radio / data-check
   $$('[data-radio],[data-check]').forEach(box => {
@@ -536,6 +575,14 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       if (o.final && o.final !== '¡YA!') p.set('final', o.final);
       if (o.modo === 'duracion') { p.set('h', o.h || 0); p.set('m', o.m || 0); p.set('s', o.s || 0); p.set('sesion', o.sesion || '1'); }
       else p.set('hasta', o.fecha || fechaPorDefecto());
+    } else if (id === 'chat') {
+      ['insignias', 'fs', 'nombres', 'comandos', 'extra'].forEach(k => set(k, o[k]));
+      const canal = (o.canal || '').trim().toLowerCase();
+      if (canal && canal !== 'kyosumivt') p.set('canal', canal);
+      if (o.max && Number(o.max) !== 12) p.set('max', o.max);
+      if (Number(o.seg) > 0) p.set('seg', o.seg);
+      const ocu = (o.ocultos || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean).join(',');
+      if (ocu !== CHAT_OCULTOS) p.set('ocultos', ocu);
     } else {
       p.set('nombre', o.nombre || 'TuNombreEpic');
       if (o.titulo) p.set('titulo', o.titulo);
@@ -576,7 +623,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       prev.ver = (prev.ver || []).map(v => v === 'disco' ? 'portada' : v === 'sonar' ? 'progreso' : v);
       if (prev.fuente === 'fredoka') prev.fuente = 'auto';
     }
-    const extra = id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : id === 'cuenta' ? { titulo: 'REVELACIÓN EN', final: '¡YA!', fecha: fechaPorDefecto(), h: '1', m: '0', s: '0', sesion: '1' } : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' };
+    const extra = id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : id === 'cuenta' ? { titulo: 'REVELACIÓN EN', final: '¡YA!', fecha: fechaPorDefecto(), h: '1', m: '0', s: '0', sesion: '1' } : id === 'chat' ? { canal: 'kyosumivt', max: '12', seg: '0', ocultos: CHAT_OCULTOS } : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' };
     aplicarForm(id, Object.assign({}, W[id].def, extra, prev || {}));
     const panel = $('[data-panel="' + id + '"]');
     panel.addEventListener('change', () => actualizar(id));
@@ -630,12 +677,9 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       $('#nSpot').textContent = 'No encuentro la función spotify-auth. ¿Está creada con ese nombre y con "Verify JWT" desactivado?';
     }
   }
-  $('#btnSpot').addEventListener('click', async () => {
-    try {
-      const d = await pedir('spotify-auth', { accion: 'conectar', clave: leer('kyo_codigo') || '', volver: location.href.split('#')[0] });
-      if (d.ok && d.url) location.href = d.url;
-      else toast(d.error === 'faltan_secretos' ? 'Faltan secretos en Supabase (SPOTIFY_CLIENT_ID o SPOTIFY_CLIENT_SECRET).' : d.error === 'volver' ? 'El Estudio tiene que abrirse con https:// para conectar Spotify.' : errCodigo(d), 5000);
-    } catch (e) { toast('No encuentro la función spotify-auth.', 5000); }
+  $('#btnSpot').addEventListener('click', () => {
+    const volver = location.href.split('#')[0];
+    location.href = FN('spotify-auth') + '?clave=' + encodeURIComponent(leer('kyo_codigo') || '') + '&volver=' + encodeURIComponent(volver);
   });
   $('[data-refrescar]').addEventListener('click', comprobarSpotify);
   const hora = () => new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
@@ -646,7 +690,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     try {
       const r = await fetch(FN('fortnite-stats') + '?' + new URLSearchParams({ nombre: o.nombre, cuenta: o.cuenta || 'epic', ventana: o.ventana || 'season' }), { headers: HDR });
       const d = await r.json();
-      const msg = { privado: 'Tus estadísticas son privadas: actívalas en Fortnite (Ajustes › Cuenta y privacidad).', no_encontrado: 'No encuentro ese nombre de Epic en esa plataforma.', clave_invalida: 'La clave FORTNITE_API_KEY no es válida.', falta_nombre: 'Falta el nombre.', nombre_no_permitido: 'Ese nombre no coincide con el secreto FORTNITE_NAME de Supabase.' };
+      const msg = { privado: 'Tus estadísticas son privadas: actívalas en Fortnite (Ajustes › Cuenta y privacidad).', no_encontrado: 'No encuentro ese nombre de Epic en esa plataforma.', clave_invalida: 'La clave FORTNITE_API_KEY no es válida.', falta_nombre: 'Falta el nombre.' };
       if (d.ok) { pintarEstado($('#eFn'), true, 'Funciona'); $('#nFn').textContent = d.nombre + ': ' + d.total.wins + ' victorias y ' + d.total.kills + ' bajas (' + (d.ventana === 'lifetime' ? 'histórico' : 'temporada') + '). Comprobado a las ' + hora() + '.'; pintarEstado($('#pFn'), true, 'Fortnite'); }
       else { pintarEstado($('#eFn'), false, 'Error'); $('#nFn').textContent = msg[d.error] || ('Respuesta: ' + (d.error || r.status)); pintarEstado($('#pFn'), false, 'Fortnite'); }
       $('#pFn').title = 'Comprobado a las ' + hora();
@@ -719,7 +763,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   const h = decodeURIComponent(location.hash || '');
   if (h.startsWith('#spotify=')) {
     const v = h.slice(9);
-    const txt = { 'ok': '¡Spotify conectado! 🦈', 'error-cancelado': 'Cancelaste el permiso en Spotify.', 'error-spotify': 'Spotify no aceptó la conexión: revisa que la Redirect URI de tu app sea exacta.', 'error-tabla': 'No se pudo guardar: ejecuta 01_setup.sql en Supabase.' }[v] || v;
+    const txt = { 'ok': '¡Spotify conectado! 🦈', 'error-cancelado': 'Cancelaste el permiso en Spotify.', 'error-clave': 'El código de acceso no coincide con KYO_SETUP_KEY.', 'error-spotify': 'Spotify no aceptó la conexión: revisa que la Redirect URI de tu app sea exacta.', 'error-tabla': 'No se pudo guardar: ejecuta 01_setup.sql en Supabase.' }[v] || v;
     history.replaceState(null, '', location.pathname + location.search);
     setTimeout(() => { tab('conexiones'); toast(txt, 5000); }, 300);
   }
@@ -735,8 +779,10 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   async function verificar(c) {
     if (!K.SUPABASE_URL || /TU-PROYECTO/.test(K.SUPABASE_URL)) return { ok: false, msg: 'Rellena config.js con tu Project URL y la anon key.' };
     try {
-      const d = await pedir('spotify-auth', { accion: 'verificar', clave: c });
-      return { ok: !!d.ok, msg: d.ok ? '' : errCodigo(d), mal: d.error === 'clave' };
+      const r = await fetch(FN('spotify-auth') + '?verificar=1&clave=' + encodeURIComponent(c));
+      const d = await r.json();
+      if (d.error === 'falta_KYO_SETUP_KEY') return { ok: false, msg: 'Falta el secreto KYO_SETUP_KEY en Supabase.' };
+      return { ok: !!d.ok, msg: d.ok ? '' : 'Código incorrecto.' };
     } catch (e) { return { ok: false, msg: 'No encuentro la función spotify-auth (¿creada y con "Verify JWT" desactivado?).' }; }
   }
   function entrar() { $('#puerta').hidden = true; actualizar('spotify'); comprobarSpotify(); comprobarFortnite(false); comprobarBot(); }
@@ -749,8 +795,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     else $('#errPuerta').textContent = r.msg;
   });
   const guardado = leer('kyo_codigo');
-  // Si el código guardado ya no vale se borra, para no gastar intentos cada vez que abres el Estudio
-  if (guardado) verificar(guardado).then(r => { if (r.ok) entrar(); else { if (r.mal) { try { localStorage.removeItem('kyo_codigo'); } catch (e) {} } $('#errPuerta').textContent = r.msg; } });
+  if (guardado) verificar(guardado).then(r => { if (r.ok) entrar(); else $('#errPuerta').textContent = r.msg; });
   else $('#codigo').focus();
 
   // ---------- Copia de seguridad (ajustes de localStorage + imágenes de IndexedDB) ----------

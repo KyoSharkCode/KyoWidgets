@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Kyo · Chat</title>
+<meta name="robots" content="noindex">
+<!--
+  KyoWidgets · Chat propio · Fuente de navegador para OBS. La URL la arma Kyo Estudio.
+  Lee el chat de Twitch directamente (conexión anónima de solo lectura, sin StreamElements
+  ni ninguna cuenta). El tamaño lo pone OBS: el chat ocupa toda la fuente.
+  Tamaños recomendados: horizontal 580x840 · vertical 900x740
+  Parámetros:
+    canal      tu canal de Twitch (por defecto kyosumivt)
+    tema       marea | octubre | navidad          anim  rebote | burbuja | deslizar
+    insignias  kyo | twitch | ninguna              nombres  rol | twitch (color de Twitch de cada persona)
+               (las de Twitch las da la función twitch-insignias de Supabase; si falla, salen las de Kyo)
+    fs         tamaño del texto en px (26)         max   mensajes en pantalla (12)
+    seg        segundos hasta que desaparece (0 = nunca)
+    comandos   ocultar | mostrar (mensajes que empiezan por !)
+    ocultos    usuarios a ocultar, separados por comas
+    extra      si | no (emotes de 7TV, BTTV y FFZ)
+    caja, texto, acento, borde   colores propios (hex sin #): burbuja, mensaje, tú, resto del chat
+    demo=1     mensajes de ejemplo (vista previa del Estudio)
+-->
+<script src="../config.js"></script>
+<style>
+@font-face{font-family:"Fredoka";font-weight:600;src:url(../fonts/fredoka-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Fredoka";font-weight:700;src:url(../fonts/fredoka-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-weight:700;src:url(../fonts/chakra-petch-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"M PLUS Rounded 1c";font-weight:500;src:url(../fonts/m-plus-rounded-1c-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"M PLUS Rounded 1c";font-weight:700;src:url(../fonts/m-plus-rounded-1c-latin-700-normal.woff2) format("woff2")}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent!important;overflow:hidden;width:100%;height:100%}
+#chat{
+  --fs:26px;--emote:calc(var(--fs)*1.3);--gap:calc(var(--fs)*.54);
+  --burbuja:rgba(245,243,251,.96);--texto:#1b1f4a;
+  --c-streamer:#B3263F;--c-mod:#0f8a99;--c-vip:#b8860b;--c-sub:#3A7BD5;--c-normal:#4a5aa8;
+  --sombra:rgba(10,16,48,.45);
+  position:absolute;inset:0;padding:calc(var(--fs)*.6) 14px 10px 16px;
+  display:flex;flex-direction:column;justify-content:flex-end;gap:var(--gap);overflow:hidden;
+  font-family:"M PLUS Rounded 1c","Nunito",system-ui,sans-serif;font-weight:500;font-size:var(--fs);line-height:1.4;
+}
+#chat.octubre{--c-sub:#7a4fe0;--c-normal:#5a4fa0;--sombra:rgba(20,10,48,.55)}
+#chat.navidad{--burbuja:rgba(255,251,242,.97);--c-streamer:#C8243C;--c-mod:#1f8a5b;--c-sub:#2E6FD0;--c-normal:#5a4a9a;--sombra:rgba(6,11,34,.5)}
+.msg{
+  --rc:var(--c-normal);
+  position:relative;flex:none;max-width:100%;align-self:flex-start;
+  background:var(--burbuja);color:var(--texto);
+  border-radius:var(--fs) var(--fs) var(--fs) calc(var(--fs)*.3);
+  border-left:calc(var(--fs)*.3) solid var(--rc);
+  padding:calc(var(--fs)*.42) calc(var(--fs)*.75) calc(var(--fs)*.52);
+  box-shadow:0 calc(var(--fs)*.18) 0 var(--sombra);
+  overflow-wrap:anywhere;
+}
+.msg.streamer{--rc:var(--c-streamer)}
+.msg.mod{--rc:var(--c-mod)}
+.msg.vip{--rc:var(--c-vip)}
+.msg.sub{--rc:var(--c-sub)}
+.who{display:flex;align-items:center;gap:calc(var(--fs)*.3);flex-wrap:wrap;
+  font-family:"Fredoka",system-ui,sans-serif;font-weight:700;font-size:calc(var(--fs)*.92);color:var(--nc,var(--rc));line-height:1.25}
+.chip{display:inline-grid;place-items:center;width:var(--fs);height:var(--fs);border-radius:calc(var(--fs)*.3);
+  background:var(--rc);color:#fff;font:700 calc(var(--fs)*.55)/1 "Chakra Petch",monospace;font-style:normal}
+.sin-insignias .chip{display:none}
+.badge{height:calc(var(--fs)*.9);width:auto;vertical-align:middle;border-radius:calc(var(--fs)*.12)}
+.txt{margin-top:1px}
+.txt.action{font-style:italic;color:var(--nc,var(--rc))}
+.emote{height:var(--emote);width:auto;vertical-align:middle;margin:-4px 1px}
+.solo-emotes .emote{height:calc(var(--emote)*1.6)}
+.mention{font-weight:700;color:var(--c-sub)}
+/* Adornos por temporada (dibujos propios) */
+.msg::after{content:"";position:absolute;opacity:0;pointer-events:none}
+.marea .msg.streamer::after{opacity:1;right:calc(var(--fs)*-.3);top:calc(var(--fs)*-.35);width:var(--fs);height:var(--fs);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 0 C53 38 62 47 100 50 C62 53 53 62 50 100 C47 62 38 53 0 50 C38 47 47 38 50 0Z' fill='%23F4C542'/%3E%3C/svg%3E") center/contain no-repeat;filter:drop-shadow(0 0 4px rgba(244,197,66,.8))}
+.octubre .msg{box-shadow:0 calc(var(--fs)*.18) 0 var(--sombra),0 0 0 2px rgba(155,107,255,.25)}
+.octubre .msg.streamer::after,.octubre .msg.sub::after{opacity:1;right:calc(var(--fs)*-.35);top:calc(var(--fs)*-.35);width:calc(var(--fs)*1.1);height:calc(var(--fs)*1.1);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 70 64'%3E%3Cpath d='M35 12 C36 6 40 3 44 2' fill='none' stroke='%233a6b2a' stroke-width='4' stroke-linecap='round'/%3E%3Cellipse cx='22' cy='38' rx='17' ry='22' fill='%23e8741f'/%3E%3Cellipse cx='48' cy='38' rx='17' ry='22' fill='%23e8741f'/%3E%3Cellipse cx='35' cy='38' rx='17' ry='24' fill='%23FF8A2B'/%3E%3Cpath d='M24 32 l5 -6 l5 6z M36 32 l5 -6 l5 6z' fill='%23ffe08a'/%3E%3Cpath d='M22 44 Q35 56 48 44 L44 46 L40 42 L35 47 L30 42 L26 46Z' fill='%23ffe08a'/%3E%3C/svg%3E") center/contain no-repeat}
+.navidad .msg{box-shadow:0 calc(var(--fs)*.18) 0 var(--sombra),0 0 0 2px rgba(244,197,66,.35)}
+.navidad .msg.streamer::after,.navidad .msg.sub::after{opacity:1;right:calc(var(--fs)*-.4);top:calc(var(--fs)*-.4);width:calc(var(--fs)*1.2);height:calc(var(--fs)*1.2);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 30 C22 14 8 16 4 22 C12 24 12 32 8 36 C18 40 26 38 32 30Z' fill='%235BD99A' stroke='%231f6b45' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M32 30 C42 14 56 16 60 22 C52 24 52 32 56 36 C46 40 38 38 32 30Z' fill='%235BD99A' stroke='%231f6b45' stroke-width='3' stroke-linejoin='round'/%3E%3Ccircle cx='26' cy='36' r='7' fill='%23E23A52'/%3E%3Ccircle cx='38' cy='36' r='7' fill='%23E23A52'/%3E%3Ccircle cx='32' cy='44' r='7' fill='%23FF5A6E'/%3E%3Ccircle cx='30' cy='42' r='2' fill='%23fff' opacity='.7'/%3E%3C/svg%3E") center/contain no-repeat}
+/* Animaciones */
+.a-rebote .msg.in{animation:rebote .5s cubic-bezier(.34,1.56,.64,1) both}
+.a-deslizar .msg.in{animation:deslizar .4s ease-out both}
+.a-burbuja .msg.in{animation:burbuja .55s cubic-bezier(.34,1.56,.64,1) both;transform-origin:0 100%}
+.msg.out{animation:salir .45s ease-in forwards}
+@keyframes rebote{from{transform:translateY(calc(var(--fs)*.8)) scale(.92);opacity:0}to{transform:none;opacity:1}}
+@keyframes deslizar{from{transform:translateX(-30px);opacity:0}to{transform:none;opacity:1}}
+@keyframes burbuja{0%{transform:scale(.3);opacity:0;border-radius:50%}100%{transform:none;opacity:1}}
+@keyframes salir{to{transform:translateY(-10px) scale(.96);opacity:0}}
+@media (prefers-reduced-motion:reduce){.msg{animation:none!important}}
+</style>
+</head>
+<body>
+<div id="chat"></div>
+<script>
+(function () {
+  const q = new URLSearchParams(location.search);
+  const chat = document.getElementById('chat');
+  const tema = ['marea', 'octubre', 'navidad'].includes(q.get('tema')) ? q.get('tema') : 'marea';
+  const anim = ['rebote', 'burbuja', 'deslizar'].includes(q.get('anim')) ? q.get('anim') : 'rebote';
+  const canal = (q.get('canal') || 'kyosumivt').toLowerCase().replace(/[^a-z0-9_]/g, '');
+  const fs = Math.max(12, Math.min(64, Number(q.get('fs')) || 26));
+  const MAX = Math.max(1, Math.min(50, parseInt(q.get('max'), 10) || 12));
+  const SEG = Math.max(0, Number(q.get('seg')) || 0);
+  const OCULTAR_CMD = q.get('comandos') !== 'mostrar';
+  const COLOR_TW = q.get('nombres') === 'twitch';
+  const EXTRA = q.get('extra') !== 'no';
+  const DEMO = q.get('demo') === '1';
+  const ocultos = (q.get('ocultos') ?? 'streamelements,nightbot,streamlabs,moobot,fossabot').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+  const MODO_INS = ['kyo', 'twitch', 'ninguna'].includes(q.get('insignias')) ? q.get('insignias') : 'kyo';
+  chat.className = tema + ' a-' + anim + (MODO_INS === 'ninguna' ? ' sin-insignias' : '');
+  chat.style.setProperty('--fs', fs + 'px');
+  const hex = k => { const v = (q.get(k) || '').replace(/[^0-9a-f]/gi, ''); return /^([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v) ? '#' + v : null; };
+  [['caja', '--burbuja'], ['texto', '--texto'], ['acento', '--c-streamer'], ['borde', '--c-normal']].forEach(([k, v]) => { const c = hex(k); if (c) chat.style.setProperty(v, c); });
+
+  // Insignias de Twitch (imágenes): se piden una vez a Supabase
+  let ins = null, listas = Promise.resolve();
+  if (MODO_INS === 'twitch') {
+    const K = window.KYO || {};
+    if (K.SUPABASE_URL && !/TU-PROYECTO/.test(K.SUPABASE_URL))
+      listas = Promise.race([
+        fetch(K.SUPABASE_URL + '/functions/v1/twitch-insignias?canal=' + encodeURIComponent(canal), { headers: { apikey: K.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + K.SUPABASE_ANON_KEY } })
+          .then(r => r.json()).then(d => { if (d && d.ok) ins = d.insignias; }).catch(() => {}),
+        new Promise(r => setTimeout(r, 3000))   // si tarda, el chat empieza igual (con las de Kyo)
+      ]);
+  }
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  /* ---------- Pintar mensajes ---------- */
+  function rolDe(badges) {
+    if (badges.broadcaster) return 'streamer';
+    if (badges.moderator) return 'mod';
+    if (badges.vip) return 'vip';
+    if (badges.subscriber || badges.founder) return 'sub';
+    return 'normal';
+  }
+  const extraEmotes = {};
+  // Twitch marca los emotes por posición (en caracteres Unicode); el resto se busca por palabra
+  function conEmotes(texto, rangos) {
+    const letras = Array.from(texto), trozos = [];
+    let i = 0;
+    rangos.sort((a, b) => a.ini - b.ini).forEach(r => {
+      if (r.ini < i) return;
+      if (r.ini > i) trozos.push({ t: letras.slice(i, r.ini).join('') });
+      trozos.push({ e: r.url, n: letras.slice(r.ini, r.fin + 1).join('') });
+      i = r.fin + 1;
+    });
+    if (i < letras.length) trozos.push({ t: letras.slice(i).join('') });
+    let hayTexto = false, hayEmote = false;
+    const html = trozos.map(p => {
+      if (p.e) { hayEmote = true; return '<img class="emote" alt="' + esc(p.n) + '" src="' + esc(p.e) + '">'; }
+      return p.t.split(/(\s+)/).map(w => {
+        if (!w || /^\s+$/.test(w)) return w;
+        if (extraEmotes[w]) { hayEmote = true; return '<img class="emote" alt="' + esc(w) + '" src="' + esc(extraEmotes[w]) + '">'; }
+        hayTexto = true;
+        return /^@\w+/.test(w) ? '<span class="mention">' + esc(w) + '</span>' : esc(w);
+      }).join('');
+    }).join('');
+    return { html, soloEmotes: hayEmote && !hayTexto };
+  }
+  function quitar(el) {
+    if (!el || el.classList.contains('out')) return;
+    el.classList.remove('in'); el.classList.add('out');
+    setTimeout(() => el.remove(), 460);
+  }
+  function nuevo(m) {
+    if (ocultos.includes(m.login)) return;
+    if (OCULTAR_CMD && m.texto.trim().startsWith('!')) return;
+    const rol = rolDe(m.badges);
+    const el = document.createElement('div');
+    el.className = 'msg in ' + rol;
+    el.dataset.msg = m.id || ''; el.dataset.user = m.userId || '';
+    if (COLOR_TW && m.color) el.style.setProperty('--nc', m.color);
+    const c = conEmotes(m.texto, m.emotes || []);
+    el.innerHTML = '<div class="who">' + insignias(m, rol) + '<span>' + esc(m.nombre) + '</span></div>' +
+      '<div class="txt' + (m.accion ? ' action' : '') + (c.soloEmotes ? ' solo-emotes' : '') + '">' + c.html + '</div>';
+    chat.appendChild(el);
+    const vivos = chat.querySelectorAll('.msg:not(.out)');
+    for (let i = 0; i < vivos.length - MAX; i++) quitar(vivos[i]);
+    requestAnimationFrame(() => {
+      const top = chat.getBoundingClientRect().top;
+      chat.querySelectorAll('.msg:not(.out)').forEach(x => { if (x.getBoundingClientRect().bottom < top + 4) x.remove(); });
+    });
+    if (SEG > 0) setTimeout(() => quitar(el), SEG * 1000);
+  }
+  function insignias(m, rol) {
+    if (MODO_INS === 'ninguna') return '';
+    if (MODO_INS === 'twitch' && ins) {
+      const imgs = (m.lista || []).map(b => ins[b] || ins[b.split('/')[0] + '/1'] || ins[b.split('/')[0] + '/0']).filter(Boolean);
+      return imgs.map(u => '<img class="badge" alt="" src="' + esc(u) + '">').join('');
+    }
+    const letra = { streamer: '★', mod: 'M', vip: 'V', sub: 'S' }[rol];
+    return letra ? '<i class="chip">' + letra + '</i>' : '';
+  }
+  const borrar = sel => chat.querySelectorAll(sel).forEach(quitar);
+  const cssq = s => String(s || '').replace(/["\\]/g, '\\$&');
+
+  /* ---------- Emotes de 7TV, BTTV y FFZ ---------- */
+  let extraDe = null;
+  function cargarExtra(id) {
+    if (!EXTRA || !id || extraDe === id) return;
+    extraDe = id;
+    const add = (n, u) => { if (n && u && !extraEmotes[n]) extraEmotes[n] = u; };
+    const j = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
+    const stv = list => (list || []).forEach(e => { const h = e.data && e.data.host; if (h) add(e.name, 'https:' + h.url + '/2x.webp'); });
+    j('https://7tv.io/v3/users/twitch/' + id).then(d => stv(d && d.emote_set && d.emote_set.emotes));
+    j('https://7tv.io/v3/emote-sets/global').then(d => stv(d && d.emotes));
+    j('https://api.betterttv.net/3/cached/users/twitch/' + id).then(d => { if (d) (d.channelEmotes || []).concat(d.sharedEmotes || []).forEach(e => add(e.code, 'https://cdn.betterttv.net/emote/' + e.id + '/2x')); });
+    j('https://api.betterttv.net/3/cached/emotes/global').then(d => (d || []).forEach(e => add(e.code, 'https://cdn.betterttv.net/emote/' + e.id + '/2x')));
+    const ffz = d => { const s = (d && d.sets) || {}; Object.keys(s).forEach(k => (s[k].emoticons || []).forEach(e => { const u = e.urls && (e.urls['2'] || e.urls['1']); add(e.name, u && (u.startsWith('http') ? u : 'https:' + u)); })); };
+    j('https://api.frankerfacez.com/v1/room/id/' + id).then(ffz);
+    j('https://api.frankerfacez.com/v1/set/global').then(ffz);
+  }
+
+  /* ---------- Conexión con el chat de Twitch (anónima, solo lectura) ---------- */
+  function etiquetas(s) {
+    const o = {};
+    s.split(';').forEach(p => { const i = p.indexOf('='); o[p.slice(0, i)] = p.slice(i + 1).replace(/\\s/g, ' ').replace(/\\:/g, ';').replace(/\\\\/g, '\\'); });
+    return o;
+  }
+  function linea(l) {
+    let tags = {}, resto = l;
+    if (resto[0] === '@') { const i = resto.indexOf(' '); tags = etiquetas(resto.slice(1, i)); resto = resto.slice(i + 1); }
+    let prefijo = '';
+    if (resto[0] === ':') { const i = resto.indexOf(' '); prefijo = resto.slice(1, i); resto = resto.slice(i + 1); }
+    const i2 = resto.indexOf(' :');
+    const cabeza = (i2 >= 0 ? resto.slice(0, i2) : resto).split(' ');
+    return { tags, prefijo, cmd: cabeza[0], params: cabeza.slice(1), texto: i2 >= 0 ? resto.slice(i2 + 2) : '' };
+  }
+  function recibir(l) {
+    const m = linea(l), t = m.tags;
+    if (m.cmd === 'PING') { ws.send('PONG :' + m.texto); return; }
+    if (m.cmd === 'ROOMSTATE') { cargarExtra(t['room-id']); return; }
+    if (m.cmd === 'CLEARMSG') { borrar('[data-msg="' + cssq(t['target-msg-id']) + '"]'); return; }
+    if (m.cmd === 'CLEARCHAT') { if (t['target-user-id']) borrar('[data-user="' + cssq(t['target-user-id']) + '"]'); else borrar('.msg'); return; }
+    if (m.cmd !== 'PRIVMSG') return;
+    cargarExtra(t['room-id']);
+    let texto = m.texto, accion = false;
+    const act = /^\u0001ACTION (.*)\u0001$/.exec(texto);
+    if (act) { texto = act[1]; accion = true; }
+    const badges = {}, lista = (t.badges || '').split(',').filter(Boolean);
+    lista.forEach(b => { badges[b.split('/')[0]] = true; });
+    const emotes = [];
+    (t.emotes || '').split('/').forEach(e => {
+      if (!e) return;
+      const [id, pos] = e.split(':');
+      (pos || '').split(',').forEach(r => { const [a, b] = r.split('-').map(Number); emotes.push({ ini: a, fin: b, url: 'https://static-cdn.jtvnw.net/emoticons/v2/' + id + '/default/dark/2.0' }); });
+    });
+    const login = m.prefijo.split('!')[0];
+    nuevo({ id: t.id, userId: t['user-id'], login, nombre: t['display-name'] || login, color: t.color, badges, lista, emotes, texto, accion });
+  }
+  let ws = null, espera = 1000;
+  function conectar() {
+    ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+    ws.onopen = () => {
+      espera = 1000;
+      ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
+      ws.send('PASS SCHMOOPIIE');
+      ws.send('NICK justinfan' + Math.floor(10000 + Math.random() * 80000));
+      ws.send('JOIN #' + canal);
+    };
+    ws.onmessage = e => String(e.data).split('\r\n').forEach(l => { if (l) try { recibir(l); } catch (err) {} });
+    ws.onclose = () => { setTimeout(conectar, espera); espera = Math.min(espera * 2, 30000); };
+  }
+
+  /* ---------- Ejemplos (vista previa del Estudio) ---------- */
+  const EJ = [
+    { n: 'KyoSumiVT', b: 'broadcaster', t: '¡Hola, tiburoncitos! ¿Cómo va el día?' },
+    { n: 'marea_mod', b: 'moderator', t: 'Recordad: sed amables en el chat' },
+    { n: 'lunadorada', b: 'vip', t: 'hoy toca charla tranqui' },
+    { n: 'aleta_azul', b: 'subscriber', t: '@KyoSumiVT cuéntanos lo del finde' },
+    { n: 'burbuja_22', b: '', t: 'primera vez por aquí, holaa' },
+    { n: 'AletaBot', b: 'moderator', t: '¡Bienvenida al chat! Escribe !merch para ver la tienda 🦈' },
+    { n: 'calabacita', b: 'subscriber', t: 'este es un mensaje más largo para ver cómo se parte en varias líneas dentro de la burbuja' }
+  ];
+  let ej = 0;
+  function ejemplo() {
+    const e = EJ[ej++ % EJ.length], badges = {};
+    if (e.b) badges[e.b] = true;
+    const lista = e.b ? [e.b + (e.b === 'subscriber' ? '/0' : '/1')] : [];
+    nuevo({ id: 'demo' + Date.now(), userId: 'demo' + ej, login: e.n.toLowerCase(), nombre: e.n, color: '#8a7cff', badges, lista, emotes: [], texto: e.t, accion: false });
+  }
+
+  window.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'kyo-test') return;
+    if (e.data.accion === 'mensaje') ejemplo();
+    else if (e.data.accion === 'limpiar') borrar('.msg');
+  });
+
+  listas.then(() => {
+    if (DEMO) { for (let i = 0; i < 4; i++) setTimeout(ejemplo, i * 300); setInterval(ejemplo, 2600); }
+    else conectar();
+  });
+})();
+</script>
+</body>
+</html>
