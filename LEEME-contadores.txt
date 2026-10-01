@@ -1,0 +1,23 @@
+KyoWidgets · 🔢 Contadores — cómo activarlo (una sola vez)
+==========================================================
+
+1) Copia los archivos de este zip dentro de tu carpeta KyoWidgets (respetando las carpetas).
+   Se reemplaza index.html y README.md; los demás son nuevos. config.js NO viene: no se toca.
+
+2) Supabase → SQL Editor → New query: pega supabase/sql/07_contadores.sql → Run.
+
+3) Supabase → Edge Functions → Deploy a new function → nombre: contador
+   Pega supabase/functions/contador/index.ts → Deploy.
+   En sus ajustes, "Verify JWT" DESACTIVADO (el Stream Deck no puede mandar cabeceras).
+   No hace falta ningún secreto nuevo (usa KYO_SETUP_KEY, que ya tienes).
+
+4) GitHub Desktop → Commit + Push. Espera 1–2 min y abre el Estudio con Ctrl+F5.
+
+5) Estudio → 🧰 Widgets → 🔢 Contadores:
+   - Crea el contador (ej. "Muertes"). El nombre se puede cambiar luego sin romper enlaces.
+   - 📋 OBS → Fuente de navegador (560×200 en Pegatina normal).
+   - 🎛 Stream Deck +1 / −1 → acción "Sistema → Sitio web", pega el enlace en URL
+     y marca "Acceder en segundo plano" (GET request in background).
+   - ↺ Reiniciar pide doble clic para que no se te escape.
+
+Si algo no va, el Estudio te dice qué paso falta (SQL, función o tabla).

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Kyo · Contador</title>
+<meta name="robots" content="noindex">
+<!--
+  KyoWidgets · Contador (muertes, rage quits…) · Fuente de navegador para OBS. La URL la arma Kyo Estudio.
+  Tamaños base (multiplícalos por "escala"): pegatina 560x200 · chip 480x120 · texto 480x200
+  Parámetros:
+    id         el contador que muestra (se crea en Kyo Estudio → Widgets → 🔢 Contadores)
+    diseno     pegatina | chip | texto        tema  marea | octubre | navidad
+    etiqueta   si | no (mostrar el nombre)    escala  0.5 … 2
+    acento, borde, caja, texto   colores (hex sin #)
+    demo=1     datos de ejemplo
+  Los cambios llegan al momento por Supabase Realtime; si se corta, consulta cada pocos segundos.
+-->
+<style>
+@font-face{font-family:"Cherry Bomb One";src:url(../fonts/cherry-bomb-one-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Fredoka";font-weight:700;src:url(../fonts/fredoka-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-weight:700;src:url(../fonts/chakra-petch-latin-700-normal.woff2) format("woff2")}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent!important;overflow:hidden}
+body{width:560px;height:200px;display:grid;place-items:center;font-family:"Fredoka",system-ui,sans-serif}
+body.b-chip{width:480px;height:120px}body.b-texto{width:480px;height:200px}
+#w{--a:#6FE3F0;--a2:#3A7BD5;--c:#0f1a4a;--t:#F5F3FB;--s:#C9E6F2;--o:#0A1030;--p:#fff;--u:#FF4D6A;--g:#F4C542;position:relative;color:var(--t);transition:opacity .5s,transform .5s cubic-bezier(.34,1.56,.64,1)}
+#w.octubre{--a:#FF8A2B;--a2:#9B6BFF;--c:#1a1240;--s:#e3d9ff;--o:#0a0720}
+#w.navidad{--a:#FF5A6E;--a2:#5BD99A;--c:#0e1a48;--s:#f3e7c4;--o:#060b22}
+#w.oculto{opacity:0;transform:scale(.6)}
+.pega{box-shadow:0 0 0 6px var(--p),0 0 0 11px var(--o),0 11px 0 11px var(--o)}
+.caja{position:relative;display:flex;align-items:center;gap:22px;padding:18px 34px 18px 22px;border-radius:32px;background:var(--c);transform:rotate(-1.5deg);animation:boing 4.5s ease-in-out infinite;max-width:510px}
+.ico{flex:none;width:112px;height:112px;border-radius:50%;background:var(--a);color:var(--o);display:grid;place-items:center;box-shadow:0 0 0 5px var(--p),0 0 0 9px var(--o)}
+.ico svg{width:64%;height:64%}
+.info{display:grid;justify-items:start;gap:4px;min-width:0}
+.chip{max-width:330px;overflow:hidden;text-overflow:ellipsis;font:700 19px "Chakra Petch",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--o);background:var(--a);padding:4px 16px;border-radius:999px;white-space:nowrap}
+.num{position:relative;font:400 104px/1 "Cherry Bomb One",sans-serif;color:var(--t);-webkit-text-stroke:10px var(--o);paint-order:stroke fill;font-variant-numeric:tabular-nums;white-space:nowrap;transform-origin:30% 60%}
+.sin-etq .chip{display:none}
+/* chip: píldora compacta */
+.d-chip .caja{gap:14px;padding:10px 12px 10px 10px;border-radius:999px;max-width:450px}
+.d-chip .ico{width:72px;height:72px;box-shadow:0 0 0 4px var(--p),0 0 0 7px var(--o)}
+.d-chip .info{display:flex;align-items:center;gap:14px}
+.d-chip .chip{background:none;color:var(--t);font:700 26px "Fredoka",sans-serif;letter-spacing:0;text-transform:none;padding:0;max-width:200px}
+.d-chip .num{min-width:84px;text-align:center;padding:4px 18px;border-radius:999px;background:var(--p);color:var(--o);-webkit-text-stroke:0;font-size:52px;box-shadow:0 0 0 4px var(--o),0 5px 0 4px var(--o)}
+/* texto: sin caja */
+.d-texto .caja{background:none;box-shadow:none!important;padding:0;gap:18px}
+.d-texto .ico{width:104px;height:104px}
+.d-texto .chip{background:none;color:var(--t);font:400 34px "Cherry Bomb One",sans-serif;letter-spacing:.01em;text-transform:none;-webkit-text-stroke:8px var(--o);paint-order:stroke fill;padding:0 6px;max-width:340px}
+.d-texto .num{font-size:110px;-webkit-text-stroke:13px var(--o);filter:drop-shadow(0 6px 0 var(--o))}
+/* animaciones */
+.num.pop{animation:pop .55s cubic-bezier(.34,1.56,.64,1)}
+.num.baja{animation:baja .5s ease-out}
+.caja.sacude{animation:sacude .45s ease-in-out}
+.ico.gira{animation:gira .8s cubic-bezier(.34,1.56,.64,1)}
+.ico.salta{animation:salta .5s cubic-bezier(.34,1.56,.64,1)}
+.flota{position:absolute;pointer-events:none;font:400 46px/1 "Cherry Bomb One",sans-serif;color:var(--a);-webkit-text-stroke:8px var(--o);paint-order:stroke fill;animation:flota 1.2s ease-out forwards;white-space:nowrap}
+.flota.menos{color:var(--u)}
+.flota.reset{color:var(--g)}
+.spk{position:absolute;width:34px;height:34px;pointer-events:none;animation:spk 1.2s ease-out forwards}
+.aviso{font:700 16px "Fredoka",sans-serif;color:#cfd8ff;background:rgba(10,16,48,.75);padding:10px 16px;border-radius:14px;text-align:center}
+@keyframes boing{0%,100%{transform:rotate(-1.5deg)}50%{transform:rotate(-.5deg) translateY(-3px)}}
+@keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.42) rotate(-7deg);color:var(--a)}100%{transform:scale(1)}}
+@keyframes baja{0%{transform:scale(1)}30%{transform:scale(.8) translateY(6px);color:var(--u)}100%{transform:scale(1)}}
+@keyframes sacude{0%,100%{transform:rotate(-1.5deg)}20%{transform:rotate(-1.5deg) translateX(-9px)}40%{transform:rotate(-1.5deg) translateX(8px)}60%{transform:rotate(-1.5deg) translateX(-5px)}80%{transform:rotate(-1.5deg) translateX(3px)}}
+@keyframes gira{0%{transform:rotate(0) scale(1)}50%{transform:rotate(-200deg) scale(.85)}100%{transform:rotate(-360deg) scale(1)}}
+@keyframes salta{0%,100%{transform:none}40%{transform:translateY(-12px) scale(1.12) rotate(-8deg)}}
+@keyframes flota{0%{opacity:0;transform:translate(0,10px) scale(.5)}20%{opacity:1;transform:translate(0,-8px) scale(1.1)}100%{opacity:0;transform:translate(14px,-70px) scale(.9)}}
+@keyframes spk{0%{transform:translate(0,0) scale(.3) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1) rotate(140deg);opacity:0}}
+</style>
+</head>
+<body>
+<div id="w" class="oculto"><div class="caja pega" id="caja"><div class="ico" id="ico"></div><div class="info"><span class="chip" id="nom"></span><span class="num" id="num">0</span></div></div></div>
+<script src="../config.js"></script>
+<script src="iconos-contador.js"></script>
+<script>
+(function () {
+  const q = new URLSearchParams(location.search), $ = id => document.getElementById(id), w = $('w');
+  const diseno = ['pegatina', 'chip', 'texto'].includes(q.get('diseno')) ? q.get('diseno') : 'pegatina';
+  const tema = ['marea', 'octubre', 'navidad'].includes(q.get('tema')) ? q.get('tema') : 'marea';
+  w.classList.add('d-' + diseno, tema); document.body.classList.add('b-' + diseno);
+  if (q.get('etiqueta') === 'no') w.classList.add('sin-etq');
+  if (diseno === 'texto') $('caja').classList.remove('pega');
+  const hex = v => /^[0-9a-f]{3,8}$/i.test(v || '') ? '#' + v : null;
+  [['acento', '--a'], ['borde', '--p'], ['caja', '--c'], ['texto', '--t']].forEach(([k, v]) => { const c = hex(q.get(k)); if (c) w.style.setProperty(v, c); });
+  const esc = Math.min(2, Math.max(0.5, Number(q.get('escala')) || 1)); if (esc !== 1) document.documentElement.style.zoom = esc;
+  const DEMO = q.get('demo') === '1', ID = (q.get('id') || '').toLowerCase();
+  const K = window.KYO || {}, FN = (K.SUPABASE_URL || '') + '/functions/v1/contador';
+  const enEstudio = window !== window.top;
+
+  // ---------- pintar ----------
+  let actual = null; // {id, nombre, icono, valor}
+  const fmt = n => Number(n || 0).toLocaleString('es');
+  function pintarFicha(c) {
+    $('nom').textContent = c.nombre;
+    $('ico').innerHTML = window.KYO_ICONO_SVG(c.icono);
+  }
+  function mostrar(c) {
+    const aviso = document.querySelector('.aviso'); if (aviso) aviso.remove();
+    if (!c) {
+      actual = null; w.classList.add('oculto');
+      if (enEstudio && !DEMO) { const a = document.createElement('div'); a.className = 'aviso'; a.textContent = 'Crea un contador arriba para verlo aquí'; document.body.appendChild(a); }
+      return;
+    }
+    if (!actual || actual.id !== c.id) { actual = Object.assign({}, c); pintarFicha(c); $('num').textContent = fmt(c.valor); w.classList.remove('oculto'); return; }
+    if (actual.nombre !== c.nombre || actual.icono !== c.icono) { actual.nombre = c.nombre; actual.icono = c.icono; pintarFicha(c); }
+    if (c.valor !== actual.valor) animar(c.valor - actual.valor, c.valor, !!c.reinicio);
+  }
+
+  // ---------- animaciones ----------
+  function reiniciarAnim(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  function flota(txt, cls) {
+    const n = $('num'), r = n.getBoundingClientRect(), b = w.getBoundingClientRect(), z = esc !== 1 ? esc : 1;
+    const s = document.createElement('span'); s.className = 'flota ' + cls; s.textContent = txt;
+    s.style.left = ((r.right - b.left) / z + 4) + 'px'; s.style.top = ((r.top - b.top + r.height / 2) / z - 23) + 'px';
+    w.appendChild(s); setTimeout(() => s.remove(), 1300);
+  }
+  function destellos(n) {
+    const r = $('num').getBoundingClientRect(), b = w.getBoundingClientRect(), z = esc !== 1 ? esc : 1;
+    const cx = (r.left + r.width / 2 - b.left) / z, cy = (r.top + r.height / 2 - b.top) / z;
+    for (let i = 0; i < n; i++) {
+      const s = document.createElement('span'); s.className = 'spk';
+      s.innerHTML = '<svg viewBox="0 0 100 100"><path d="M50 0C53 38 62 47 100 50 62 53 53 62 50 100 47 62 38 53 0 50 38 47 47 38 50 0Z" fill="' + (i % 3 ? 'var(--a)' : '#fff') + '"/></svg>';
+      s.style.left = (cx - 17) + 'px'; s.style.top = (cy - 17) + 'px';
+      const ang = Math.random() * Math.PI * 2, dist = 50 + Math.random() * 70;
+      s.style.setProperty('--dx', Math.cos(ang) * dist + 'px'); s.style.setProperty('--dy', Math.sin(ang) * dist - 20 + 'px');
+      w.appendChild(s); setTimeout(() => s.remove(), 1300);
+    }
+  }
+  let rodando = 0;
+  function rodar(desde, hasta) { // cuenta rápido hasta el número nuevo si el salto es grande
+    const id = ++rodando, t0 = performance.now(), dur = Math.min(900, 250 + Math.abs(hasta - desde) * 40);
+    (function paso(t) {
+      if (id !== rodando) return;
+      const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      $('num').textContent = fmt(Math.round(desde + (hasta - desde) * e));
+      if (k < 1) requestAnimationFrame(paso);
+    })(t0);
+  }
+  function animar(delta, valor, reinicio) {
+    const desde = actual.valor; actual.valor = valor;
+    if (Math.abs(delta) > 1 || reinicio) rodar(desde, valor); else { rodando++; $('num').textContent = fmt(valor); }
+    if (reinicio && valor === 0) { reiniciarAnim($('ico'), 'gira'); reiniciarAnim($('num'), 'baja'); flota('↺ 0', 'reset'); return; }
+    if (delta > 0) { reiniciarAnim($('num'), 'pop'); reiniciarAnim($('ico'), 'salta'); flota('+' + delta, 'mas'); destellos(Math.min(12, 6 + delta)); }
+    else if (delta < 0) { reiniciarAnim($('num'), 'baja'); reiniciarAnim($('caja'), 'sacude'); flota('−' + Math.abs(delta), 'menos'); }
+  }
+
+  // ---------- datos ----------
+  if (DEMO) {
+    mostrar({ id: 'demo', nombre: 'Muertes', icono: 'calavera', valor: 7 });
+  } else {
+    let rt = false, ultima = 0;
+    async function cargar() {
+      ultima = Date.now();
+      try {
+        const r = await fetch(FN + (ID ? '?id=' + encodeURIComponent(ID) : ''), { cache: 'no-store' });
+        const d = await r.json();
+        if (d.ok) mostrar(d.contador);
+      } catch (e) {}
+    }
+    cargar();
+    // Respaldo: cada 3 s si el tiempo real no conecta, cada 30 s si sí
+    setInterval(() => { if (Date.now() - ultima >= (rt ? 30000 : 3000)) cargar(); }, 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) cargar(); });
+    // Tiempo real (Supabase Realtime)
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+    s.onload = () => {
+      try {
+        const sb = window.supabase.createClient(K.SUPABASE_URL, K.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+        sb.channel('kyo-contadores')
+          .on('broadcast', { event: 'cambio' }, ({ payload: p }) => {
+            if (!p || !actual) return;
+            if (p.id !== actual.id) return;
+            mostrar({ id: p.id, nombre: p.nombre, icono: p.icono, valor: p.valor, reinicio: p.reinicio });
+          })
+          .on('broadcast', { event: 'lista' }, () => cargar())
+          .subscribe(st => { const antes = rt; rt = st === 'SUBSCRIBED'; if (rt && !antes) cargar(); });
+      } catch (e) {}
+    };
+    document.head.appendChild(s);
+  }
+
+  // ---------- botones "Probar" de Kyo Estudio ----------
+  window.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'kyo-test' || !actual) return;
+    const a = e.data.accion, v = actual.valor;
+    if (a === 'sumar') mostrar(Object.assign({}, actual, { valor: v + 1 }));
+    else if (a === 'restar') mostrar(Object.assign({}, actual, { valor: Math.max(0, v - 1) }));
+    else if (a === 'cinco') mostrar(Object.assign({}, actual, { valor: v + 5 }));
+    else if (a === 'reiniciar') mostrar(Object.assign({}, actual, { valor: 0, reinicio: true }));
+  });
+})();
+</script>
+</body>
+</html>

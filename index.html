@@ -255,6 +255,36 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 ::-webkit-scrollbar-thumb:active{background:linear-gradient(180deg,var(--acc),#ffb46e)}
 ::-webkit-scrollbar-corner{background:var(--panel2)}
 @supports not selector(::-webkit-scrollbar){*{scrollbar-color:var(--pur) var(--panel2);scrollbar-width:thin}}
+/* ---------- Contadores ---------- */
+.ctcard h2{margin:0;font:400 24px "Cherry Bomb One",sans-serif;color:#fff}
+.cthead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 14px;margin-bottom:8px}
+.ctlista{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,430px),1fr));gap:12px;margin:14px 0}
+.ctfila{display:grid;gap:10px;padding:12px;border-radius:18px;background:var(--panel2);border:1px solid var(--line)}
+.ctmain{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px}
+.ctico{width:52px;height:52px;border-radius:50%;border:0;background:var(--acc2);color:#0A1030;display:grid;place-items:center;cursor:pointer;box-shadow:0 0 0 3px #fff,0 0 0 5px #0A1030}
+.ctico svg{width:60%;height:60%}
+.ctnom{font-weight:700!important;font-size:16px!important}
+.ctval{min-width:64px;text-align:center;font:700 34px/1 "Chakra Petch",monospace;font-variant-numeric:tabular-nums;color:#fff}
+.ctval.salta{animation:ctsalta .45s cubic-bezier(.34,1.56,.64,1)}
+@keyframes ctsalta{40%{transform:scale(1.35);color:var(--acc2)}}
+.ctbtns{display:flex;gap:6px}
+.ctbtns .btn{min-width:52px;padding:10px 12px;font-size:17px;font-weight:700}
+.cticonos{display:flex;flex-wrap:wrap;gap:6px}
+.cticonos button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--dim);display:grid;place-items:center;cursor:pointer}
+.cticonos button svg{width:60%;height:60%}
+.cticonos button[aria-pressed="true"],.cticonos button:hover{background:var(--acc2);color:#0A1030;border-color:var(--acc2)}
+.ctmas2{gap:6px}
+.ctmas2 .btn{padding:6px 12px;font-size:13px}
+.ctfijar{display:inline-flex;gap:4px;align-items:center}
+.ctfijar input{width:78px!important;padding:6px 8px!important}
+.btn.activo{border-color:var(--acc2);color:#fff;background:rgba(111,227,240,.12)}
+.btn.peligro{border-color:var(--bad);color:var(--bad)}
+.ctnuevo input{flex:1;min-width:200px}
+.ctsd{margin-top:14px;padding:12px 14px;border-radius:14px;border:1px dashed var(--line2)}
+.ctsd summary{cursor:pointer;font-weight:700;color:#fff}
+.ctsd .pasos{margin:10px 0}
+.ctsd .nota{margin-bottom:10px}
+@media (max-width:520px){.ctmain{grid-template-columns:auto minmax(0,1fr)}.ctval{grid-column:1}.ctbtns{justify-content:flex-end}}
 </style>
 </head>
 <body>
@@ -292,6 +322,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <button type="button" data-sub="spotify" aria-pressed="true">🎵 Música (Spotify)</button>
     <button type="button" data-sub="fortnite" aria-pressed="false">🏆 Fortnite</button>
     <button type="button" data-sub="cuenta" aria-pressed="false">⏱ Cuenta atrás</button>
+    <button type="button" data-sub="contador" aria-pressed="false">🔢 Contadores</button>
     <button type="button" data-sub="chat" aria-pressed="false">💬 Chat</button>
     <button type="button" data-sub="sorteo" aria-pressed="false">🎁 Sorteo y encuesta</button>
     <button type="button" data-sub="prediccion" aria-pressed="false">🔮 Predicción</button>
@@ -408,6 +439,33 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       </div>
     </form>
     <div class="prev" data-prev="cuenta"></div>
+  </section>
+
+  <!-- ===================== CONTADORES ===================== -->
+  <section data-panel="contador" class="grid" hidden>
+    <div class="card ctcard" id="ctApp" style="grid-column:1/-1"><p class="nota">Cargando tus contadores…</p></div>
+    <form class="card opts" id="fContador" onsubmit="return false">
+      <div class="grupo"><h3>Qué contador se ve aquí</h3>
+        <p class="nota">Elige uno con <b>👁 Ver</b> en tu lista de arriba. Cada contador tiene su propio enlace para OBS (botón <b>📋 OBS</b>); el estilo de abajo se aplica a todos.</p>
+        <input type="hidden" name="cid">
+      </div>
+      <div class="grupo"><h3>Estilo</h3>
+        <div class="f"><span>Diseño</span><div class="chips" data-radio="diseno" data-val="pegatina:🟦 Pegatina,chip:💊 Píldora,texto:🔤 Solo texto"></div></div>
+        <div class="f"><span>Temporada</span><div class="chips" data-radio="tema" data-val="marea:🌊 Normal,octubre:🎃 Halloween,navidad:🎄 Navidad"></div></div>
+        <div class="f"><span>Tamaño</span><div class="chips" data-radio="escala" data-val="0.75:Pequeño,1:Normal,1.25:Grande,1.5:Muy grande"></div></div>
+        <div class="f"><span>Nombre del contador</span><div class="chips" data-radio="etiqueta" data-val="si:Mostrar,no:Ocultar"></div></div>
+      </div>
+      <div class="grupo"><h3>Colores</h3>
+        <div class="chips"><label><input type="checkbox" name="colores"> Usar mis propios colores</label></div>
+        <div class="colores off" data-colores>
+          <label>Acento<input type="color" name="acento" value="#6fe3f0"></label>
+          <label>Borde / pegatina<input type="color" name="borde" value="#ffffff"></label>
+          <label>Caja<input type="color" name="caja" value="#0f1a4a"></label>
+          <label>Texto<input type="color" name="texto" value="#f5f3fb"></label>
+        </div>
+      </div>
+    </form>
+    <div class="prev" data-prev="contador"></div>
   </section>
 
   <!-- ===================== CHAT ===================== -->
@@ -664,6 +722,9 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     cuenta: { w: 860, h: 280, tam: { pegatina: [860, 280], barra: [860, 150], texto: [860, 240] }, sinDatos: true,
       def: { diseno: 'pegatina', tema: 'marea', escala: '1', modo: 'hasta', etiquetas: 'si', alfinal: 'final' },
       pruebas: [['diez', '⏱ Probar últimos 10 s'], ['final', '🎉 Probar el final'], ['reset', '↺ Volver al tiempo real']] },
+    contador: { w: 560, h: 200, tam: { pegatina: [560, 200], chip: [480, 120], texto: [480, 200] },
+      def: { diseno: 'pegatina', tema: 'marea', escala: '1', etiqueta: 'si' },
+      pruebas: [['sumar', '➕ Probar +1'], ['cinco', '⏫ Probar +5'], ['restar', '➖ Probar −1'], ['reiniciar', '↺ Probar reinicio']] },
     chat: { w: 580, h: 840, tam: { horizontal: [580, 840], vertical: [900, 740] },
       def: { diseno: 'horizontal', tema: 'marea', anim: 'rebote', insignias: 'kyo', fs: '26', nombres: 'rol', comandos: 'ocultar', extra: 'si' },
       pruebas: [['mensaje', '💬 Mensaje de ejemplo'], ['limpiar', '🧹 Limpiar el chat']] },
@@ -718,7 +779,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   function url(id, demo) {
     const o = estadoForm(id), d = W[id].def, p = new URLSearchParams();
     const set = (k, v) => { if (v !== undefined && v !== '' && v !== d[k]) p.set(k, v); };
-    ['diseno', 'tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'mover', 'cuenta', 'ventana', 'hoy', 'celebrar', 'etiquetas', 'alfinal', 'lado'].forEach(k => { if (k in o) set(k, o[k]); });
+    ['diseno', 'tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'mover', 'cuenta', 'ventana', 'hoy', 'celebrar', 'etiquetas', 'alfinal', 'lado', 'etiqueta'].forEach(k => { if (k in o && !(id === 'spotify' && k === 'etiqueta')) set(k, o[k]); });
     if (o.colores) ['acento', 'borde', 'caja', 'texto'].forEach(k => p.set(k, (o[k] || '').replace('#', '')));
     if (id === 'spotify') {
       const ocultar = d.ver.filter(v => !(o.ver || []).includes(v));
@@ -738,6 +799,8 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       if (Number(o.seg) > 0) p.set('seg', o.seg);
       const ocu = (o.ocultos || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean).join(',');
       if (ocu !== CHAT_OCULTOS) p.set('ocultos', ocu);
+    } else if (id === 'contador') {
+      if (o.cid) p.set('id', o.cid);
     } else if (id === 'sorteo' || id === 'prediccion') {
       // solo estilo: el premio y los participantes llegan en vivo desde Supabase
     } else {
@@ -752,6 +815,8 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     return new URL('overlays/' + id + '.html' + (s ? '?' + s : ''), location.href).href;
   }
 
+  window.kyoWidgetUrl = (id, extra) => { const u = new URL(url(id, false)); Object.entries(extra || {}).forEach(([k, v]) => v ? u.searchParams.set(k, v) : u.searchParams.delete(k)); return u.href; };
+  window.kyoWidgetActualizar = id => { const f = $('#f' + id[0].toUpperCase() + id.slice(1)); if (f) f.dispatchEvent(new Event('change', { bubbles: true })); };
   const ultimo = {};
   function actualizar(id) {
     const panel = $('[data-panel="' + id + '"]'), o = estadoForm(id);
@@ -780,7 +845,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       prev.ver = (prev.ver || []).map(v => v === 'disco' ? 'portada' : v === 'sonar' ? 'progreso' : v);
       if (prev.fuente === 'fredoka') prev.fuente = 'auto';
     }
-    const extra = id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : id === 'cuenta' ? { titulo: 'REVELACIÓN EN', final: '¡YA!', fecha: fechaPorDefecto(), h: '1', m: '0', s: '0', sesion: '1' } : id === 'chat' ? { canal: 'kyosumivt', max: '12', seg: '0', ocultos: CHAT_OCULTOS } : id === 'sorteo' || id === 'prediccion' ? {} : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' };
+    const extra = id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : id === 'cuenta' ? { titulo: 'REVELACIÓN EN', final: '¡YA!', fecha: fechaPorDefecto(), h: '1', m: '0', s: '0', sesion: '1' } : id === 'chat' ? { canal: 'kyosumivt', max: '12', seg: '0', ocultos: CHAT_OCULTOS } : id === 'sorteo' || id === 'prediccion' || id === 'contador' ? {} : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' };
     aplicarForm(id, Object.assign({}, W[id].def, extra, prev || {}));
     const panel = $('[data-panel="' + id + '"]');
     panel.addEventListener('change', () => actualizar(id));
@@ -808,6 +873,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     $('#subtabs').hidden = !esWidget;
     $$('#subtabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sub === n ? 'true' : 'false'));
     $$('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== n);
+    if (n === 'contador' && window.kyoContadores) window.kyoContadores.abrir();
     if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else if (n === 'aletabot') { if (window.kyoBot) window.kyoBot.abrir(); } else if (n === 'prensa') { if (window.kyoPrensa) window.kyoPrensa.abrir(); } else { comprobarSpotify(); comprobarBot(); }
   }
   $$('nav.tabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.tab)));
@@ -1037,6 +1103,8 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 <script type="module" src="imagenes.js"></script>
 <script type="module" src="overlays.js"></script>
 <script type="module" src="bot.js"></script>
+<script src="overlays/iconos-contador.js"></script>
+<script type="module" src="contadores.js"></script>
 <script src="prensa/datos.js"></script>
 <script type="module" src="prensa.js"></script>
 </body>
