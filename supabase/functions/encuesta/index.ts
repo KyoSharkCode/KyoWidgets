@@ -157,6 +157,8 @@ function limpiarAjustesSorteo(a: any): AjustesSorteo {
   };
 }
 const abiertoAhora = (s: Sorteo) => s.estado === "abierto" && (!s.cierra || Date.parse(s.cierra) > Date.now());
+// Un sorteo sigue "en curso" mientras está abierto o cerrado sin ganador: no se puede abrir otro encima
+const sorteoEnCurso = (s: Sorteo) => s.estado === "abierto" || s.estado === "cerrado";
 
 async function abrirSorteo(db: any, premio: string) {
   const [s, aj] = await Promise.all([leerSorteo(db), leerAjustesSorteo(db)]);
@@ -246,6 +248,7 @@ const TXT_SORTEO = {
   vacio: () => "🫧 Nadie ha participado todavía en el sorteo.",
   sin_mas: () => "🫧 Ya no quedan participantes sin premio en este sorteo.",
   cancelado: () => "El sorteo se canceló.",
+  ocupado: (s: Sorteo) => "🎁 Ya hay un sorteo en marcha (" + s.premio + "), espera a que termine. Para quitarlo: !sorteo cancelar",
   estado: (s: Sorteo, n: number) => s.estado === "inactivo" ? "No hay ningún sorteo activo ahora mismo."
     : "🎁 Sorteo de " + s.premio + ": " + n + (n === 1 ? " participante" : " participantes") + (abiertoAhora(s) ? ". Escribe " + s.palabra + " para entrar." : " (entradas cerradas)."),
 };
@@ -275,6 +278,7 @@ const leerEncuesta = (db: any): Promise<Encuesta> => leerFila(db, "encuesta", EN
 const leerAjustesEncuesta = (db: any): Promise<{ minutos: number }> => leerFila(db, "encuesta_ajustes", { minutos: 0 });
 const limpiarAjustesEncuesta = (a: any) => ({ minutos: Math.max(0, Math.min(120, Math.round(Number(a?.minutos) || 0))) });
 const encuestaAbierta = (e: Encuesta) => e.estado === "abierta" && (!e.cierra || Date.parse(e.cierra) > Date.now());
+// Mientras una encuesta está abierta no se puede abrir otra encima
 
 // "¿Qué jugamos? | LoL | Fortnite | ZZZ" → pregunta + 2 a 6 opciones
 function partirEncuesta(texto: string) {
@@ -374,6 +378,7 @@ const TXT_ENC = {
       (encuestaAbierta(e) ? ". Vota con el número." : " (cerrada)."),
   ayuda: () => "Para abrir una encuesta: !encuesta ¿Pregunta? | opción 1 | opción 2 (hasta 6 opciones)",
   cancelada: () => "La encuesta se canceló.",
+  ocupada: () => "📊 Ya hay una encuesta, espera a que termine. Para quitarla: !encuesta cancelar",
 };
 // ---------- fin del motor de encuestas ----------
 
@@ -406,6 +411,7 @@ Deno.serve(async (req) => {
       const pregunta = String(body.pregunta ?? "").trim();
       const opciones = (Array.isArray(body.opciones) ? body.opciones : []).map((o: unknown) => String(o ?? "").trim()).filter(Boolean);
       if (!pregunta || opciones.length < 2) return json({ ok: false, error: "faltan_opciones" }, 400);
+      if (encuestaAbierta(await leerEncuesta(db))) return json({ ok: false, error: "ocupada" });
       const e = await abrirEncuesta(db, pregunta, opciones);
       enSegundoPlano(decirEnChat(db, TXT_ENC.abierta(e)));
       return json(await estado());

@@ -4,7 +4,8 @@
 // Chat propio, los Sorteos y las Encuestas) y responde a los COMANDOS del chat que
 // configuras en Kyo Estudio → 🦈 AletaBot (se guardan en kyo_ajustes, fila "comandos").
 // También lleva los SORTEOS: !participar (todos) y !sorteo / !ganador (tú y tus mods),
-// y las ENCUESTAS: se vota escribiendo solo el número y se abren con !encuesta (tú y tus mods).
+// y las ENCUESTAS: se vota escribiendo solo el número y se abren con !encuesta (tú y tus mods),
+// y las PREDICCIONES de Twitch (puntos del canal) con !prediccion (tú y tus mods; necesita tu canal conectado).
 //
 // "Verify JWT" debe estar DESACTIVADO en esta función (Twitch la llama sin tus claves).
 // Secretos: KYO_SETUP_KEY y TWITCH_CLIENT_SECRET (la firma se calcula con KYO_SETUP_KEY).
@@ -211,6 +212,8 @@ function limpiarAjustesSorteo(a: any): AjustesSorteo {
   };
 }
 const abiertoAhora = (s: Sorteo) => s.estado === "abierto" && (!s.cierra || Date.parse(s.cierra) > Date.now());
+// Un sorteo sigue "en curso" mientras está abierto o cerrado sin ganador: no se puede abrir otro encima
+const sorteoEnCurso = (s: Sorteo) => s.estado === "abierto" || s.estado === "cerrado";
 
 async function abrirSorteo(db: any, premio: string) {
   const [s, aj] = await Promise.all([leerSorteo(db), leerAjustesSorteo(db)]);
@@ -300,6 +303,7 @@ const TXT_SORTEO = {
   vacio: () => "🫧 Nadie ha participado todavía en el sorteo.",
   sin_mas: () => "🫧 Ya no quedan participantes sin premio en este sorteo.",
   cancelado: () => "El sorteo se canceló.",
+  ocupado: (s: Sorteo) => "🎁 Ya hay un sorteo en marcha (" + s.premio + "), espera a que termine. Para quitarlo: !sorteo cancelar",
   estado: (s: Sorteo, n: number) => s.estado === "inactivo" ? "No hay ningún sorteo activo ahora mismo."
     : "🎁 Sorteo de " + s.premio + ": " + n + (n === 1 ? " participante" : " participantes") + (abiertoAhora(s) ? ". Escribe " + s.palabra + " para entrar." : " (entradas cerradas)."),
 };
@@ -335,7 +339,11 @@ async function atenderSorteo(db: any, ev: any, txt: string, badges: string[]): P
     if (!arg) { const s = await leerSorteo(db); await decirEnChat(db, TXT_SORTEO.estado(s, s.ronda ? await contarSorteo(db, s.ronda) : 0)); }
     else if (a === "cerrar") { const s = await cerrarSorteo(db); if (s.estado !== "inactivo") await decirEnChat(db, TXT_SORTEO.cerrado(s, await contarSorteo(db, s.ronda))); }
     else if (a === "cancelar") { await cancelarSorteo(db); await decirEnChat(db, TXT_SORTEO.cancelado()); }
-    else { const s = await abrirSorteo(db, arg); await decirEnChat(db, TXT_SORTEO.abierto(s)); }
+    else {
+      const actual = await leerSorteo(db);
+      if (sorteoEnCurso(actual)) await decirEnChat(db, TXT_SORTEO.ocupado(actual));
+      else { const s = await abrirSorteo(db, arg); await decirEnChat(db, TXT_SORTEO.abierto(s)); }
+    }
     return true;
   }
   if (primera === "!ganador" && esMod) {
@@ -367,6 +375,7 @@ const leerEncuesta = (db: any): Promise<Encuesta> => leerFila(db, "encuesta", EN
 const leerAjustesEncuesta = (db: any): Promise<{ minutos: number }> => leerFila(db, "encuesta_ajustes", { minutos: 0 });
 const limpiarAjustesEncuesta = (a: any) => ({ minutos: Math.max(0, Math.min(120, Math.round(Number(a?.minutos) || 0))) });
 const encuestaAbierta = (e: Encuesta) => e.estado === "abierta" && (!e.cierra || Date.parse(e.cierra) > Date.now());
+// Mientras una encuesta está abierta no se puede abrir otra encima
 
 // "¿Qué jugamos? | LoL | Fortnite | ZZZ" → pregunta + 2 a 6 opciones
 function partirEncuesta(texto: string) {
@@ -466,6 +475,7 @@ const TXT_ENC = {
       (encuestaAbierta(e) ? ". Vota con el número." : " (cerrada)."),
   ayuda: () => "Para abrir una encuesta: !encuesta ¿Pregunta? | opción 1 | opción 2 (hasta 6 opciones)",
   cancelada: () => "La encuesta se canceló.",
+  ocupada: () => "📊 Ya hay una encuesta, espera a que termine. Para quitarla: !encuesta cancelar",
 };
 // ---------- fin del motor de encuestas ----------
 
@@ -487,7 +497,12 @@ async function atenderEncuesta(db: any, ev: any, txt: string, badges: string[]):
     if (!arg) { const e = await leerEncuesta(db); await decirEnChat(db, TXT_ENC.estado(e, await recuento(db, e))); }
     else if (a === "cerrar") { const r = await cerrarEncuesta(db); if (r.e.estado === "cerrada" && await primerAnuncio(db, r.e.ronda)) await decirEnChat(db, TXT_ENC.resultado(r.e, r.votos)); }
     else if (a === "cancelar") { await cancelarEncuesta(db); await decirEnChat(db, TXT_ENC.cancelada()); }
-    else { const p = partirEncuesta(arg); if (!p) await decirEnChat(db, TXT_ENC.ayuda()); else await decirEnChat(db, TXT_ENC.abierta(await abrirEncuesta(db, p.pregunta, p.opciones))); }
+    else {
+      const p = partirEncuesta(arg);
+      if (!p) await decirEnChat(db, TXT_ENC.ayuda());
+      else if (encuestaAbierta(await leerEncuesta(db))) await decirEnChat(db, TXT_ENC.ocupada());
+      else await decirEnChat(db, TXT_ENC.abierta(await abrirEncuesta(db, p.pregunta, p.opciones)));
+    }
     return true;
   }
   // Votos: el mensaje es solo un número (1, 2, 3…)
@@ -496,6 +511,182 @@ async function atenderEncuesta(db: any, ev: any, txt: string, badges: string[]):
     if (e.estado === "abierta") { await votar(db, e, ev.chatter_user_login, Number(t)); return true; }
   }
   return false;
+}
+
+// ---------- Motor de predicciones (igual en twitch-bot-events y prediccion) ----------
+// Son las predicciones de verdad de Twitch (con puntos del canal). Twitch solo deja hacerlas con
+// el permiso de TU cuenta: se conecta en 🔌 Conexiones → "Conectar mi canal" (private_tokens "twitch_canal").
+// Ajustes (tiempo para apostar por defecto) en kyo_ajustes, fila "prediccion_ajustes".
+
+// Lee el token de tu canal y lo renueva solo si hace falta (igual que el de AletaBot)
+async function tokenCanal(db: any): Promise<TokenBot | null> {
+  const { data } = await db.from("private_tokens").select("value").eq("id", "twitch_canal").maybeSingle();
+  if (!data?.value) return null;
+  let t: TokenBot;
+  try { t = JSON.parse(data.value); } catch { return null; }
+  if (new Date(t.expira).getTime() > Date.now() + 5 * 60_000) return t;
+  const res = await fetch("https://id.twitch.tv/oauth2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ client_id: CLIENT_ID, client_secret: clientSecret(), grant_type: "refresh_token", refresh_token: t.refresh_token }),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok || !j.access_token) return new Date(t.expira).getTime() > Date.now() ? t : null;
+  const nuevo: TokenBot = {
+    access_token: j.access_token, refresh_token: j.refresh_token || t.refresh_token,
+    expira: new Date(Date.now() + (j.expires_in || 3600) * 1000).toISOString(), id: t.id, login: t.login,
+  };
+  await db.from("private_tokens").upsert({ id: "twitch_canal", value: JSON.stringify(nuevo), updated_at: new Date().toISOString() });
+  return nuevo;
+}
+
+type AjustesPred = { segundos: number };
+const AJ_PRED: AjustesPred = { segundos: 120 };
+const leerAjustesPred = async (db: any): Promise<AjustesPred> => {
+  const { data } = await db.from("kyo_ajustes").select("datos").eq("id", "prediccion_ajustes").maybeSingle();
+  return limpiarAjustesPred(Object.assign({}, AJ_PRED, data?.datos || {}));
+};
+const limpiarAjustesPred = (a: any): AjustesPred => ({ segundos: Math.max(30, Math.min(1800, Math.round(Number(a?.segundos) || 120))) });
+// Twitch cuenta letras, no bytes: cortamos por caracteres (los emojis no se parten)
+const cortar = (s: unknown, n: number) => Array.from(String(s ?? "").trim()).slice(0, n).join("");
+const predEnCurso = (p: any) => !!p && (p.status === "ACTIVE" || p.status === "LOCKED");
+
+// La predicción más reciente del canal (o null). Error: sin_canal | permiso | twitch
+async function prediccionActual(db: any): Promise<{ tk?: TokenBot; p?: any; error?: string }> {
+  const tk = await tokenCanal(db);
+  if (!tk) return { error: "sin_canal" };
+  const r = await helix("/predictions?broadcaster_id=" + tk.id + "&first=1", tk.access_token);
+  if (!r.ok) return { tk, error: r.status === 401 || r.status === 403 ? "permiso" : "twitch" };
+  return { tk, p: r.body?.data?.[0] || null };
+}
+
+// "¿Gana Kyo? | Sí | No | 5m" → título, 2 a 10 opciones y (opcional) tiempo para apostar
+function partirPrediccion(texto: string) {
+  const partes = String(texto).split("|").map((s) => s.trim()).filter(Boolean);
+  let segundos: number | null = null;
+  const t = partes.length >= 4 ? /^(\d{1,4})\s*(s|seg|m|min)?$/i.exec(partes[partes.length - 1]) : null;
+  if (t) { partes.pop(); segundos = Number(t[1]) * (/^m/i.test(t[2] || "") ? 60 : 1); }
+  if (partes.length < 3) return null;
+  return { titulo: partes[0], opciones: partes.slice(1, 11), segundos };
+}
+
+async function abrirPrediccion(db: any, titulo: string, opciones: string[], segundos?: number | null) {
+  const titulo45 = cortar(titulo, 45);
+  const ops = opciones.map((o) => cortar(o, 25)).filter(Boolean).slice(0, 10);
+  if (!titulo45 || ops.length < 2) return { error: "faltan_opciones" };
+  const a = await prediccionActual(db);
+  if (a.error) return { error: a.error };
+  if (predEnCurso(a.p)) return { error: "ocupada", p: a.p };
+  const ventana = segundos ? limpiarAjustesPred({ segundos }).segundos : (await leerAjustesPred(db)).segundos;
+  const r = await helix("/predictions", a.tk!.access_token, {
+    method: "POST",
+    body: JSON.stringify({ broadcaster_id: a.tk!.id, title: titulo45, outcomes: ops.map((title) => ({ title })), prediction_window: ventana }),
+  });
+  if (!r.ok) {
+    const m = String(r.body?.message || "").toLowerCase();
+    return { error: /active|already/.test(m) ? "ocupada" : r.status === 403 ? "permiso" : "twitch", detalle: r.body?.message || "" };
+  }
+  _pred = null;
+  return { p: r.body?.data?.[0] };
+}
+
+// estado: LOCKED (cerrar apuestas), RESOLVED (con la opción ganadora, 1…n) o CANCELED (devuelve los puntos)
+async function terminarPrediccion(db: any, estado: "LOCKED" | "RESOLVED" | "CANCELED", ganadora?: number) {
+  const a = await prediccionActual(db);
+  if (a.error) return { error: a.error };
+  const p = a.p;
+  if (!predEnCurso(p)) return { error: "sin_prediccion" };
+  if (estado === "LOCKED" && p.status !== "ACTIVE") return { error: "ya_bloqueada", p };
+  const cuerpo: any = { broadcaster_id: a.tk!.id, id: p.id, status: estado };
+  if (estado === "RESOLVED") {
+    const o = p.outcomes?.[(Number(ganadora) || 0) - 1];
+    if (!o) return { error: "opcion_mala", p };
+    cuerpo.winning_outcome_id = o.id;
+  }
+  const r = await helix("/predictions", a.tk!.access_token, { method: "PATCH", body: JSON.stringify(cuerpo) });
+  if (!r.ok) return { error: r.status === 403 ? "permiso" : "twitch", detalle: r.body?.message || "" };
+  _pred = null;
+  return { p: r.body?.data?.[0] || p };
+}
+
+// Lo que ve el overlay (y el Estudio). Caché de 1,5 s para no llamar a Twitch de más
+let _pred: { ts: number; d: any } | null = null;
+function publicaDe(p: any) {
+  if (!p) return { estado: "inactivo" };
+  const ops = (p.outcomes || []).map((o: any) => ({
+    titulo: o.title, puntos: Number(o.channel_points) || 0, gente: Number(o.users) || 0,
+    top: o.top_predictors?.[0] ? { nombre: o.top_predictors[0].user_name, gano: Number(o.top_predictors[0].channel_points_won) || 0, uso: Number(o.top_predictors[0].channel_points_used) || 0 } : null,
+  }));
+  const g = (p.outcomes || []).findIndex((o: any) => o.id === p.winning_outcome_id);
+  const cierra = p.created_at ? new Date(Date.parse(p.created_at) + (Number(p.prediction_window) || 0) * 1000).toISOString() : null;
+  return {
+    estado: String(p.status || "").toLowerCase(), // active | locked | resolved | canceled
+    id: p.id, titulo: p.title, opciones: ops, ganadora: g, ventana: Number(p.prediction_window) || 0,
+    creada: p.created_at || null, cierra, bloqueada: p.locked_at || null, terminada: p.ended_at || null,
+    total: ops.reduce((a: number, o: any) => a + o.puntos, 0), gente: ops.reduce((a: number, o: any) => a + o.gente, 0),
+  };
+}
+async function prediccionPublica(db: any) {
+  if (_pred && Date.now() - _pred.ts < 1500) return { ..._pred.d, ahora: new Date().toISOString() };
+  const a = await prediccionActual(db);
+  const d = a.error ? { ok: false, error: a.error, prediccion: { estado: "inactivo" } } : { ok: true, prediccion: publicaDe(a.p) };
+  _pred = { ts: Date.now(), d };
+  return { ...d, ahora: new Date().toISOString() };
+}
+
+const fmtPts = (n: number) => n >= 1e6 ? (n / 1e6).toFixed(1).replace(".0", "") + "M" : n >= 1e3 ? (n / 1e3).toFixed(1).replace(".0", "") + "K" : String(n);
+const fmtTiempo = (s: number) => s >= 60 ? Math.round(s / 60) + " min" : s + " s";
+const TXT_PRED = {
+  abierta: (p: any) => "🔮 ¡Predicción! " + p.title + " → " + (p.outcomes || []).map((o: any, i: number) => (i + 1) + ") " + o.title).join(" · ") +
+    ". Apuesta tus puntos del canal (tienes " + fmtTiempo(Number(p.prediction_window) || 0) + ") 🦈",
+  bloqueada: (p: any) => "🔒 ¡Apuestas cerradas! " + p.title + " · Ahora a esperar el resultado 🌊",
+  resultado: (p: any) => {
+    const o = (p.outcomes || []).find((x: any) => x.id === p.winning_outcome_id);
+    if (!o) return "🔮 La predicción «" + p.title + "» terminó.";
+    const top = o.top_predictors?.[0];
+    return "🔮 ¡Ganó \"" + o.title + "\"! " + (top ? "@" + top.user_name + " se lleva " + fmtPts(Number(top.channel_points_won) || 0) + " puntos 🎉🦈" : "Nadie apostó por ella 🫧");
+  },
+  cancelada: () => "🔮 La predicción se canceló: se devolvieron los puntos 🫧",
+  ocupada: () => "🔮 Ya hay una predicción, espera a que termine. Para quitarla: !prediccion cancelar",
+  ayuda: () => "🔮 Para abrir: !prediccion ¿Pregunta? | opción 1 | opción 2 (hasta 10; al final puedes poner el tiempo, como | 5m). Luego: !prediccion bloquear · !prediccion gana 1 · !prediccion cancelar",
+  estado: (p: any) => !predEnCurso(p) ? "No hay ninguna predicción activa ahora mismo."
+    : "🔮 " + p.title + " → " + (p.outcomes || []).map((o: any, i: number) => (i + 1) + ") " + o.title + " " + fmtPts(Number(o.channel_points) || 0)).join(" · ") +
+      (p.status === "LOCKED" ? " (apuestas cerradas)" : ""),
+  error: (e: string) => ({
+    sin_canal: "🔮 Kyo aún no conectó su canal para las predicciones.",
+    permiso: "🔮 Twitch no dejó hacerlo: Kyo tiene que volver a conectar su canal.",
+    sin_prediccion: "No hay ninguna predicción activa ahora mismo.",
+    ya_bloqueada: "🔒 Las apuestas ya estaban cerradas. Ahora: !prediccion gana 1, 2…",
+    opcion_mala: "Esa opción no existe: usa !prediccion gana 1, 2…",
+    faltan_opciones: "🔮 Para abrir: !prediccion ¿Pregunta? | opción 1 | opción 2",
+  } as Record<string, string>)[e] || "🔮 Twitch no dejó hacerlo ahora mismo 🫧",
+};
+// ---------- fin del motor de predicciones ----------
+
+// Predicciones por el chat (tú y tus mods). Devuelve true si el mensaje era de la predicción.
+async function atenderPrediccion(db: any, txt: string, badges: string[]): Promise<boolean> {
+  const t = txt.trim();
+  const primera = (t.split(/\s+/)[0] || "").toLowerCase();
+  if (!["!prediccion", "!predicción", "!pred"].includes(primera)) return false;
+  if (!(badges.includes("broadcaster") || badges.includes("moderator"))) return false;
+  const arg = t.slice(primera.length).trim(), a = arg.toLowerCase().split(/\s+/);
+  let r: any;
+  if (!arg) {
+    const x = await prediccionActual(db);
+    await decirEnChat(db, x.error ? TXT_PRED.error(x.error) : TXT_PRED.estado(x.p));
+    return true;
+  }
+  if (["bloquear", "cerrar"].includes(a[0])) { r = await terminarPrediccion(db, "LOCKED"); if (!r.error) await decirEnChat(db, TXT_PRED.bloqueada(r.p)); }
+  else if (["gana", "ganador", "ganadora", "resolver"].includes(a[0])) { r = await terminarPrediccion(db, "RESOLVED", Number(a[1])); if (!r.error) await decirEnChat(db, TXT_PRED.resultado(r.p)); }
+  else if (a[0] === "cancelar") { r = await terminarPrediccion(db, "CANCELED"); if (!r.error) await decirEnChat(db, TXT_PRED.cancelada()); }
+  else {
+    const p = partirPrediccion(arg);
+    if (!p) { await decirEnChat(db, TXT_PRED.ayuda()); return true; }
+    r = await abrirPrediccion(db, p.titulo, p.opciones, p.segundos);
+    if (!r.error) await decirEnChat(db, TXT_PRED.abierta(r.p));
+  }
+  if (r?.error) await decirEnChat(db, r.error === "ocupada" ? TXT_PRED.ocupada() : TXT_PRED.error(r.error));
+  return true;
 }
 
 // Responde a un mensaje del chat si es un comando
@@ -511,6 +702,8 @@ async function atender(db: any, ev: any, idBot: string, idMensaje: string) {
   catch { /* si el sorteo falla (p. ej. falta 05_sorteos.sql), los comandos siguen funcionando */ }
   try { if (await atenderEncuesta(db, ev, txt, badges)) return; }
   catch { /* igual con la encuesta (p. ej. falta 06_encuestas.sql) */ }
+  try { if (await atenderPrediccion(db, txt, badges)) return; }
+  catch { /* y con la predicción */ }
 
   const c = buscarComando(await leerComandos(db), txt);
   if (!c) return;

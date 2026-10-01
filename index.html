@@ -101,6 +101,8 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .enfila span,.enfila b{position:relative;z-index:1}
 .enfila i{position:absolute;left:0;top:0;bottom:0;background:rgba(111,227,240,.18);transition:width .6s}
 .enfila.gano{border-color:#F4C542}.enfila.gano i{background:rgba(244,197,66,.28)}
+.prgana{justify-self:start;font-size:13px;padding:5px 12px;margin:-2px 0 4px}
+#prTiempo{background:var(--panel2);color:inherit;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit}
 /* Pestaña Prensa */
 .prpar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .prpar > *{min-width:0}
@@ -291,6 +293,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <button type="button" data-sub="cuenta" aria-pressed="false">⏱ Cuenta atrás</button>
     <button type="button" data-sub="chat" aria-pressed="false">💬 Chat</button>
     <button type="button" data-sub="sorteo" aria-pressed="false">🎁 Sorteo y encuesta</button>
+    <button type="button" data-sub="prediccion" aria-pressed="false">🔮 Predicción</button>
   </nav>
 
   <!-- ===================== MÚSICA ===================== -->
@@ -481,6 +484,41 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <div class="prev" data-prev="sorteo"></div>
   </section>
 
+  <!-- ===================== PREDICCIÓN ===================== -->
+  <section data-panel="prediccion" class="grid" hidden>
+    <form class="card opts" id="fPrediccion" onsubmit="return false">
+      <div class="grupo"><h3>Cómo funciona</h3>
+        <p class="nota">Las predicciones de Twitch de verdad, con tus puntos del canal (necesita <b>🔌 Conexiones → Conectar mi canal</b>). Entra por el lado que elijas; al cerrar las apuestas se encoge en un cuadrito y espera ahí el resultado sin molestar. Con el resultado se vuelve a abrir y a los 30 s se va sola. Se controla desde <b>🦈 AletaBot</b>, desde Twitch o desde el chat (tú y tus mods):</p>
+        <ul class="botvars">
+          <li><code>!prediccion ¿Ganará Kyo el game? | Sí | No</code><span>abre una predicción (2 a 10 opciones separadas por |)</span></li>
+          <li><code>!prediccion ¿Top 1? | Sí | No | 5m</code><span>con tiempo para apostar al final (30s a 30m); si no, usa el de las opciones</span></li>
+          <li><code>!prediccion bloquear</code><span>cierra las apuestas (a los 5 s se hace pequeña)</span></li>
+          <li><code>!prediccion gana 1</code><span>la opción 1 gana y se reparten los puntos</span></li>
+          <li><code>!prediccion cancelar</code><span>la cancela y devuelve los puntos</span></li>
+          <li><code>!prediccion</code><span>AletaBot dice cómo va</span></li>
+        </ul>
+      </div>
+      <div class="grupo"><h3>Estilo</h3>
+        <div class="f"><span>Entra y sale por</span><div class="chips" data-radio="lado" data-val="izq:⬅ La izquierda,der:La derecha ➡"></div></div>
+        <div class="f"><span>Temporada</span><div class="chips" data-radio="tema" data-val="marea:🌊 Normal,octubre:🎃 Halloween,navidad:🎄 Navidad"></div></div>
+        <div class="f"><span>Tamaño</span><div class="chips" data-radio="escala" data-val="0.75:Pequeño,1:Normal,1.25:Grande,1.5:Muy grande"></div></div>
+      </div>
+      <div class="grupo"><h3>Colores</h3>
+        <div class="chips"><label><input type="checkbox" name="colores"> Usar mis propios colores</label></div>
+        <div class="colores off" data-colores>
+          <label>Acento<input type="color" name="acento" value="#6fe3f0"></label>
+          <label>Borde / pegatina<input type="color" name="borde" value="#ffffff"></label>
+          <label>Caja<input type="color" name="caja" value="#0f1a4a"></label>
+          <label>Texto<input type="color" name="texto" value="#f5f3fb"></label>
+        </div>
+      </div>
+      <div class="grupo"><h3>Dónde colocarlo en OBS</h3>
+        <p class="nota">La tarjeta se pega arriba, en el lado que elegiste. Pon la fuente pegada a ese borde de la pantalla para que parezca que entra y sale de ahí.</p>
+      </div>
+    </form>
+    <div class="prev" data-prev="prediccion"></div>
+  </section>
+
   <!-- ===================== ANIMACIONES ===================== -->
   <section data-panel="animaciones" hidden>
     <div class="card animhead">
@@ -569,6 +607,13 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       </div>
       <p class="nota">Se conecta una sola vez, con la cuenta de AletaBot (no con la tuya). Necesita que AletaBot ya sea moderadora de tu canal: escribe <code>/mod AletaBot</code> en tu chat si aún no lo hiciste.</p>
     </div>
+    <div class="card">
+      <h2>🔮 Tu canal (predicciones)</h2>
+      <div class="estado" id="eCanal"><i></i><span>Comprobando…</span></div>
+      <p class="nota" id="nCanal"></p>
+      <div class="acciones"><button class="btn pri" type="button" id="btnCanal">Conectar mi canal</button></div>
+      <p class="nota">Para abrir predicciones con tus puntos del canal desde el Estudio o con <code>!prediccion</code>. Esta vez entra en Twitch con <b>tu cuenta KyoSumiVT</b> (no con AletaBot). Solo pide permiso para ver y gestionar predicciones.</p>
+    </div>
     <div class="card" id="copia">
       <h2>💾 Copia de seguridad</h2>
       <p class="nota">Guarda en un archivo todo lo que el Estudio recuerda en este navegador: ajustes de los widgets, animaciones y anuncios, ⭐ Mis versiones, paneles, música e imágenes propias. Si cambias de navegador u ordenador, o se borran los datos, lo recuperas con "Restaurar". Tu código de acceso <b>no</b> se guarda en la copia.</p>
@@ -623,7 +668,10 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       pruebas: [['mensaje', '💬 Mensaje de ejemplo'], ['limpiar', '🧹 Limpiar el chat']] },
     sorteo: { w: 720, h: 600,
       def: { tema: 'marea', escala: '1' },
-      pruebas: [['participantes', '🫧 Entran 5 personas'], ['ganador', '🎉 Probar ganador'], ['encuesta', '📊 Probar encuesta'], ['votos', '🗳 Llegan votos'], ['cerrarEnc', '🏆 Cerrar encuesta'], ['ambos', '🔀 Los dos a la vez'], ['reiniciar', '↺ Empezar de nuevo']] }
+      pruebas: [['participantes', '🫧 Entran 5 personas'], ['ganador', '🎉 Probar ganador'], ['encuesta', '📊 Probar encuesta'], ['votos', '🗳 Llegan votos'], ['cerrarEnc', '🏆 Cerrar encuesta'], ['ambos', '🔀 Los dos a la vez'], ['reiniciar', '↺ Empezar de nuevo']] },
+    prediccion: { w: 700, h: 460,
+      def: { tema: 'marea', escala: '1', lado: 'izq' },
+      pruebas: [['abrir', '🔮 Abrir predicción'], ['apuestas', '💰 Llegan apuestas'], ['bloquear', '🔒 Cerrar apuestas'], ['resolver', '🏆 Resultado'], ['cancelar', '↩ Cancelar'], ['muchas', '🔢 Con 6 opciones']] }
   };
   const CHAT_OCULTOS = 'streamelements,nightbot,streamlabs,moobot,fossabot';
 
@@ -669,7 +717,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   function url(id, demo) {
     const o = estadoForm(id), d = W[id].def, p = new URLSearchParams();
     const set = (k, v) => { if (v !== undefined && v !== '' && v !== d[k]) p.set(k, v); };
-    ['diseno', 'tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'mover', 'cuenta', 'ventana', 'hoy', 'celebrar', 'etiquetas', 'alfinal'].forEach(k => { if (k in o) set(k, o[k]); });
+    ['diseno', 'tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'mover', 'cuenta', 'ventana', 'hoy', 'celebrar', 'etiquetas', 'alfinal', 'lado'].forEach(k => { if (k in o) set(k, o[k]); });
     if (o.colores) ['acento', 'borde', 'caja', 'texto'].forEach(k => p.set(k, (o[k] || '').replace('#', '')));
     if (id === 'spotify') {
       const ocultar = d.ver.filter(v => !(o.ver || []).includes(v));
@@ -689,7 +737,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       if (Number(o.seg) > 0) p.set('seg', o.seg);
       const ocu = (o.ocultos || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean).join(',');
       if (ocu !== CHAT_OCULTOS) p.set('ocultos', ocu);
-    } else if (id === 'sorteo') {
+    } else if (id === 'sorteo' || id === 'prediccion') {
       // solo estilo: el premio y los participantes llegan en vivo desde Supabase
     } else {
       p.set('nombre', o.nombre || 'TuNombreEpic');
@@ -731,7 +779,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       prev.ver = (prev.ver || []).map(v => v === 'disco' ? 'portada' : v === 'sonar' ? 'progreso' : v);
       if (prev.fuente === 'fredoka') prev.fuente = 'auto';
     }
-    const extra = id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : id === 'cuenta' ? { titulo: 'REVELACIÓN EN', final: '¡YA!', fecha: fechaPorDefecto(), h: '1', m: '0', s: '0', sesion: '1' } : id === 'chat' ? { canal: 'kyosumivt', max: '12', seg: '0', ocultos: CHAT_OCULTOS } : id === 'sorteo' ? {} : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' };
+    const extra = id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : id === 'cuenta' ? { titulo: 'REVELACIÓN EN', final: '¡YA!', fecha: fechaPorDefecto(), h: '1', m: '0', s: '0', sesion: '1' } : id === 'chat' ? { canal: 'kyosumivt', max: '12', seg: '0', ocultos: CHAT_OCULTOS } : id === 'sorteo' || id === 'prediccion' ? {} : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' };
     aplicarForm(id, Object.assign({}, W[id].def, extra, prev || {}));
     const panel = $('[data-panel="' + id + '"]');
     panel.addEventListener('change', () => actualizar(id));
@@ -825,6 +873,11 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
         : 'Entra en Twitch con la cuenta de AletaBot y pulsa "Conectar AletaBot".';
       $('#btnBot').textContent = ok ? 'Volver a conectar' : 'Conectar AletaBot';
       $('#botExtra').hidden = !ok;
+      const c = d.canal || {};
+      pintarEstado($('#eCanal'), !!c.conectado, c.conectado ? 'Conectado' : 'Sin conectar');
+      $('#nCanal').textContent = c.conectado ? 'Conectado como ' + (c.cuenta || 'tu canal') + ' desde ' + new Date(c.desde).toLocaleString('es') + '.'
+        : 'Entra en Twitch con tu cuenta KyoSumiVT y pulsa "Conectar mi canal".';
+      $('#btnCanal').textContent = c.conectado ? 'Volver a conectar' : 'Conectar mi canal';
       $('#pBot').title = 'Comprobado a las ' + hora();
     } catch (e) {
       if ($('#pBot').classList.contains('ok')) return; // fallo puntual: se reintenta luego
@@ -841,6 +894,13 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     } catch (e) { toast('No encuentro la función twitch-bot-auth.', 5000); }
   });
   $('#btnBotRefrescar').addEventListener('click', comprobarBot);
+  $('#btnCanal').addEventListener('click', async () => {
+    try {
+      const d = await pedir('twitch-bot-auth', { accion: 'conectar', cuenta: 'canal', clave: leer('kyo_codigo') || '', volver: location.href.split('#')[0] });
+      if (d.ok && d.url) location.href = d.url;
+      else toast(d.error === 'faltan_secretos' ? 'Falta el secreto TWITCH_CLIENT_SECRET en Supabase.' : d.error === 'volver' ? 'El Estudio tiene que abrirse con https:// para conectar tu canal.' : errCodigo(d), 5000);
+    } catch (e) { toast('No encuentro la función twitch-bot-auth.', 5000); }
+  });
   const BOT_ERR = { sin_bot: 'AletaBot aún no está conectada.', sin_canal: 'No encuentro tu canal en Twitch.', twitch: 'Twitch no lo aceptó: ¿AletaBot es moderadora de tu canal?', sin_token_app: 'Revisa el secreto TWITCH_CLIENT_SECRET.' };
   async function llamarBot(fn, extra) {
     const r = await fetch(FN(fn), { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, HDR), body: JSON.stringify(Object.assign({ clave: leer('kyo_codigo') || '' }, extra || {})) });
@@ -885,6 +945,14 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   if (h.startsWith('#bot=')) {
     const v = h.slice(5);
     const txt = { 'ok': '¡AletaBot conectada! 🦈', 'error-cancelado': 'Cancelaste el permiso en Twitch.', 'error-twitch': 'Twitch no aceptó la conexión: revisa que la Redirect URL de tu app sea exacta.', 'error-usuario': 'Twitch no devolvió la cuenta. Inténtalo otra vez.', 'error-tabla': 'No se pudo guardar: ejecuta 01_setup.sql en Supabase.' }[v] || v;
+    history.replaceState(null, '', location.pathname + location.search);
+    setTimeout(() => { tab('conexiones'); toast(txt, 6000); }, 300);
+  }
+
+  // Vuelta de Twitch (tu canal, para predicciones): #canal=ok o #canal=error-...
+  if (h.startsWith('#canal=')) {
+    const v = h.slice(7);
+    const txt = { 'ok': '¡Tu canal está conectado! Ya puedes hacer predicciones 🔮', 'error-cuenta': 'Esa no es tu cuenta KyoSumiVT: cambia de cuenta en Twitch y vuelve a intentarlo.', 'error-cancelado': 'Cancelaste el permiso en Twitch.', 'error-twitch': 'Twitch no aceptó la conexión: revisa que la Redirect URL de tu app sea exacta.', 'error-usuario': 'Twitch no devolvió la cuenta. Inténtalo otra vez.', 'error-tabla': 'No se pudo guardar: ejecuta 01_setup.sql en Supabase.' }[v] || v;
     history.replaceState(null, '', location.pathname + location.search);
     setTimeout(() => { tab('conexiones'); toast(txt, 6000); }, 300);
   }

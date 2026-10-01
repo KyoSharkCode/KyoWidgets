@@ -105,6 +105,21 @@ function abrir() {
           '</details>' +
           '<p class="nota">En el chat, tú y tus mods: <code>!encuesta ¿Pregunta? | opción 1 | opción 2</code> · <code>!encuesta cerrar</code> · <code>!encuesta cancelar</code>. Se vota escribiendo solo el número.</p>' +
         '</div>' +
+        '<div class="card" id="predCard"><h2>🔮 Predicción (puntos del canal)</h2>' +
+          '<div class="ovestado" id="prEstado">Cargando…</div>' +
+          '<label class="f"><span>Pregunta (máx. 45)</span><input type="text" id="prTitulo" maxlength="45" placeholder="¿Ganará Kyo el game?"></label>' +
+          '<div class="enops" id="prOps">' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => '<input type="text" data-op maxlength="25" placeholder="Opción ' + i + (i > 2 ? ' (opcional)' : '') + '"' + (i > 2 ? ' hidden' : '') + '>').join('') + '</div>' +
+          '<div class="acciones"><button class="btn" type="button" id="prMas">+ Otra opción</button>' +
+            '<select id="prTiempo" aria-label="Tiempo para apostar"><option value="">Tiempo por defecto</option><option value="60">1 min</option><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="900">15 min</option><option value="1800">30 min</option></select>' +
+            '<button class="btn pri" type="button" data-pr="abrir">Abrir predicción</button></div>' +
+          '<div class="acciones"><button class="btn" type="button" data-pr="bloquear">🔒 Cerrar apuestas</button><button class="btn" type="button" data-pr="cancelar">↩ Cancelar (devuelve puntos)</button></div>' +
+          '<div class="enres" id="prRes"></div>' +
+          '<details class="soopts"><summary>⚙️ Opciones</summary>' +
+            '<div class="bopts"><label><span>Tiempo para apostar por defecto (segundos, 30–1800)</span><input type="number" id="prSeg" min="30" max="1800" step="30"></label></div>' +
+            '<div class="acciones"><button class="btn" type="button" id="prGuardar">Guardar opciones</button></div>' +
+          '</details>' +
+          '<p class="nota">Pulsa la opción que ganó para repartir los puntos. En el chat, tú y tus mods: <code>!prediccion ¿Pregunta? | Sí | No</code> · <code>!prediccion bloquear</code> · <code>!prediccion gana 1</code> · <code>!prediccion cancelar</code>. El overlay está en Widgets → 🔮 Predicción.</p>' +
+        '</div>' +
         '<div class="card"><h2>🧪 Probar</h2>' +
           '<p class="nota">Escribe como si fueras alguien del chat. Te muestra lo que contestaría AletaBot <b>sin escribir nada en tu chat</b> ni sumar contadores. Usa también los cambios que aún no has guardado.</p>' +
           '<div class="acciones botbarra"><input type="text" id="botProbarTxt" placeholder="!beso @alguien"><button class="btn pri" type="button" id="botProbar">Probar</button></div>' +
@@ -237,7 +252,7 @@ function abrir() {
   // ---------- Sorteo ----------
   const soEst = $('#soEstado', app);
   const TXT_EST = { inactivo: 'No hay ningún sorteo activo.', abierto: '🫧 Abierto: la gente puede entrar.', cerrado: '🔒 Entradas cerradas: elige ganador.', ganador: '🎉 Ganó:' };
-  const ERR_SO = { vacio: 'Nadie ha participado todavía.', sin_mas: 'Ya no quedan participantes sin premio.', sin_sorteo: 'No hay ningún sorteo abierto.' };
+  const ERR_SO = { vacio: 'Nadie ha participado todavía.', sin_mas: 'Ya no quedan participantes sin premio.', sin_sorteo: 'No hay ningún sorteo abierto.', ocupado: 'Ya hay un sorteo en marcha: elige ganador o quítalo antes de abrir otro.' };
   function pintarSorteo(d) {
     if (!d || !d.ok) { soEst.className = 'ovestado mal'; soEst.textContent = d && d.error === 'tabla' ? 'Falta ejecutar 05_sorteos.sql en Supabase.' : 'No encuentro la función sorteo. ¿Está creada en Supabase?'; return; }
     soEst.className = 'ovestado ' + (d.estado === 'inactivo' ? '' : 'ok');
@@ -279,7 +294,7 @@ function abrir() {
 
   // ---------- Encuesta ----------
   const enEst = $('#enEstado', app);
-  const ERR_EN = { faltan_opciones: 'Escribe la pregunta y al menos 2 opciones.' };
+  const ERR_EN = { faltan_opciones: 'Escribe la pregunta y al menos 2 opciones.', ocupada: 'Ya hay una encuesta abierta: ciérrala o quítala antes de abrir otra.' };
   function pintarEncuesta(e) {
     if (!e) { enEst.className = 'ovestado mal'; enEst.textContent = 'No encuentro la función encuesta. ¿Está creada en Supabase? (y ejecutado 06_encuestas.sql)'; $('#enRes', app).innerHTML = ''; return; }
     const abierta = e.estado === 'abierta' && (!e.cierra || Date.parse(e.cierra) > Date.parse(e.ahora || new Date().toISOString()));
@@ -322,6 +337,71 @@ function abrir() {
   pedirA('encuesta', { accion: 'ajustes' }).then(d => { if (d.ok) $('#enMin', app).value = d.ajustes.minutos; }).catch(() => {});
   leerEncuesta();
   setInterval(() => { if (document.visibilityState === 'visible' && !app.closest('[data-panel]').hidden) leerEncuesta(); }, 3000);
+
+  // ---------- Predicción (de Twitch, con puntos del canal) ----------
+  const prEst = $('#prEstado', app);
+  const ERR_PR = {
+    sin_canal: 'Primero conecta tu canal: 🔌 Conexiones → "Conectar mi canal" (con tu cuenta KyoSumiVT).',
+    permiso: 'Twitch no dio permiso: vuelve a conectar tu canal en 🔌 Conexiones.',
+    ocupada: 'Ya hay una predicción en marcha: resuélvela o cancélala antes de abrir otra.',
+    sin_prediccion: 'No hay ninguna predicción en marcha.',
+    ya_bloqueada: 'Las apuestas ya estaban cerradas: ahora elige la opción ganadora.',
+    opcion_mala: 'Esa opción no existe.',
+    faltan_opciones: 'Escribe la pregunta y al menos 2 opciones.',
+    twitch: 'Twitch no dejó hacerlo ahora mismo. ¿Eres afiliada o partner?'
+  };
+  const pts = n => n >= 1e6 ? (n / 1e6).toFixed(1).replace('.0', '') + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1).replace('.0', '') + 'K' : String(n || 0);
+  let prActual = null;
+  function pintarPrediccion(d) {
+    if (!d) { prEst.className = 'ovestado mal'; prEst.textContent = 'No encuentro la función prediccion. ¿Está creada en Supabase?'; $('#prRes', app).innerHTML = ''; return; }
+    if (!d.ok) { prEst.className = 'ovestado mal'; prEst.textContent = ERR_PR[d.error] || errTexto(d); $('#prRes', app).innerHTML = ''; prActual = null; return; }
+    const p = d.prediccion || {}; prActual = p;
+    const vivo = p.estado === 'active' || p.estado === 'locked';
+    prEst.className = 'ovestado ' + (vivo ? 'ok' : '');
+    prEst.textContent = p.estado === 'active' ? '🔮 Abierta: ' + p.titulo : p.estado === 'locked' ? '🔒 Apuestas cerradas: ' + p.titulo + ' · elige la ganadora'
+      : p.estado === 'resolved' ? '🏆 Última: ' + p.titulo : p.estado === 'canceled' ? '↩ Última (cancelada): ' + p.titulo : 'No hay ninguna predicción en marcha.';
+    const t = p.total || 0;
+    $('#prRes', app).innerHTML = (p.opciones || []).map((o, i) => {
+      const pc = t ? Math.round(o.puntos / t * 100) : 0, g = p.ganadora === i && p.estado === 'resolved';
+      return '<div class="enfila' + (g ? ' gano' : '') + '"><span>' + (i + 1) + '. ' + esc(o.titulo) + (g ? ' 🏆' : '') + '</span><b>' + pc + '% · ' + pts(o.puntos) + ' · ' + o.gente + ' 👤</b><i style="width:' + pc + '%"></i></div>' +
+        (vivo ? '<button class="btn prgana" type="button" data-pr="resolver" data-op="' + (i + 1) + '">🏆 Ganó «' + esc(o.titulo) + '»</button>' : '');
+    }).join('') + (p.opciones ? '<p class="nota">' + pts(t) + ' puntos · ' + (p.gente || 0) + ' personas</p>' : '');
+  }
+  async function leerPrediccion() {
+    try { const r = await fetch(FN('prediccion') + '?t=' + Date.now(), { headers: HDR, cache: 'no-store' }); pintarPrediccion(r.ok ? await r.json() : null); }
+    catch (er) { pintarPrediccion(null); }
+  }
+  $('#prMas', app).addEventListener('click', () => { const h = $('#prOps [data-op][hidden]', app); if (h) { h.hidden = false; h.focus(); } if (!$('#prOps [data-op][hidden]', app)) $('#prMas', app).hidden = true; });
+  $('#predCard', app).addEventListener('click', async e => {
+    const b = e.target.closest('[data-pr]'); if (!b) return;
+    const accion = b.dataset.pr, cuerpo = { accion };
+    if (accion === 'abrir') {
+      cuerpo.titulo = $('#prTitulo', app).value.trim();
+      cuerpo.opciones = $$('#prOps [data-op]', app).map(i => i.value.trim()).filter(Boolean);
+      if ($('#prTiempo', app).value) cuerpo.segundos = Number($('#prTiempo', app).value);
+      if (!cuerpo.titulo || cuerpo.opciones.length < 2) { aviso(ERR_PR.faltan_opciones); return; }
+    }
+    if (accion === 'resolver') cuerpo.opcion = Number(b.dataset.op);
+    if (accion === 'cancelar' && !b.dataset.seguro) { b.dataset.seguro = '1'; b.textContent = '¿Seguro? Pulsa otra vez'; setTimeout(() => { delete b.dataset.seguro; b.textContent = '↩ Cancelar (devuelve puntos)'; }, 3000); return; }
+    b.disabled = true;
+    try {
+      const d = await pedirA('prediccion', cuerpo);
+      if (d.ok) {
+        pintarPrediccion(d);
+        aviso({ abrir: '¡Predicción abierta en Twitch! AletaBot la anuncia 🔮', bloquear: 'Apuestas cerradas 🔒', resolver: '¡Puntos repartidos! 🏆', cancelar: 'Predicción cancelada: puntos devueltos ↩' }[accion]);
+        if (accion === 'abrir') { $('#prTitulo', app).value = ''; $$('#prOps [data-op]', app).forEach((i, k) => { i.value = ''; i.hidden = k > 1; }); $('#prMas', app).hidden = false; }
+      } else aviso(ERR_PR[d.error] || errTexto(d), 6000);
+    } catch (er) { aviso('No encuentro la función prediccion.', 5000); }
+    b.disabled = false;
+    if (accion === 'cancelar') { delete b.dataset.seguro; b.textContent = '↩ Cancelar (devuelve puntos)'; }
+  });
+  $('#prGuardar', app).addEventListener('click', async () => {
+    try { const d = await pedirA('prediccion', { accion: 'ajustes', ajustes: { segundos: $('#prSeg', app).value } }); if (d.ok) { $('#prSeg', app).value = d.ajustes.segundos; aviso('Opciones de la predicción guardadas ✓'); } else aviso(errTexto(d), 5000); }
+    catch (er) { aviso('No encuentro la función prediccion.', 5000); }
+  });
+  pedirA('prediccion', { accion: 'ajustes' }).then(d => { if (d.ok) $('#prSeg', app).value = d.ajustes.segundos; }).catch(() => {});
+  leerPrediccion();
+  setInterval(() => { if (document.visibilityState === 'visible' && !app.closest('[data-panel]').hidden) leerPrediccion(); }, 3000);
 
   // Carga: lo guardado en Supabase, salvo que haya un borrador sin guardar en este navegador
   (async () => {

@@ -166,7 +166,7 @@ body{width:720px;height:600px;display:grid;place-items:center;font-family:"Fredo
   const escala = Math.min(2, Math.max(0.5, Number(q.get('escala')) || 1)); if (escala !== 1) document.documentElement.style.zoom = escala;
   const DEMO = q.get('demo') === '1';
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const VER_FINAL = 45000;   // cuánto se queda en pantalla el ganador o el resultado
+  const VER_FINAL = 30000;   // cuánto se queda en pantalla el ganador o el resultado
   const URGENTE = 14000;     // durante este rato, el ganador o el resultado no se turnan
   const TURNO = 10000;       // si hay sorteo y encuesta a la vez, cambian cada 10 s
   const CAMBIO = 1300;       // lo que tarda la ola en tapar la tarjeta

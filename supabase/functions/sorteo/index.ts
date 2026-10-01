@@ -156,6 +156,8 @@ function limpiarAjustesSorteo(a: any): AjustesSorteo {
   };
 }
 const abiertoAhora = (s: Sorteo) => s.estado === "abierto" && (!s.cierra || Date.parse(s.cierra) > Date.now());
+// Un sorteo sigue "en curso" mientras está abierto o cerrado sin ganador: no se puede abrir otro encima
+const sorteoEnCurso = (s: Sorteo) => s.estado === "abierto" || s.estado === "cerrado";
 
 async function abrirSorteo(db: any, premio: string) {
   const [s, aj] = await Promise.all([leerSorteo(db), leerAjustesSorteo(db)]);
@@ -245,6 +247,7 @@ const TXT_SORTEO = {
   vacio: () => "🫧 Nadie ha participado todavía en el sorteo.",
   sin_mas: () => "🫧 Ya no quedan participantes sin premio en este sorteo.",
   cancelado: () => "El sorteo se canceló.",
+  ocupado: (s: Sorteo) => "🎁 Ya hay un sorteo en marcha (" + s.premio + "), espera a que termine. Para quitarlo: !sorteo cancelar",
   estado: (s: Sorteo, n: number) => s.estado === "inactivo" ? "No hay ningún sorteo activo ahora mismo."
     : "🎁 Sorteo de " + s.premio + ": " + n + (n === 1 ? " participante" : " participantes") + (abiertoAhora(s) ? ". Escribe " + s.palabra + " para entrar." : " (entradas cerradas)."),
 };
@@ -283,6 +286,7 @@ Deno.serve(async (req) => {
 
   switch (body.accion) {
     case "abrir": {
+      if (sorteoEnCurso(await leerSorteo(db))) return json({ ok: false, error: "ocupado" });
       const s = await abrirSorteo(db, String(body.premio ?? ""));
       enSegundoPlano(decirEnChat(db, TXT_SORTEO.abierto(s)));
       return json({ ok: true, ...(await sorteoPublico(db)) });

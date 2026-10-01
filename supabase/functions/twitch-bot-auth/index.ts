@@ -8,7 +8,9 @@
 //
 // Rutas:
 //   POST {accion:"conectar", clave, volver}   → {ok:true, url} con el enlace de Twitch; al terminar vuelve a volver#bot=ok (o #bot=error-...)
-//   GET  ?estado=1                            → {conectado, desde, cuenta, secretos}
+//   POST {accion:"conectar", cuenta:"canal", …} → igual, pero para TU cuenta (KyoSumiVT), solo con permiso de
+//                                                predicciones; vuelve a volver#canal=ok. Se guarda en "twitch_canal".
+//   GET  ?estado=1                            → {conectado, desde, cuenta, secretos, canal:{conectado, desde, cuenta}}
 // El código viaja dentro del POST (no en la dirección), así no queda en el historial.
 // Con 3 fallos seguidos se bloquea un rato (tabla kyo_intentos, sql/03_intentos.sql).
 //
@@ -94,6 +96,8 @@ async function idCanal(): Promise<string | null> {
 // ---------- fin de los ayudantes ----------
 
 const SCOPES = "user:bot user:read:chat user:write:chat";
+// Tu cuenta (la del canal) solo da permiso para ver y gestionar predicciones con tus puntos del canal
+const SCOPES_CANAL = "channel:read:predictions channel:manage:predictions";
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -127,9 +131,9 @@ async function comprobarClave(db: any, req: Request, clave: unknown) {
 // -------------------------------------------------------------
 
 // Vuelta al Estudio. Solo se usa la web que guardó el Estudio al pulsar "Conectar"
-const volverA = (v: string | undefined, estado: string) => {
+const volverA = (v: string | undefined, estado: string, que = "bot") => {
   if (!v || !/^https:\/\//.test(v)) return json({ resultado: estado });
-  return Response.redirect(v.split("#")[0] + "#bot=" + encodeURIComponent(estado), 302);
+  return Response.redirect(v.split("#")[0] + "#" + que + "=" + encodeURIComponent(estado), 302);
 };
 
 Deno.serve(async (req) => {
@@ -151,12 +155,13 @@ Deno.serve(async (req) => {
     if (body.accion !== "conectar") return json({ ok: false, error: "accion" }, 400);
     if (!secret) return json({ ok: false, error: "faltan_secretos" });
     const volver = String(body.volver ?? "");
+    const canal = body.cuenta === "canal";
     if (!/^https:\/\//.test(volver)) return json({ ok: false, error: "volver" });
     // Un "state" aleatorio de un solo uso (10 min) y la web a la que volver, guardados en privado
     const state = crypto.randomUUID();
     const { error } = await db.from("private_tokens").upsert({
       id: "twitch_state",
-      value: JSON.stringify({ s: state, v: volver.split("#")[0], exp: Date.now() + 10 * 60_000 }),
+      value: JSON.stringify({ s: state, v: volver.split("#")[0], exp: Date.now() + 10 * 60_000, c: canal ? "canal" : "bot" }),
       updated_at: new Date().toISOString(),
     });
     if (error) return json({ ok: false, error: "tabla" });
@@ -165,7 +170,7 @@ Deno.serve(async (req) => {
       client_id: CLIENT_ID,
       response_type: "code",
       redirect_uri: redirectUri,
-      scope: SCOPES,
+      scope: canal ? SCOPES_CANAL : SCOPES,
       state,
       force_verify: "true",
     }).toString();
@@ -177,18 +182,25 @@ Deno.serve(async (req) => {
     const { data } = await db.from("private_tokens").select("value, updated_at").eq("id", "twitch_bot").maybeSingle();
     let cuenta: string | null = null;
     if (data?.value) { try { cuenta = JSON.parse(data.value).login ?? null; } catch { /* ignora */ } }
-    return json({ conectado: !!data, desde: data?.updated_at ?? null, cuenta, secretos: !!(secret && setupKey) });
+    const { data: dc } = await db.from("private_tokens").select("value, updated_at").eq("id", "twitch_canal").maybeSingle();
+    let cuentaCanal: string | null = null;
+    if (dc?.value) { try { cuentaCanal = JSON.parse(dc.value).login ?? null; } catch { /* ignora */ } }
+    return json({
+      conectado: !!data, desde: data?.updated_at ?? null, cuenta, secretos: !!(secret && setupKey),
+      canal: { conectado: !!dc, desde: dc?.updated_at ?? null, cuenta: cuentaCanal },
+    });
   }
 
   // Twitch vuelve aquí con ?code=... o ?error=...
   if (p.get("code") || p.get("error")) {
     const { data } = await db.from("private_tokens").select("value").eq("id", "twitch_state").maybeSingle();
-    let st: { s?: string; v?: string; exp?: number } = {};
+    let st: { s?: string; v?: string; exp?: number; c?: string } = {};
     try { st = JSON.parse(data?.value ?? "{}"); } catch { /* sin state guardado */ }
     // Si el state no coincide, no se redirige a ninguna parte
     if (!st.s || st.s !== p.get("state") || !st.exp || Date.now() > st.exp) return json({ resultado: "error-state" }, 400);
     await db.from("private_tokens").delete().eq("id", "twitch_state"); // un solo uso
-    if (p.get("error")) return volverA(st.v, "error-cancelado");
+    const que = st.c === "canal" ? "canal" : "bot";
+    if (p.get("error")) return volverA(st.v, "error-cancelado", que);
 
     const res = await fetch("https://id.twitch.tv/oauth2/token", {
       method: "POST",
@@ -196,11 +208,13 @@ Deno.serve(async (req) => {
       body: new URLSearchParams({ client_id: CLIENT_ID, client_secret: secret, grant_type: "authorization_code", code: p.get("code")!, redirect_uri: redirectUri }),
     });
     const tok = await res.json().catch(() => ({}));
-    if (!res.ok || !tok.access_token || !tok.refresh_token) return volverA(st.v, "error-twitch");
+    if (!res.ok || !tok.access_token || !tok.refresh_token) return volverA(st.v, "error-twitch", que);
 
     const quien = await helix("/users", tok.access_token);
     const yo = quien.body?.data?.[0];
-    if (!yo) return volverA(st.v, "error-usuario");
+    if (!yo) return volverA(st.v, "error-usuario", que);
+    // Las predicciones solo se pueden hacer con la cuenta dueña del canal
+    if (que === "canal" && String(yo.login).toLowerCase() !== CANAL.toLowerCase()) return volverA(st.v, "error-cuenta", que);
 
     const valor = JSON.stringify({
       access_token: tok.access_token,
@@ -209,9 +223,9 @@ Deno.serve(async (req) => {
       id: yo.id,
       login: yo.login,
     });
-    const { error } = await db.from("private_tokens").upsert({ id: "twitch_bot", value: valor, updated_at: new Date().toISOString() });
-    if (error) return volverA(st.v, "error-tabla");
-    return volverA(st.v, "ok");
+    const { error } = await db.from("private_tokens").upsert({ id: que === "canal" ? "twitch_canal" : "twitch_bot", value: valor, updated_at: new Date().toISOString() });
+    if (error) return volverA(st.v, "error-tabla", que);
+    return volverA(st.v, "ok", que);
   }
 
   return json({ ok: false, error: "ruta" }, 404);
