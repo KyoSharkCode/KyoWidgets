@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Kyo · Meta de donaciones</title>
+<meta name="robots" content="noindex">
+<!--
+  KyoWidgets · Meta de donaciones · Fuente de navegador para OBS. La URL la arma Kyo Estudio.
+  Tamaños base (multiplícalos por "escala"): pegatina 640x200 · barra 640x130 · texto 640x150
+  Parámetros:
+    diseno     pegatina | barra | texto       tema  marea | octubre | navidad
+    escala     0.5 … 2                        ultimo  si | no (muestra la última donación)
+    acento, borde, caja, texto   colores (hex sin #)
+    demo=1     datos de ejemplo
+  El total vive en Supabase: si recargas OBS o el widget no se pierde nada.
+  Los cambios llegan al momento por Supabase Realtime; además consulta cada 10 s (así también llegan los tips nuevos).
+-->
+<style>
+@font-face{font-family:"Cherry Bomb One";src:url(../fonts/cherry-bomb-one-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Fredoka";font-weight:700;src:url(../fonts/fredoka-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-weight:700;src:url(../fonts/chakra-petch-latin-700-normal.woff2) format("woff2")}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent!important;overflow:hidden}
+body{width:640px;height:200px;display:grid;place-items:center;font-family:"Fredoka",system-ui,sans-serif}
+body.b-barra{height:130px}body.b-texto{height:150px}
+#w{--a:#6FE3F0;--a2:#3A7BD5;--c:#0f1a4a;--t:#F5F3FB;--s:#C9E6F2;--o:#0A1030;--p:#fff;--g:#F4C542;position:relative;width:610px;color:var(--t);transition:opacity .5s,transform .5s cubic-bezier(.34,1.56,.64,1)}
+#w.octubre{--a:#FF8A2B;--a2:#9B6BFF;--c:#1a1240;--s:#e3d9ff;--o:#0a0720}
+#w.navidad{--a:#FF5A6E;--a2:#5BD99A;--c:#0e1a48;--s:#f3e7c4;--o:#060b22}
+#w.oculto{opacity:0;transform:scale(.6)}
+.pega{box-shadow:0 0 0 6px var(--p),0 0 0 11px var(--o),0 11px 0 11px var(--o)}
+.caja{position:relative;display:grid;gap:10px;padding:16px 26px 20px;border-radius:30px;background:var(--c);transform:rotate(-1deg);animation:boing 4.5s ease-in-out infinite}
+.fila{display:flex;align-items:baseline;justify-content:space-between;gap:14px}
+.tit{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 19px "Chakra Petch",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--o);background:var(--a);padding:4px 16px;border-radius:999px}
+.cifras{font:400 40px/1 "Cherry Bomb One",sans-serif;color:var(--t);-webkit-text-stroke:7px var(--o);paint-order:stroke fill;white-space:nowrap;font-variant-numeric:tabular-nums}
+.cifras small{font-size:.55em;color:var(--s)}
+.pista{position:relative;height:38px;border-radius:999px;background:var(--o);box-shadow:inset 0 0 0 4px var(--o),0 0 0 3px var(--p);overflow:hidden}
+.rell{position:absolute;inset:4px auto 4px 4px;width:0;border-radius:999px;background:linear-gradient(90deg,var(--a2),var(--a));transition:width 1.1s cubic-bezier(.22,1,.36,1);min-width:0}
+.rell::after{content:"";position:absolute;inset:0;border-radius:inherit;background:repeating-linear-gradient(115deg,transparent 0 14px,rgba(255,255,255,.22) 14px 24px);animation:corre 1.6s linear infinite}
+.pct{position:absolute;inset:0;display:grid;place-items:center;font:700 18px "Chakra Petch",monospace;color:#fff;text-shadow:0 0 6px var(--o),0 0 2px var(--o);letter-spacing:.06em}
+.ult{font:700 16px "Fredoka",sans-serif;color:var(--s);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ult b{color:var(--a)}
+.sin-ult .ult{display:none}
+.completa .rell{background:linear-gradient(90deg,var(--g),#fff3b0)}
+.completa .cifras{color:var(--g)}
+/* barra: solo la barra con cifras dentro */
+.d-barra .caja{padding:12px 20px;gap:6px}
+.d-barra .tit{font-size:15px;padding:2px 12px}
+.d-barra .cifras{font-size:30px;-webkit-text-stroke:6px var(--o)}
+.d-barra .pista{height:30px}.d-barra .pct{font-size:15px}
+/* texto: sin caja */
+.d-texto .caja{background:none;box-shadow:none!important;padding:0;gap:6px;animation:none;transform:none}
+.d-texto .tit{background:none;color:var(--t);font:400 30px "Cherry Bomb One",sans-serif;letter-spacing:.01em;text-transform:none;-webkit-text-stroke:8px var(--o);paint-order:stroke fill;padding:0 6px}
+.d-texto .cifras{font-size:44px;-webkit-text-stroke:9px var(--o);filter:drop-shadow(0 5px 0 var(--o))}
+.d-texto .pista{height:26px;box-shadow:inset 0 0 0 3px var(--o),0 0 0 3px var(--p),0 6px 0 3px var(--o)}.d-texto .pct{font-size:13px}
+/* animaciones */
+.cifras.pop{animation:pop .6s cubic-bezier(.34,1.56,.64,1)}
+.caja.brilla{animation:brilla 1s ease-out}
+.spk{position:absolute;width:34px;height:34px;pointer-events:none;animation:spk 1.2s ease-out forwards}
+.flota{position:absolute;pointer-events:none;font:400 40px/1 "Cherry Bomb One",sans-serif;color:var(--a);-webkit-text-stroke:8px var(--o);paint-order:stroke fill;animation:flota 1.6s ease-out forwards;white-space:nowrap}
+.aviso{font:700 16px "Fredoka",sans-serif;color:#cfd8ff;background:rgba(10,16,48,.75);padding:10px 16px;border-radius:14px;text-align:center}
+@keyframes boing{0%,100%{transform:rotate(-1deg)}50%{transform:rotate(-.2deg) translateY(-3px)}}
+@keyframes corre{to{background-position:48px 0}}
+@keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.25) rotate(-3deg);color:var(--a)}100%{transform:scale(1)}}
+@keyframes brilla{0%,100%{filter:none}30%{filter:brightness(1.35) saturate(1.3)}}
+@keyframes flota{0%{opacity:0;transform:translate(0,10px) scale(.5)}20%{opacity:1;transform:translate(0,-8px) scale(1.1)}100%{opacity:0;transform:translate(0,-60px) scale(.9)}}
+@keyframes spk{0%{transform:translate(0,0) scale(.3) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1) rotate(140deg);opacity:0}}
+</style>
+</head>
+<body>
+<div id="w" class="oculto"><div class="caja pega" id="caja">
+  <div class="fila"><span class="tit" id="tit"></span><span class="cifras" id="cif"></span></div>
+  <div class="pista" role="progressbar" aria-valuemin="0" aria-valuemax="100"><div class="rell" id="rell"></div><div class="pct" id="pct"></div></div>
+  <div class="ult" id="ult"></div>
+</div></div>
+<script src="../config.js"></script>
+<script>
+(function () {
+  const q = new URLSearchParams(location.search), $ = id => document.getElementById(id), w = $('w');
+  const diseno = ['pegatina', 'barra', 'texto'].includes(q.get('diseno')) ? q.get('diseno') : 'pegatina';
+  const tema = ['marea', 'octubre', 'navidad'].includes(q.get('tema')) ? q.get('tema') : 'marea';
+  w.classList.add('d-' + diseno, tema); document.body.classList.add('b-' + diseno);
+  if (q.get('ultimo') === 'no' || diseno !== 'pegatina') w.classList.add('sin-ult');
+  if (diseno === 'texto') $('caja').classList.remove('pega');
+  const hex = v => /^[0-9a-f]{3,8}$/i.test(v || '') ? '#' + v : null;
+  [['acento', '--a'], ['borde', '--p'], ['caja', '--c'], ['texto', '--t']].forEach(([k, v]) => { const c = hex(q.get(k)); if (c) w.style.setProperty(v, c); });
+  const esc = Math.min(2, Math.max(0.5, Number(q.get('escala')) || 1)); if (esc !== 1) document.documentElement.style.zoom = esc;
+  const DEMO = q.get('demo') === '1';
+  const K = window.KYO || {}, FN = (K.SUPABASE_URL || '') + '/functions/v1/meta';
+  const enEstudio = window !== window.top;
+
+  // ---------- pintar ----------
+  let actual = null; // {titulo, meta, moneda, total, ultimo}
+  const SIMB = { EUR: '€', USD: '$', GBP: '£', MXN: '$', ARS: '$', CLP: '$', COP: '$' };
+  const dinero = (n, m) => {
+    const v = Number(n || 0), dec = Number.isInteger(v) ? 0 : 2;
+    return v.toLocaleString('es', { minimumFractionDigits: dec, maximumFractionDigits: 2 }) + ' ' + (SIMB[m] || m || '');
+  };
+  function pintar(d, animarCambio) {
+    const pct = d.meta > 0 ? Math.min(100, d.total / d.meta * 100) : 0;
+    $('tit').textContent = d.titulo;
+    $('cif').innerHTML = dinero(d.total, d.moneda) + ' <small>/ ' + dinero(d.meta, d.moneda) + '</small>';
+    $('rell').style.width = 'calc(' + pct + '% - ' + (pct * 0.08) + 'px)';
+    $('pct').textContent = Math.floor(pct) + '%';
+    $('pct').parentNode.setAttribute('aria-valuenow', Math.floor(pct));
+    $('caja').classList.toggle('completa', d.total >= d.meta && d.meta > 0);
+    $('ult').innerHTML = d.ultimo ? '💙 Última: <b>' + esc2(d.ultimo.donante) + '</b> · ' + dinero(d.ultimo.monto, d.ultimo.moneda) : '';
+    if (animarCambio) celebrar(d.total - (actual ? actual.total : 0));
+  }
+  const esc2 = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function mostrar(d) {
+    const aviso = document.querySelector('.aviso'); if (aviso) aviso.remove();
+    if (!d) { actual = null; w.classList.add('oculto'); return; }
+    const cambio = actual && (d.total !== actual.total);
+    pintar(d, cambio && d.total > actual.total);
+    if (cambio && d.total <= actual.total) reiniciarAnim($('cif'), 'pop');
+    actual = Object.assign({}, d); w.classList.remove('oculto');
+  }
+
+  // ---------- animaciones ----------
+  function reiniciarAnim(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  function celebrar(delta) {
+    reiniciarAnim($('cif'), 'pop'); reiniciarAnim($('caja'), 'brilla');
+    const b = w.getBoundingClientRect(), r = $('rell').getBoundingClientRect(), z = esc;
+    const cx = (r.right - b.left) / z, cy = (r.top - b.top + r.height / 2) / z;
+    const f = document.createElement('span'); f.className = 'flota'; f.textContent = '+' + dinero(delta, actual && actual.moneda).trim();
+    f.style.left = Math.max(10, Math.min(cx - 40, 480)) + 'px'; f.style.top = (cy - 60) + 'px'; w.appendChild(f); setTimeout(() => f.remove(), 1700);
+    for (let i = 0; i < 10; i++) {
+      const s = document.createElement('span'); s.className = 'spk';
+      s.innerHTML = '<svg viewBox="0 0 100 100"><path d="M50 0C53 38 62 47 100 50 62 53 53 62 50 100 47 62 38 53 0 50 38 47 47 38 50 0Z" fill="' + (i % 3 ? 'var(--a)' : '#fff') + '"/></svg>';
+      s.style.left = (cx - 17) + 'px'; s.style.top = (cy - 17) + 'px';
+      const ang = Math.random() * Math.PI * 2, dist = 40 + Math.random() * 70;
+      s.style.setProperty('--dx', Math.cos(ang) * dist + 'px'); s.style.setProperty('--dy', Math.sin(ang) * dist - 20 + 'px');
+      w.appendChild(s); setTimeout(() => s.remove(), 1300);
+    }
+  }
+
+  // ---------- datos ----------
+  if (DEMO) {
+    mostrar({ titulo: 'Meta de donaciones', meta: 100, moneda: 'EUR', total: 42, ultimo: { donante: 'KyoFan', monto: 5, moneda: 'EUR' } });
+  } else {
+    // Si una consulta falla (red, Supabase dormido…) NO tocamos lo que se ve: el total nunca vuelve a cero por error.
+    let rt = false, ultima = 0, enCurso = false, fallos = 0;
+    async function cargar() {
+      if (enCurso) return;
+      enCurso = true; ultima = Date.now();
+      try {
+        const r = await fetch(FN, { cache: 'no-store', signal: AbortSignal.timeout(12000) });
+        const d = await r.json();
+        if (d.ok) { fallos = 0; mostrar(d); }
+        else if (++fallos >= 1 && enEstudio && !actual) estudioAviso(d.error === 'falta_sql' ? 'Falta ejecutar 08_meta.sql en Supabase' : 'No se pudo leer la meta');
+      } catch (e) { fallos++; }
+      enCurso = false;
+    }
+    function estudioAviso(t) { if (document.querySelector('.aviso')) return; const a = document.createElement('div'); a.className = 'aviso'; a.textContent = t; document.body.appendChild(a); }
+    cargar();
+    // Consulta cada 10 s (así llegan los tips nuevos de StreamElements); el tiempo real solo acelera los cambios manuales
+    setInterval(() => { if (Date.now() - ultima >= 10000) cargar(); }, 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) cargar(); });
+    window.addEventListener('online', cargar);
+    // Tiempo real (Supabase Realtime) con reconexión: si se corta, el sondeo de arriba sigue funcionando
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+    s.onload = () => {
+      try {
+        const sb = window.supabase.createClient(K.SUPABASE_URL, K.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+        sb.channel('kyo-meta')
+          .on('broadcast', { event: 'cambio' }, ({ payload: p }) => { if (p && typeof p.total === 'number') mostrar(p); })
+          .subscribe(st => { const antes = rt; rt = st === 'SUBSCRIBED'; if (rt && !antes) cargar(); });
+      } catch (e) {}
+    };
+    document.head.appendChild(s);
+  }
+
+  // ---------- botones "Probar" de Kyo Estudio ----------
+  window.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'kyo-test' || !actual) return;
+    const a = e.data.accion, d = Object.assign({}, actual);
+    if (a === 'donacion') d.total = actual.total + 5;
+    else if (a === 'grande') d.total = actual.total + Math.max(10, Math.round(actual.meta / 4));
+    else if (a === 'completa') d.total = actual.meta;
+    else if (a === 'reiniciar') d.total = 0;
+    else return;
+    if (a === 'donacion' || a === 'grande') d.ultimo = { donante: 'KyoFan', monto: d.total - actual.total, moneda: actual.moneda };
+    mostrar(d);
+  });
+})();
+</script>
+</body>
+</html>

@@ -285,6 +285,16 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 .ctsd .pasos{margin:10px 0}
 .ctsd .nota{margin-bottom:10px}
 @media (max-width:520px){.ctmain{grid-template-columns:auto minmax(0,1fr)}.ctval{grid-column:1}.ctbtns{justify-content:flex-end}}
+/* ---------- Meta de donaciones ---------- */
+.mtbarra{position:relative;height:44px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;margin:6px 0 12px}
+.mtbarra i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--acc2),var(--pur));border-radius:inherit;transition:width .8s cubic-bezier(.22,1,.36,1)}
+.mtbarra b{position:absolute;inset:0;display:grid;place-items:center;font:700 16px "Chakra Petch",monospace;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.mtse{padding:9px 14px;border-radius:12px;font-size:14px;margin-bottom:12px;border:1px solid var(--line)}
+.mtse.ok{border-color:var(--acc2);color:#fff}
+.mtse.mal{border-color:var(--bad);color:var(--bad)}
+.mtse.aviso{border-style:dashed;color:var(--dim)}
+.ctcard .ctfijar input[data-n]{width:108px!important}
+.mtcampos{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -323,6 +333,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <button type="button" data-sub="fortnite" aria-pressed="false">🏆 Fortnite</button>
     <button type="button" data-sub="cuenta" aria-pressed="false">⏱ Cuenta atrás</button>
     <button type="button" data-sub="contador" aria-pressed="false">🔢 Contadores</button>
+    <button type="button" data-sub="meta" aria-pressed="false">💰 Meta de donaciones</button>
     <button type="button" data-sub="chat" aria-pressed="false">💬 Chat</button>
     <button type="button" data-sub="sorteo" aria-pressed="false">🎁 Sorteo y encuesta</button>
     <button type="button" data-sub="prediccion" aria-pressed="false">🔮 Predicción</button>
@@ -466,6 +477,29 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       </div>
     </form>
     <div class="prev" data-prev="contador"></div>
+  </section>
+
+  <!-- ===================== META DE DONACIONES ===================== -->
+  <section data-panel="meta" class="grid" hidden>
+    <div class="card ctcard" id="mtApp" style="grid-column:1/-1"><p class="nota">Cargando tu meta…</p></div>
+    <form class="card opts" id="fMeta" onsubmit="return false">
+      <div class="grupo"><h3>Estilo</h3>
+        <div class="f"><span>Diseño</span><div class="chips" data-radio="diseno" data-val="pegatina:🟦 Pegatina,barra:📊 Barra,texto:🔤 Solo texto"></div></div>
+        <div class="f"><span>Temporada</span><div class="chips" data-radio="tema" data-val="marea:🌊 Normal,octubre:🎃 Halloween,navidad:🎄 Navidad"></div></div>
+        <div class="f"><span>Tamaño</span><div class="chips" data-radio="escala" data-val="0.75:Pequeño,1:Normal,1.25:Grande,1.5:Muy grande"></div></div>
+        <div class="f"><span>Última donación (solo pegatina)</span><div class="chips" data-radio="ultimo" data-val="si:Mostrar,no:Ocultar"></div></div>
+      </div>
+      <div class="grupo"><h3>Colores</h3>
+        <div class="chips"><label><input type="checkbox" name="colores"> Usar mis propios colores</label></div>
+        <div class="colores off" data-colores>
+          <label>Acento<input type="color" name="acento" value="#6fe3f0"></label>
+          <label>Borde / pegatina<input type="color" name="borde" value="#ffffff"></label>
+          <label>Caja<input type="color" name="caja" value="#0f1a4a"></label>
+          <label>Texto<input type="color" name="texto" value="#f5f3fb"></label>
+        </div>
+      </div>
+    </form>
+    <div class="prev" data-prev="meta"></div>
   </section>
 
   <!-- ===================== CHAT ===================== -->
@@ -725,6 +759,9 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     contador: { w: 560, h: 200, tam: { pegatina: [560, 200], chip: [480, 120], texto: [480, 200] },
       def: { diseno: 'pegatina', tema: 'marea', escala: '1', etiqueta: 'si' },
       pruebas: [['sumar', '➕ Probar +1'], ['cinco', '⏫ Probar +5'], ['restar', '➖ Probar −1'], ['reiniciar', '↺ Probar reinicio']] },
+    meta: { w: 640, h: 200, tam: { pegatina: [640, 200], barra: [640, 130], texto: [640, 150] },
+      def: { diseno: 'pegatina', tema: 'marea', escala: '1', ultimo: 'si' },
+      pruebas: [['donacion', '💙 Probar donación de 5'], ['grande', '💎 Probar donación grande'], ['completa', '🎉 Probar meta cumplida'], ['reiniciar', '↺ Probar reinicio']] },
     chat: { w: 580, h: 840, tam: { horizontal: [580, 840], vertical: [900, 740] },
       def: { diseno: 'horizontal', tema: 'marea', anim: 'rebote', insignias: 'kyo', fs: '26', nombres: 'rol', comandos: 'ocultar', extra: 'si' },
       pruebas: [['mensaje', '💬 Mensaje de ejemplo'], ['limpiar', '🧹 Limpiar el chat']] },
@@ -779,7 +816,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   function url(id, demo) {
     const o = estadoForm(id), d = W[id].def, p = new URLSearchParams();
     const set = (k, v) => { if (v !== undefined && v !== '' && v !== d[k]) p.set(k, v); };
-    ['diseno', 'tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'mover', 'cuenta', 'ventana', 'hoy', 'celebrar', 'etiquetas', 'alfinal', 'lado', 'etiqueta'].forEach(k => { if (k in o && !(id === 'spotify' && k === 'etiqueta')) set(k, o[k]); });
+    ['diseno', 'tema', 'forma', 'fondo', 'fuente', 'escala', 'modo', 'anim', 'mover', 'cuenta', 'ventana', 'hoy', 'celebrar', 'etiquetas', 'alfinal', 'lado', 'etiqueta', 'ultimo'].forEach(k => { if (k in o && !(id === 'spotify' && k === 'etiqueta')) set(k, o[k]); });
     if (o.colores) ['acento', 'borde', 'caja', 'texto'].forEach(k => p.set(k, (o[k] || '').replace('#', '')));
     if (id === 'spotify') {
       const ocultar = d.ver.filter(v => !(o.ver || []).includes(v));
@@ -801,7 +838,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       if (ocu !== CHAT_OCULTOS) p.set('ocultos', ocu);
     } else if (id === 'contador') {
       if (o.cid) p.set('id', o.cid);
-    } else if (id === 'sorteo' || id === 'prediccion') {
+    } else if (id === 'sorteo' || id === 'prediccion' || id === 'meta') {
       // solo estilo: el premio y los participantes llegan en vivo desde Supabase
     } else {
       p.set('nombre', o.nombre || 'TuNombreEpic');
@@ -845,7 +882,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       prev.ver = (prev.ver || []).map(v => v === 'disco' ? 'portada' : v === 'sonar' ? 'progreso' : v);
       if (prev.fuente === 'fredoka') prev.fuente = 'auto';
     }
-    const extra = id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : id === 'cuenta' ? { titulo: 'REVELACIÓN EN', final: '¡YA!', fecha: fechaPorDefecto(), h: '1', m: '0', s: '0', sesion: '1' } : id === 'chat' ? { canal: 'kyosumivt', max: '12', seg: '0', ocultos: CHAT_OCULTOS } : id === 'sorteo' || id === 'prediccion' || id === 'contador' ? {} : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' };
+    const extra = id === 'spotify' ? { etiqueta: 'Sonando ahora', segundos: '12' } : id === 'cuenta' ? { titulo: 'REVELACIÓN EN', final: '¡YA!', fecha: fechaPorDefecto(), h: '1', m: '0', s: '0', sesion: '1' } : id === 'chat' ? { canal: 'kyosumivt', max: '12', seg: '0', ocultos: CHAT_OCULTOS } : id === 'sorteo' || id === 'prediccion' || id === 'contador' || id === 'meta' ? {} : { codigo: 'KYOSUMI', victoria: '¡VICTORIA!' };
     aplicarForm(id, Object.assign({}, W[id].def, extra, prev || {}));
     const panel = $('[data-panel="' + id + '"]');
     panel.addEventListener('change', () => actualizar(id));
@@ -874,6 +911,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     $$('#subtabs button').forEach(b => b.setAttribute('aria-pressed', b.dataset.sub === n ? 'true' : 'false'));
     $$('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== n);
     if (n === 'contador' && window.kyoContadores) window.kyoContadores.abrir();
+    if (n === 'meta' && window.kyoMeta) window.kyoMeta.abrir();
     if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else if (n === 'aletabot') { if (window.kyoBot) window.kyoBot.abrir(); } else if (n === 'prensa') { if (window.kyoPrensa) window.kyoPrensa.abrir(); } else { comprobarSpotify(); comprobarBot(); }
   }
   $$('nav.tabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.tab)));
@@ -1105,6 +1143,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 <script type="module" src="bot.js"></script>
 <script src="overlays/iconos-contador.js"></script>
 <script type="module" src="contadores.js"></script>
+<script type="module" src="meta.js"></script>
 <script src="prensa/datos.js"></script>
 <script type="module" src="prensa.js"></script>
 </body>
