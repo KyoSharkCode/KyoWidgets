@@ -5,7 +5,7 @@
 //   GET                                    → estado público de la meta (lo lee el widget de OBS)
 //                                            y, si hace falta, consulta StreamElements (máx. 1 vez cada 15 s)
 //   POST {clave, accion:"leer"}            → ajustes + total + estado de la conexión con StreamElements (Estudio)
-//   POST {clave, accion:"guardar", ...}    → titulo, meta, moneda, desde
+//   POST {clave, accion:"guardar", ...}    → titulo, mensaje, meta, moneda, desde
 //   POST {clave, accion:"sumar", monto}    → suma o resta a mano (p. ej. una donación fuera de StreamElements)
 //   POST {clave, accion:"fijar", total}    → pone el total exacto
 //   POST {clave, accion:"reiniciar"}       → empieza una meta nueva (cuenta desde ahora, ajuste a 0)
@@ -56,7 +56,7 @@ const CANAL_RT = "kyo-meta";
 const SE = "https://api.streamelements.com/kappa/v2";
 const ESPERA_SYNC_MS = 15000;
 
-type Cfg = { titulo: string; meta: number; moneda: string; desde: string; base: number };
+type Cfg = { titulo: string; mensaje: string; meta: number; moneda: string; desde: string; base: number };
 const num = (v: unknown, min: number, max: number, def: number) => {
   const n = Number(v);
   return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n * 100) / 100)) : def;
@@ -65,6 +65,7 @@ function limpiarCfg(x: any, previo?: Cfg): Cfg {
   const desde = new Date(x?.desde ?? previo?.desde ?? Date.now());
   return {
     titulo: String(x?.titulo ?? previo?.titulo ?? "Meta de donaciones").replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 40) || "Meta de donaciones",
+    mensaje: String(x?.mensaje ?? previo?.mensaje ?? "").replace(/[\u0000-\u001f<>]/g, " ").trim().slice(0, 80),
     meta: num(x?.meta ?? previo?.meta, 1, 99999999, previo?.meta ?? 100),
     moneda: (String(x?.moneda ?? previo?.moneda ?? "EUR").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3)) || "EUR",
     desde: (isNaN(desde.getTime()) ? new Date() : desde).toISOString(),
@@ -151,7 +152,7 @@ async function sincronizar(db: any, cfg: Cfg, forzar: boolean, completo = false)
 // ---------- Estado público ----------
 async function estado(db: any, cfg: Cfg, sync: Sync) {
   return {
-    titulo: cfg.titulo, meta: cfg.meta, moneda: cfg.moneda, total: await sumaTotal(db, cfg),
+    titulo: cfg.titulo, mensaje: cfg.mensaje, meta: cfg.meta, moneda: cfg.moneda, total: await sumaTotal(db, cfg),
     ultimo: sync.ultimoTip && +new Date(sync.ultimoTip.fecha) >= +new Date(cfg.desde) ? sync.ultimoTip : null,
   };
 }
@@ -229,7 +230,7 @@ Deno.serve(async (req) => {
     const e = await estado(db, cfg, sync);
     if (body.accion !== "leer") await emitir({ ...e, nuevos, reinicio: body.accion === "reiniciar" || body.accion === "fijar" });
     return json({
-      ok: true, ...e, cfg: { titulo: cfg.titulo, meta: cfg.meta, moneda: cfg.moneda, desde: cfg.desde, base: cfg.base },
+      ok: true, ...e, cfg: { titulo: cfg.titulo, mensaje: cfg.mensaje, meta: cfg.meta, moneda: cfg.moneda, desde: cfg.desde, base: cfg.base },
       conexion: { hayToken: !!Deno.env.get("STREAMELEMENTS_JWT"), ok: sync.ok, error: sync.error, ultimo: sync.ultimo, nuevos },
     });
   } catch (e) {

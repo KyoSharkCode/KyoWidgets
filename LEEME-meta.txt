@@ -21,10 +21,10 @@ guarda el total en Supabase y lo muestra en OBS. Si recargas OBS o el widget, el
 4) GitHub Desktop → Commit + Push. Espera 1–2 min y abre el Estudio con Ctrl+F5.
 
 5) Estudio → 🧰 Widgets → 💰 Meta de donaciones:
-   - Pon el título, la meta y la moneda (solo se cuentan tips de esa moneda). Guardar.
+   - Pon el título, un mensaje opcional (aparece bajo la barra), la meta y la moneda (solo se cuentan tips de esa moneda). Guardar.
    - Si ya llevabas dinero en la meta de StreamElements: "✏ Poner total" con esa cifra.
    - 🔄 Consultar StreamElements para comprobar la conexión (arriba sale verde/rojo).
-   - 📋 OBS → Fuente de navegador (640 × 200 en Pegatina normal).
+   - 📋 OBS → Fuente de navegador (640 × 230 en Pegatina normal).
    - ↺ Meta nueva pide doble clic: empieza a contar desde ese momento.
 
 Notas: los tips nuevos aparecen en unos 10–25 segundos. Cada tip se guarda una sola vez

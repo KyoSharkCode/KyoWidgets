@@ -53,6 +53,7 @@ function pintar() {
     (se ? '<div class="mtse ' + se.cls + '">' + esc(se.t) + '</div>' : '') +
     '<div class="mtcampos">' +
       '<label class="f"><span>Título</span><input type="text" maxlength="40" data-c="titulo" value="' + esc(c.titulo) + '"></label>' +
+      '<label class="f" style="grid-column:1/-1"><span>Mensaje (opcional, aparece bajo la barra)</span><input type="text" maxlength="80" data-c="mensaje" placeholder="Ej: Cuando llegue a la meta, ¡sorteo!" value="' + esc(c.mensaje) + '"></label>' +
       '<label class="f"><span>Meta</span><input type="number" min="1" step="any" data-c="meta" value="' + c.meta + '"></label>' +
       '<label class="f"><span>Moneda</span><input type="text" maxlength="3" data-c="moneda" value="' + esc(c.moneda) + '" style="text-transform:uppercase"></label>' +
       '<label class="f"><span>Contar tips desde</span><input type="datetime-local" data-c="desde" value="' + aLocal(c.desde) + '"></label>' +
@@ -88,7 +89,7 @@ function enlazar() {
     if (a === 'obs') return copiar(window.kyoWidgetUrl ? window.kyoWidgetUrl('meta') : '', b).then(() => aviso('Enlace copiado: pégalo en OBS como Fuente de navegador (' + $('[data-panel="meta"] [data-w]').textContent + ' × ' + $('[data-panel="meta"] [data-h]').textContent + ')', 5000));
     if (a === 'guardar') {
       const g = k => $('[data-c="' + k + '"]', app).value;
-      const cuerpo = { accion: 'guardar', titulo: g('titulo'), meta: Number(g('meta')), moneda: g('moneda'), desde: g('desde') ? new Date(g('desde')).toISOString() : undefined };
+      const cuerpo = { accion: 'guardar', titulo: g('titulo'), mensaje: g('mensaje'), meta: Number(g('meta')), moneda: g('moneda'), desde: g('desde') ? new Date(g('desde')).toISOString() : undefined };
       if (!(cuerpo.meta > 0)) return aviso('La meta tiene que ser mayor que 0');
       const d = await pedir(cuerpo); editando = false;
       if (!d.ok) return aviso(errTexto(d), 5000);
