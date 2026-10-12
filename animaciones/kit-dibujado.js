@@ -169,3 +169,48 @@ export function silueta(ctx, color) {
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = color;
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.restore();
 }
+// Fotograma de impacto con colores invertidos (el clásico destello del anime); respeta la transparencia
+let _inv = null;
+export function invertir(ctx) {
+  const c = ctx.canvas, w = c.width, h = c.height;
+  if (!_inv) _inv = document.createElement('canvas');
+  if (_inv.width !== w || _inv.height !== h) { _inv.width = w; _inv.height = h; }
+  const g = _inv.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'copy'; g.drawImage(c, 0, 0);
+  g.globalCompositeOperation = 'difference'; g.fillStyle = '#fff'; g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'destination-in'; g.drawImage(c, 0, 0);
+  g.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'copy'; ctx.drawImage(_inv, 0, 0); ctx.restore();
+}
+// Smear estirado: en los fotogramas más rápidos la pieza se alarga como un chicle en la dirección del movimiento.
+// vx, vy en px/s. Devuelve { largo, ancho, giro } para usar con deformar(ctx, cx, cy, largo, ancho, giro)
+export function smear(vx, vy, { umbral = 900, fuerza = .0008, max = 1.2 } = {}) {
+  const v = Math.hypot(vx, vy); if (v < umbral) return { largo: 1, ancho: 1, giro: 0 };
+  const e = Math.min(max, (v - umbral) * fuerza);
+  return { largo: 1 + e, ancho: 1 / Math.sqrt(1 + e), giro: Math.atan2(vy, vx) };
+}
+
+// ---------- morphing ----------
+let _svg = null;
+// Reparte n puntos a lo largo de un trazado SVG (el texto del atributo d)
+export function puntosDe(d, n = 120) {
+  if (!_svg) { _svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); _svg.setAttribute('aria-hidden', 'true'); _svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden'; document.body.appendChild(_svg); }
+  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', d); _svg.appendChild(p);
+  const L = p.getTotalLength(), pts = [];
+  for (let i = 0; i < n; i++) { const q = p.getPointAtLength(L * i / n); pts.push([q.x, q.y]); }
+  p.remove(); return pts;
+}
+const area = pts => pts.reduce((s, p, i) => { const q = pts[(i + 1) % pts.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0);
+// Prepara dos formas (mismo número de puntos) para transformarse una en otra sin retorcerse:
+// mismo sentido de giro y el punto de inicio que menos se desplaza
+export function emparejar(a, b) {
+  if (Math.sign(area(a)) !== Math.sign(area(b))) b = b.slice().reverse();
+  const n = a.length; let mejor = 0, min = Infinity;
+  for (let k = 0; k < n; k++) {
+    let s = 0; for (let i = 0; i < n; i += 4) { const q = b[(i + k) % n]; s += (a[i][0] - q[0]) ** 2 + (a[i][1] - q[1]) ** 2; }
+    if (s < min) { min = s; mejor = k; }
+  }
+  return [a, b.map((_, i) => b[(i + mejor) % n])];
+}
+// Forma intermedia entre a y b (p de 0 a 1), lista para rellenar o trazar
+export const morfear = (a, b, p) => caminoSuave(a.map((q, i) => [lerp(q[0], b[i][0], p), lerp(q[1], b[i][1], p)]));

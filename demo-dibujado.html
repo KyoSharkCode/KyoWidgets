@@ -10,6 +10,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{background:var(--bg)}
 body{margin:0;background:radial-gradient(900px 500px at 90% -10%,rgba(155,107,255,.18),transparent 60%),radial-gradient(700px 400px at -10% 110%,rgba(255,138,43,.1),transparent 60%),var(--bg);
   color:var(--txt);font-family:var(--f-body);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:0 56px}
@@ -74,6 +75,27 @@ input[type=text]:focus{outline:none;border-color:var(--acc2)}
 
 .notas{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;color:var(--dim);max-width:72ch}
 .notas b{color:var(--txt)}
+
+/* pestañas, paneles y formulario */
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{font:600 14px var(--f-body);color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:9px 14px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--acc);border-color:var(--acc);color:#1a0d05}
+.tabs button:focus-visible{outline:2px solid var(--acc2);outline-offset:2px}
+.panel{display:flex;flex-direction:column;gap:14px}
+.ficha-info{margin:0;color:var(--dim);max-width:80ch}
+.duo[data-fmt="vertical"],.duo[data-fmt="cuadrado"]{grid-template-columns:repeat(2,minmax(0,380px));justify-content:center}
+@media (max-width:820px){.duo[data-fmt="vertical"],.duo[data-fmt="cuadrado"]{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lienzo.marco{background:#070b24}
+.lienzo.marco iframe{position:absolute;left:0;top:0;width:1920px;height:1080px;border:0;transform-origin:0 0;pointer-events:none}
+.dos{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:900px){.dos{grid-template-columns:minmax(0,1fr)}}
+.dos .tecs{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.nota{margin:0;font-size:12.5px;color:var(--faint)}
+.form{display:flex;flex-direction:column;gap:12px}
+.f > span{display:block;font:700 11.5px var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+.form input[type=text],.form input[type=number]{width:100%}
+input[type=number]{font:500 14px var(--f-body);background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:7px 10px}
+input[type=color]{width:64px;height:34px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);padding:3px;cursor:pointer}
 @media (prefers-reduced-motion:reduce){.btn{transition:none}}
 </style>
 
@@ -81,59 +103,107 @@ input[type=text]:focus{outline:none;border-color:var(--acc2)}
   <header>
     <span class="eyebrow">Kyo Estudio · Laboratorio</span>
     <h1>Acabado <span>dibujado</span></h1>
-    <p class="intro">La misma animación dos veces. A la izquierda, la plantilla real del Estudio tal como está hoy. A la derecha, el mismo diseño con el kit de animación dibujada. Activa y desactiva cada técnica para ver qué aporta. El Estudio no se ha modificado.</p>
+    <p class="intro">Cada pieza dos veces: a la izquierda, tal como está hoy en el Estudio; a la derecha, con el acabado dibujado. Las animaciones usan las plantillas reales del Estudio y sus mismos campos, así que puedes editarlas aquí igual que allí.</p>
   </header>
 
-  <section class="duo" aria-label="Comparación">
-    <div class="stage">
-      <div class="cab"><b>Limpio</b><small>Plantilla actual del Estudio</small></div>
-      <div class="lienzo fondo-noche" id="lz1"><canvas id="cv1" width="960" height="540" aria-label="Pegatina del código, versión actual"></canvas></div>
+  <nav class="tabs" role="tablist" aria-label="Piezas">
+    <button type="button" role="tab" data-tab="pegatina">Pegatina del código</button>
+    <button type="button" role="tab" data-tab="intro">Intro de YouTube</button>
+    <button type="button" role="tab" data-tab="anuncio">Anuncio «¡Hoy hay directo!»</button>
+    <button type="button" role="tab" data-tab="overlay">Overlay «Comenzando»</button>
+    <button type="button" role="tab" data-tab="glosario">Glosario</button>
+  </nav>
+
+  <section id="p-canvas" class="panel" aria-live="polite">
+    <p class="ficha-info" id="info"></p>
+    <div class="duo" id="duo">
+      <div class="stage">
+        <div class="cab"><b>Limpio</b><small>Como está hoy en el Estudio</small></div>
+        <div class="lienzo fondo-noche"><canvas id="cv1" width="960" height="540" aria-label="Versión actual"></canvas></div>
+      </div>
+      <div class="stage nuevo">
+        <div class="cab"><b>Dibujado</b><small>Con el kit de animación</small></div>
+        <div class="lienzo fondo-noche"><canvas id="cv2" width="960" height="540" aria-label="Versión dibujada"></canvas></div>
+      </div>
     </div>
-    <div class="stage nuevo">
-      <div class="cab"><b>Dibujado</b><small>Con el kit de animación</small></div>
-      <div class="lienzo fondo-noche" id="lz2"><canvas id="cv2" width="960" height="540" aria-label="Pegatina del código, versión dibujada"></canvas></div>
+
+    <div class="card mandos" aria-label="Reproducción">
+      <div class="fila">
+        <button class="btn prim" id="play" type="button">⏸ Pausa</button>
+        <button class="btn" id="atras" type="button" aria-label="Fotograma anterior">◀ 1</button>
+        <button class="btn" id="adelante" type="button" aria-label="Fotograma siguiente">1 ▶</button>
+        <div class="tl"><input type="range" id="tl" min="0" max="6.6" step="0.001" value="0" aria-label="Línea de tiempo"><span class="reloj" id="reloj">0,00 s · fot. 0</span></div>
+      </div>
+      <div class="fila">
+        <div class="grupo"><span>Velocidad</span><div class="chips" id="vel"><label><input type="radio" name="vel" value="1" checked>1×</label><label><input type="radio" name="vel" value="0.5">0,5×</label><label><input type="radio" name="vel" value="0.25">0,25×</label></div></div>
+        <div class="grupo"><span>Fondo</span><div class="chips" id="fondo"><label><input type="radio" name="fondo" value="noche" checked>Noche</label><label><input type="radio" name="fondo" value="ajedrez">Transparente</label><label><input type="radio" name="fondo" value="claro">Claro</label></div></div>
+        <div class="grupo" id="g-fmt"><span>Formato</span><div class="chips" id="fmts"></div></div>
+      </div>
+    </div>
+
+    <div class="dos">
+      <section class="card mandos" aria-label="Técnicas">
+        <div class="sec-cab"><h2>Técnicas del lado «Dibujado»</h2></div>
+        <div class="fila"><button class="btn" id="mia" type="button">Mi combinación</button><button class="btn" id="todas" type="button">Activar todas</button><button class="btn" id="ninguna" type="button">Desactivar todas</button></div>
+        <div class="tecs" id="tecs"></div>
+        <div class="fila">
+          <div class="grupo"><span>Smear</span><div class="chips" id="smear"><label><input type="radio" name="smear" value="copias" checked>Copias fantasma</label><label><input type="radio" name="smear" value="estirado">Estirado</label></div></div>
+          <div class="grupo"><span>Golpe</span><div class="chips" id="golpe"><label><input type="radio" name="golpe" value="silueta" checked>Silueta</label><label><input type="radio" name="golpe" value="invertido">Colores invertidos</label></div></div>
+        </div>
+        <p class="nota">«Mi combinación» es la que elegiste: resortes, trazos, sombras de cómic e impacto. Las técnicas se aplican a las tres animaciones.</p>
+      </section>
+      <section class="card mandos" aria-label="Editar">
+        <div class="sec-cab"><h2>Editar</h2><button class="btn" id="restablecer" type="button">↺ Restablecer</button></div>
+        <p class="nota">Son los mismos campos que en el Estudio. Los cambios se aplican a los dos lados a la vez.</p>
+        <div class="form" id="form"></div>
+      </section>
     </div>
   </section>
 
-  <section class="card mandos" aria-label="Reproducción">
-    <div class="fila">
-      <button class="btn prim" id="play" type="button">⏸ Pausa</button>
-      <button class="btn" id="atras" type="button" aria-label="Fotograma anterior">◀ 1</button>
-      <button class="btn" id="adelante" type="button" aria-label="Fotograma siguiente">1 ▶</button>
-      <div class="tl"><input type="range" id="tl" min="0" max="6.6" step="0.001" value="0" aria-label="Línea de tiempo"><span class="reloj" id="reloj">0,00 s · fot. 0</span></div>
+  <section id="p-overlay" class="panel" hidden>
+    <p class="ficha-info">Escena «Comenzando» (estilo Marea) en OBS. La versión dibujada usa solo CSS y SVG (técnica A): no hay canvas ni el kit de JavaScript. La cuenta atrás de la derecha dura 9 segundos para que veas el impacto al llegar a cero; la real usa los minutos de siempre.</p>
+    <div class="duo">
+      <div class="stage">
+        <div class="cab"><b>Actual</b><small>overlays/escenas/marea/comenzando.html</small></div>
+        <div class="lienzo marco"><iframe title="Escena Comenzando actual" data-src="overlays/escenas/marea/comenzando.html" tabindex="-1"></iframe></div>
+      </div>
+      <div class="stage nuevo">
+        <div class="cab"><b>Dibujado · técnica A</b><small>Archivo nuevo, el actual no cambia</small></div>
+        <div class="lienzo marco"><iframe title="Escena Comenzando dibujada" data-src="overlays/escenas/laboratorio/comenzando-dibujado.html?min=0.15" tabindex="-1"></iframe></div>
+      </div>
     </div>
-    <div class="fila">
-      <div class="grupo"><span>Velocidad</span><div class="chips" id="vel"><label><input type="radio" name="vel" value="1" checked>1×</label><label><input type="radio" name="vel" value="0.5">0,5×</label><label><input type="radio" name="vel" value="0.25">0,25×</label></div></div>
-      <div class="grupo"><span>Estilo</span><div class="chips" id="tema"><label><input type="radio" name="tema" value="marea" checked>🌊 Normal</label><label><input type="radio" name="tema" value="octubre">🎃 Halloween</label><label><input type="radio" name="tema" value="navidad">🎄 Navidad</label></div></div>
-      <div class="grupo"><span>Fondo</span><div class="chips" id="fondo"><label><input type="radio" name="fondo" value="noche" checked>Noche</label><label><input type="radio" name="fondo" value="ajedrez">Transparente</label><label><input type="radio" name="fondo" value="claro">Claro</label></div></div>
-      <div class="grupo"><span>Texto grande</span><input type="text" id="codigo" value="KYOSUMI" maxlength="16" aria-label="Texto grande"></div>
+    <div class="card mandos">
+      <div class="fila"><button class="btn prim" id="repetir" type="button">↻ Repetir las entradas</button></div>
+      <ul class="notas">
+        <li><b>Entradas con resorte:</b> el título, los enlaces, la frase y la tarjeta entran rebotando y se aplastan al llegar. Las curvas se calcularon con el mismo resorte del kit y se guardaron como fotogramas clave de CSS.</li>
+        <li><b>Pegatinas:</b> la tarjeta y la etiqueta @KyoSumiVT tienen borde blanco, contorno oscuro y sombra dura con trama de puntos, en lugar del brillo difuminado.</li>
+        <li><b>Trazo:</b> el borde blanco de la tarjeta se dibuja solo al aparecer (SVG).</li>
+        <li><b>Cada segundo</b> los números dan un pequeño aplastón, y la frase de estado entra con rebote cuando cambia.</li>
+        <li><b>Al llegar a cero:</b> líneas de impacto estilo manga alrededor de la tarjeta. Sin destello de pantalla, pensado para directo.</li>
+        <li><b>Destellos:</b> con contorno y parpadeo a saltos («en dos»). El fondo, la luna, la ilustración y las burbujas siguen como están.</li>
+        <li><b>En OBS:</b> las entradas se ven cada vez que se carga la escena. Para eso, activa «Actualizar navegador cuando la escena se active» en la fuente de navegador.</li>
+      </ul>
     </div>
   </section>
 
-  <section class="card mandos" aria-label="Técnicas">
-    <div class="sec-cab"><h2>Técnicas del panel «Dibujado»</h2><div class="fila"><button class="btn" id="todas" type="button">Activar todas</button><button class="btn" id="ninguna" type="button">Desactivar todas</button></div></div>
-    <div class="tecs" id="tecs"></div>
-  </section>
-
-  <section class="mandos" aria-label="Glosario">
-    <h2>Glosario en movimiento</h2>
-    <p class="intro">Cada técnica por separado sobre una forma sencilla: a la izquierda sin ella, a la derecha con ella.</p>
+  <section id="p-glosario" class="panel" hidden>
+    <p class="ficha-info">Cada técnica por separado sobre una forma sencilla, sin ella y con ella.</p>
     <div class="glos" id="glos"></div>
   </section>
 
   <section class="card mandos" aria-label="Si se lleva al Estudio">
     <h2>Si se lleva al Estudio</h2>
     <ul class="notas">
-      <li><b>Un selector nuevo, «Acabado: Limpio / Dibujado»,</b> junto a «Estilo» en todas las plantillas. «Limpio» se queda exactamente como hoy.</li>
-      <li><b>La exportación no cambia.</b> El kit depende solo del tiempo, así que el .mov o .mp4 sale igual que la vista previa, con la transparencia intacta.</li>
-      <li><b>Se puede ir de una en una:</b> primero una plantilla, la revisas y, si te convence, la siguiente.</li>
-      <li><b>Límites de esta demo:</b> solo cubre la Pegatina del código en formato horizontal y no exporta vídeo.</li>
+      <li><b>Todo sigue siendo editable.</b> El acabado es un campo más, «Acabado: Limpio / Dibujado», junto a «Estilo». Textos, colores, formatos, duración, imágenes y música funcionan igual.</li>
+      <li><b>«Limpio» queda exactamente como hoy.</b> La intro y los anuncios ya entienden el acabado dibujado, pero el Estudio todavía no muestra ese campo. Se comprobó fotograma a fotograma que todas las plantillas en limpio salen idénticas.</li>
+      <li><b>La exportación no cambia:</b> el .mov o .mp4 sale igual que la vista previa, con la transparencia intacta.</li>
+      <li><b>Los overlays</b> irían como archivos nuevos con técnica A, escena por escena, sin tocar los que usas ahora hasta que los apruebes.</li>
     </ul>
   </section>
 </div>
 
 <script type="module">
-import { PLANTILLAS, EASE, UT } from './animaciones/plantillas.js';
+import { PLANTILLAS, ANUNCIOS, FORMATOS, EASE, UT } from './animaciones/plantillas.js';
 import * as K from './animaciones/kit-dibujado.js';
 
 const { paleta, rr, fuente, ancho, destello, rad, ICONOS } = UT;
@@ -172,7 +242,7 @@ function movGeneral(tm, k) {
   }
   // salida: se agacha (anticipación) y sale disparada hacia arriba girando
   const an = K.anticipa(tm, 6.06, { largo: .18, fuerza: .14 });
-  const p = clamp((tm - 6.06) / .46, 0, 1), pe = p * p * p, st = p > 0 ? 1 + .22 * Math.sin(Math.PI * Math.min(1, p * 1.4)) : 1;
+  const p = clamp((tm - 6.06) / .46, 0, 1), pe = p * p * p, fs = k.impacto && k.smear === 'estirado' ? .75 : .22, st = p > 0 ? 1 + fs * Math.sin(Math.PI * Math.min(1, p * 1.4)) : 1;
   return { s: lerp(1, .15, pe), r: lerp(0, 16, pe), a: 1 - clamp((p - .55) / .45, 0, 1), y: -160 * pe, sx: an.sx / st, sy: an.sy * st };
 }
 function movCodigo(tm, k) {
@@ -324,9 +394,12 @@ function cuerpo(ctx, tm, o, W, H, k, dib, amp) {
     };
     if (k.impacto) {
       K.rafaga(ctx, ccx, ccy, (tm - T_GOLPE) / .32, { r0: cw * .42, r1: cw * .95, n: 16, color: P.a, grosor: 18 * u, sem: 5 });
-      if (k.muelle && tm >= .63 && tm < T_GOLPE) K.estela(ctx, tm, x => dibCodigo(movCodigo(x, k)), { copias: 3, paso: 1 / 45, alfa: .22 });
+      if (k.muelle && k.smear !== 'estirado' && tm >= .63 && tm < T_GOLPE) K.estela(ctx, tm, x => dibCodigo(movCodigo(x, k)), { copias: 3, paso: 1 / 45, alfa: .22 });
     }
-    dibCodigo(movCodigo(tm, k));
+    const cod = movCodigo(tm, k);
+    // smear estirado: en los últimos fotogramas de la caída el código se alarga como un chicle
+    if (k.impacto && k.muelle && k.smear === 'estirado' && tm >= .63 && tm < T_GOLPE) { const e = 1 + 1.1 * clamp(((tm - .63) / (T_GOLPE - .63) - .45) / .55, 0, 1); cod.sx /= Math.sqrt(e); cod.sy *= e; }
+    dibCodigo(cod);
     y += ch + 14 * u;
   }
   if (o.l2 || o.dest) {
@@ -370,9 +443,9 @@ function dibujado(ctx, t0, o, W, H, k) {
   const dib = k.temblor ? K.dibujo(t0) : 0;       // cambia el temblor 12 veces por segundo
   const amp = k.temblor ? 1 : 0;
   const todo = tm => cuerpo(ctx, tm, o, W, H, k, dib, amp);
-  if (k.impacto && k.muelle && t > 6.12 && t < 6.5) K.estela(ctx, t, todo, { copias: 2, paso: 1 / 30, alfa: .18 });
+  if (k.impacto && k.muelle && k.smear !== 'estirado' && t > 6.12 && t < 6.5) K.estela(ctx, t, todo, { copias: 2, paso: 1 / 30, alfa: .18 });
   todo(t);
-  if (k.impacto && K.esImpacto(t0, T_GOLPE, 2)) K.silueta(ctx, paleta(o).p);
+  if (k.impacto && K.esImpacto(t0, T_GOLPE, 2)) { if (k.golpe === 'invertido') K.invertir(ctx); else K.silueta(ctx, paleta(o).p); }
   if (k.papel) K.papel(ctx, K.dibujo(t0), { fuerza: .1 });
 }
 
@@ -450,8 +523,41 @@ const GLOS = [
       bloque(q, K.aplaston(q, golpe, { fuerza: .35, frec: 3, amort: 8 }));
       if (K.esImpacto(q, golpe, 2)) K.silueta(ctx, C.p);
     });
+  } },
+  { t: 'Smear estirado', d: 'En los fotogramas más rápidos la pieza se alarga como un chicle en la dirección en la que va. Es el «smear frame» clásico del anime.', f(ctx, t) {
+    const q = t % 1.6, p = EASE.io(clamp(q / .7, 0, 1)), vuelta = q > .9 ? EASE.io(clamp((q - .9) / .6, 0, 1)) : 0, x = lerp(lerp(34, 126, p), 34, vuelta);
+    const vel = K.velocidad(z => { const pp = EASE.io(clamp(z / .7, 0, 1)), vv = z > .9 ? EASE.io(clamp((z - .9) / .6, 0, 1)) : 0; return lerp(lerp(34, 126, pp), 34, vv); }, q);
+    mitad(ctx, 0, () => { suelo(ctx, 20, 140, 122); bola(ctx, x, 100, 18, C.nar); });
+    mitad(ctx, 1, () => { suelo(ctx, 20, 140, 122); const sm = K.smear(vel, 0, { umbral: 120, fuerza: .006, max: 1.5 }); ctx.save(); K.deformar(ctx, x, 100, sm.largo, sm.ancho, sm.giro); bola(ctx, x, 100, 18, C.nar); ctx.restore(); });
+  } },
+  { t: 'Impacto: silueta o invertido', lados: ['SILUETA', 'INVERTIDO'], d: 'Dos maneras de marcar un golpe durante dos fotogramas: todo en silueta blanca, o con los colores invertidos como en muchas escenas de anime.', f(ctx, t) {
+    const per = 1.8, q = t % per, golpe = .45, base = 140, pos = x => { const p = clamp(x / golpe, 0, 1); return lerp(18, base - 40, p * p); };
+    [0, 1].forEach(lado => mitad(ctx, lado, () => {
+      suelo(ctx, 30, 130, base);
+      K.rafaga(ctx, 80, base - 10, (q - golpe) / .35, { r0: 26, r1: 70, n: 12, color: C.oro, grosor: 7, sem: 2 });
+      const sq = K.aplaston(q, golpe, { fuerza: .35, frec: 3, amort: 8 });
+      ctx.save(); K.deformar(ctx, 80, base, sq.sx, sq.sy); ctx.fillStyle = C.a; rr(ctx, 60, pos(q), 40, 40, 8); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = C.o; ctx.stroke(); ctx.restore();
+      bola(ctx, 122, 60, 10, C.nar);
+      if (K.esImpacto(q, golpe, 3)) { if (lado) K.invertir(ctx); else K.silueta(ctx, C.p); }
+    }));
+  } },
+  { t: 'Morphing', lados: ['FUNDIDO', 'MORPHING'], d: 'Una forma se transforma en otra (aleta, burbuja, estrella, corazón) en lugar de desaparecer y aparecer. Encaja en transiciones y en botones que cambian de estado.', f(ctx, t) {
+    const F = formasMorph(), n = F.length, ciclo = 1.3, q = t / ciclo, i = Math.floor(q) % n, j = (i + 1) % n, x = (q % 1) * ciclo - .5;
+    const lienzo = (fn) => { ctx.save(); ctx.translate(40, 52); ctx.scale(.8, .8); fn(); ctx.restore(); };
+    const pinta = (camino, al) => { ctx.save(); ctx.globalAlpha *= al; ctx.lineJoin = 'round'; ctx.lineWidth = 6; ctx.strokeStyle = C.o; ctx.stroke(camino); ctx.fillStyle = C.a; ctx.fill(camino); ctx.restore(); };
+    mitad(ctx, 0, () => lienzo(() => { const p = clamp(x / .45, 0, 1); pinta(F[i].camino, 1 - p); pinta(F[j].camino, p); }));
+    mitad(ctx, 1, () => lienzo(() => { const p = x <= 0 ? 0 : K.resorte(x, 0, { frec: 1.7, amort: 7 }), [a, b] = F[i].par; pinta(K.morfear(a, b, p), 1); }));
   } }
 ];
+let _formas = null;
+function formasMorph() {
+  if (_formas) return _formas;
+  const d = ['M8 78 C 28 70 42 44 66 12 C 68 40 78 62 96 78 Z', 'M50 16 A 34 34 0 1 1 49.9 16 Z', 'M50 0C53 38 62 47 100 50 62 53 53 62 50 100 47 62 38 53 0 50 38 47 47 38 50 0Z',
+    'M50 88 C 50 88 18 68 10 48 C 4 34 13 18 29 18 C 38 18 44 23 50 31 C 56 23 62 18 71 18 C 87 18 96 34 90 48 C 82 68 50 88 50 88 Z'];
+  const pts = d.map(x => K.puntosDe(x, 120));
+  _formas = d.map((x, i) => ({ camino: new Path2D(x), par: K.emparejar(pts[i], pts[(i + 1) % d.length]) }));
+  return _formas;
+}
 
 // =====================================================================
 // Página
@@ -465,28 +571,82 @@ const FUENTES = [
 await Promise.all(FUENTES.map(([n, url, w]) => new FontFace(n, `url(${url})`, { weight: w }).load().then(f => document.fonts.add(f)).catch(() => {})));
 
 const TECNICAS = [
-  ['muelle', 'Resortes y squash & stretch', 'Entradas con rebote, anticipación antes de salir y aplastón al chocar.'],
+  ['muelle', 'Resortes y squash & stretch', 'Entradas con rebote, anticipación y aplastón al chocar.'],
   ['enDos', 'Animar en dos', 'La animación cambia 12 veces por segundo, como el anime.'],
   ['temblor', 'Línea que tiembla', 'Contornos, textos y destellos se redibujan un poco en cada dibujo.'],
-  ['trazos', 'Trazos que se dibujan', 'El borde blanco, la aleta y el asa de la bolsa aparecen trazándose.'],
-  ['sombras', 'Sombras y brillos de cómic', 'Sombra con trama de puntos, brillo de bordes duros y destellos con contorno.'],
+  ['trazos', 'Trazos que se dibujan', 'Bordes blancos que aparecen trazándose.'],
+  ['sombras', 'Sombras y brillos de cómic', 'Sombra con trama de puntos, brillos de bordes duros y destellos con contorno.'],
   ['papel', 'Textura de papel', 'Grano fino sobre lo dibujado, sin tocar la transparencia.'],
-  ['impacto', 'Estela e impacto', 'Rastro al caer el código, líneas de impacto, silueta de dos fotogramas y estela al salir.']
+  ['impacto', 'Estela e impacto', 'Smear en lo rápido, líneas de impacto y dos fotogramas de golpe.']
 ];
-const ORIGINAL = PLANTILLAS.find(p => p.id === 'pegatina-codigo');
-const BASE = Object.fromEntries(ORIGINAL.campos.filter(c => c.tipo !== 'imagen' && c.tipo !== 'media').map(c => [c.k, c.def]));
+const MI_COMBINACION = { muelle: true, enDos: false, temblor: false, trazos: true, sombras: true, papel: false, impacto: true };
 const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const est = { t: reducido ? 1.6 : 0, tg: reducido ? .3 : 0, play: !reducido, vel: 1, o: { ...BASE, posh: 'centro', tam: '1.5' }, k: Object.fromEntries(TECNICAS.map(([id]) => [id, true])) };
+const est = { play: !reducido, vel: 1, tg: reducido ? .3 : 0, tab: 'pegatina', k: { ...MI_COMBINACION, smear: 'copias', golpe: 'silueta' } };
 
-const c1 = $('#cv1').getContext('2d'), c2 = $('#cv2').getContext('2d');
-$('#tecs').innerHTML = TECNICAS.map(([id, t, d]) => `<div class="tec"><label><input type="checkbox" id="k-${id}" data-k="${id}" checked><span><b>${t}</b><small>${d}</small></span></label></div>`).join('');
-$('#glos').innerHTML = GLOS.map((g, i) => `<article class="ficha"><div class="mini"><canvas id="g${i}" width="640" height="360" aria-label="${g.t}: comparación"></canvas></div><h3>${g.t}</h3><p>${g.d}</p></article>`).join('');
-const minis = GLOS.map((g, i) => ({ g, ctx: document.getElementById('g' + i).getContext('2d'), visible: true }));
-if ('IntersectionObserver' in window) {
-  const io = new IntersectionObserver(es => es.forEach(e => { minis[+e.target.id.slice(1)].visible = e.isIntersecting; }));
-  minis.forEach(m => { m.visible = false; io.observe(m.ctx.canvas); });
+const ORIGINAL = PLANTILLAS.find(p => p.id === 'pegatina-codigo'), INTRO = PLANTILLAS.find(p => p.id === 'intro'), HOY = ANUNCIOS.find(p => p.id === 'anuncio-hoy');
+const defectos = pl => Object.fromEntries(pl.campos.filter(c => c.tipo !== 'imagen' && c.tipo !== 'media').map(c => [c.k, c.def]));
+const COMPS = {
+  pegatina: { pl: ORIGINAL, fmts: ['horizontal'], fmt: 'horizontal', fijos: { posh: 'centro', tam: '1.5' }, ocultos: ['posh', 'posv', 'tam', 'dur'], t: reducido ? 1.6 : 0,
+    info: 'Pestaña Animaciones del Estudio. El lado dibujado es una copia de la plantilla con el kit aplicado.',
+    L: () => L, limpio: (ctx, t, o, f, W, H) => ORIGINAL.dibujar(ctx, t, o, f, W, H), dibujado: (ctx, t, o, f, W, H) => dibujado(ctx, t, o, W, H, est.k) },
+  intro: { pl: INTRO, fmts: ['horizontal', 'vertical'], fmt: 'horizontal', fijos: {}, ocultos: ['musica', 'efectos', 'vol'], t: reducido ? 3.2 : 0,
+    info: 'Pestaña Animaciones del Estudio. Los dos lados son la misma plantilla real; el derecho lleva el acabado dibujado. Fíjate en las letras, el subtítulo, las gotas y el golpe cuando el nombre termina de aparecer.',
+    L: o => INTRO.duracion(o), limpio: (ctx, t, o, f, W, H) => INTRO.dibujar(ctx, t, o, f, W, H), dibujado: (ctx, t, o, f, W, H) => INTRO.dibujar(ctx, t, { ...o, acabado: 'dibujado', kit: est.k }, f, W, H) },
+  anuncio: { pl: HOY, fmts: ['vertical', 'horizontal', 'cuadrado'], fmt: 'vertical', fijos: {}, ocultos: ['musica', 'vol', 'misterio', 'zoom'], t: reducido ? 2.5 : 0,
+    info: 'Pestaña Anuncios del Estudio. Los dos lados son la misma plantilla real; el derecho lleva el acabado dibujado. Fíjate en el título, en los bloques de la hora y en el golpe cuando caen.',
+    L: o => HOY.duracion(o), limpio: (ctx, t, o, f, W, H) => HOY.dibujar(ctx, t, o, f, W, H), dibujado: (ctx, t, o, f, W, H) => HOY.dibujar(ctx, t, { ...o, acabado: 'dibujado', kit: est.k }, f, W, H) }
+};
+for (const c of Object.values(COMPS)) c.o = { ...defectos(c.pl), ...c.fijos };
+const comp = () => COMPS[est.tab];
+const esc = x => String(x).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const NOMBRE_FMT = { horizontal: 'Horizontal', vertical: 'Vertical', cuadrado: 'Cuadrado', retrato: 'Feed 4:5' };
+
+// ---------- formulario (mismos campos que el Estudio) ----------
+function formulario(c) {
+  return c.pl.campos.filter(x => ['texto', 'numero', 'chips', 'color'].includes(x.tipo) && !c.ocultos.includes(x.k)).map(x => {
+    const si = x.si ? ` data-si="${x.si}"` : '', v = c.o[x.k] ?? x.def;
+    if (x.tipo === 'texto') return `<label class="f"${si}><span>${esc(x.label)}</span><input type="text" id="f-${x.k}" name="${x.k}" maxlength="${x.max || 40}" value="${esc(v)}"></label>`;
+    if (x.tipo === 'numero') return `<label class="f"${si}><span>${esc(x.label)}</span><input type="number" id="f-${x.k}" name="${x.k}" min="${x.min}" max="${x.max}" step="${x.paso}" value="${esc(v)}"></label>`;
+    if (x.tipo === 'color') return `<label class="f fcolor"${si}><span>${esc(x.label)}</span><input type="color" id="f-${x.k}" name="${x.k}" value="${esc(v)}"></label>`;
+    return `<div class="f"${si}><span>${esc(x.label)}</span><div class="chips">${x.opciones.map(([val, l]) => `<label><input type="radio" name="${x.k}" value="${esc(val)}"${String(v) === String(val) ? ' checked' : ''}>${esc(l)}</label>`).join('')}</div></div>`;
+  }).join('');
+}
+function condiciones() {
+  const o = comp().o;
+  document.querySelectorAll('#form [data-si]').forEach(el => { const [k, v] = el.dataset.si.split('='); el.hidden = String(o[k]) !== v; });
+}
+function montarComp() {
+  const c = comp();
+  $('#info').textContent = c.info;
+  $('#form').innerHTML = formulario(c); condiciones();
+  $('#fmts').innerHTML = c.fmts.map(f => `<label><input type="radio" name="fmt" value="${f}"${f === c.fmt ? ' checked' : ''}>${NOMBRE_FMT[f]}</label>`).join('');
+  $('#g-fmt').hidden = c.fmts.length < 2;
+  ajustarLienzos();
+}
+function ajustarLienzos() {
+  const c = comp(), { w, h } = FORMATOS[c.fmt], k = Math.min(960 / w, 960 / h);
+  for (const cv of [$('#cv1'), $('#cv2')]) { cv.width = Math.round(w * k); cv.height = Math.round(h * k); cv.parentElement.style.aspectRatio = w + ' / ' + h; }
+  $('#duo').dataset.fmt = c.fmt;
+  $('#tl').max = c.L(c.o);
 }
 
+// ---------- técnicas ----------
+$('#tecs').innerHTML = TECNICAS.map(([id, t, d]) => `<div class="tec"><label><input type="checkbox" id="k-${id}" data-k="${id}"><span><b>${t}</b><small>${d}</small></span></label></div>`).join('');
+const marcarTecnicas = () => TECNICAS.forEach(([id]) => { $('#k-' + id).checked = !!est.k[id]; });
+marcarTecnicas();
+$('#tecs').onchange = e => { const k = e.target.dataset.k; if (k) est.k[k] = e.target.checked; };
+const ponerTodas = v => { TECNICAS.forEach(([id]) => { est.k[id] = v; }); marcarTecnicas(); };
+$('#todas').onclick = () => ponerTodas(true);
+$('#ninguna').onclick = () => ponerTodas(false);
+$('#mia').onclick = () => { Object.assign(est.k, MI_COMBINACION); marcarTecnicas(); };
+$('#smear').onchange = e => { est.k.smear = e.target.value; };
+$('#golpe').onchange = e => { est.k.golpe = e.target.value; };
+
+// ---------- glosario ----------
+$('#glos').innerHTML = GLOS.map((g, i) => `<article class="ficha"><div class="mini"><canvas id="g${i}" width="640" height="360" aria-label="${g.t}: comparación"></canvas></div><h3>${g.t}</h3><p>${g.d}</p></article>`).join('');
+const minis = GLOS.map((g, i) => ({ g, ctx: document.getElementById('g' + i).getContext('2d'), visible: false }));
+const io = new IntersectionObserver(es => es.forEach(e => { minis[+e.target.id.slice(1)].visible = e.isIntersecting; }));
+minis.forEach(m => io.observe(m.ctx.canvas));
 function pintarMini(m) {
   const ctx = m.ctx;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, 640, 360); ctx.setTransform(2, 0, 0, 2, 0, 0);
@@ -494,43 +654,73 @@ function pintarMini(m) {
   ctx.setTransform(2, 0, 0, 2, 0, 0);
   ctx.strokeStyle = 'rgba(184,149,255,.22)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(160, 12); ctx.lineTo(160, 168); ctx.stroke();
   ctx.font = '700 10px "Chakra Petch"'; ctx.letterSpacing = '1.5px'; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
-  ctx.fillStyle = '#958dbd'; ctx.fillText('SIN', 10, 10); ctx.fillStyle = '#6FE3F0'; ctx.fillText('CON', 170, 10);
+  const [l0, l1] = m.g.lados || ['SIN', 'CON']; ctx.fillStyle = '#958dbd'; ctx.fillText(l0, 10, 10); ctx.fillStyle = '#6FE3F0'; ctx.fillText(l1, 170, 10);
 }
+
+// ---------- overlay ----------
+const marcos = [...document.querySelectorAll('#p-overlay iframe')];
+const escalar = () => marcos.forEach(f => { const w = f.parentElement.clientWidth; f.style.transform = `scale(${w / 1920})`; });
+new ResizeObserver(escalar).observe(document.querySelector('#p-overlay .lienzo'));
+const cargarMarcos = (forzar) => marcos.forEach(f => { if (forzar || !f.src) f.src = f.dataset.src; });
+$('#repetir').onclick = () => cargarMarcos(true);
+
+// ---------- pestañas ----------
+function abrir(tab) {
+  if (!['pegatina', 'intro', 'anuncio', 'overlay', 'glosario'].includes(tab)) tab = 'pegatina';
+  document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+  const lienzo = tab in COMPS;
+  $('#p-canvas').hidden = !lienzo; $('#p-overlay').hidden = tab !== 'overlay'; $('#p-glosario').hidden = tab !== 'glosario';
+  if (tab === 'overlay') { cargarMarcos(false); requestAnimationFrame(escalar); }
+  else marcos.forEach(f => { f.removeAttribute('src'); }); // los overlays solo corren mientras se ven
+  if (lienzo) { est.tab = tab; montarComp(); }
+  else est.tab = est.tab in COMPS ? est.tab : 'pegatina';
+  est.vista = tab;
+  try { history.replaceState(null, '', '#' + tab); } catch (e) {}
+}
+document.querySelector('.tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) abrir(b.dataset.tab); };
+
+// ---------- mandos ----------
+const c1 = $('#cv1').getContext('2d'), c2 = $('#cv2').getContext('2d');
 function pintar() {
-  for (const [ctx, fn] of [[c1, () => ORIGINAL.dibujar(c1, est.t, est.o, 'horizontal', 1920, 1080)], [c2, () => dibujado(c2, est.t, est.o, 1920, 1080, est.k)]]) {
-    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, 960, 540); ctx.setTransform(.5, 0, 0, .5, 0, 0); fn();
+  if (est.vista in COMPS) {
+    const c = comp(), { w: W, h: H } = FORMATOS[c.fmt], L2 = c.L(c.o);
+    if (c.t > L2) c.t = 0;
+    for (const [ctx, fn] of [[c1, c.limpio], [c2, c.dibujado]]) {
+      const k = ctx.canvas.width / W;
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); ctx.setTransform(k, 0, 0, k, 0, 0);
+      fn(ctx, c.t, c.o, c.fmt, W, H);
+    }
+    $('#tl').value = c.t;
+    $('#reloj').textContent = c.t.toFixed(2).replace('.', ',') + ' s · fot. ' + Math.floor(c.t * FPS_EXPORT + 1e-6);
   }
-  minis.forEach(m => { if (m.visible) pintarMini(m); });
-  $('#tl').value = est.t;
-  $('#reloj').textContent = est.t.toFixed(2).replace('.', ',') + ' s · fot. ' + Math.floor(est.t * FPS_EXPORT + 1e-6);
+  if (est.vista === 'glosario') minis.forEach(m => { if (m.visible) pintarMini(m); });
 }
 let ult = performance.now();
 function bucle(ahora) {
   const dt = Math.min(.05, (ahora - ult) / 1000); ult = ahora;
-  if (est.play) { est.t = (est.t + dt * est.vel) % L; est.tg += dt * est.vel; }
+  if (est.play) { const c = comp(); c.t = (c.t + dt * est.vel) % c.L(c.o); }
+  if (!reducido) est.tg += dt * est.vel; // el glosario no tiene pausa: siempre se mueve
   pintar(); requestAnimationFrame(bucle);
 }
 const ponerPlay = v => { est.play = v; $('#play').textContent = v ? '⏸ Pausa' : '▶ Reproducir'; };
-const paso = d => { ponerPlay(false); est.t = (est.t + d / FPS_EXPORT + L) % L; est.tg += d / FPS_EXPORT; };
+const paso = d => { ponerPlay(false); const c = comp(), L2 = c.L(c.o); c.t = (c.t + d / FPS_EXPORT + L2) % L2; };
 $('#play').onclick = () => ponerPlay(!est.play);
 $('#atras').onclick = () => paso(-1);
 $('#adelante').onclick = () => paso(1);
-$('#tl').oninput = e => { ponerPlay(false); est.t = Number(e.target.value); };
+$('#tl').oninput = e => { ponerPlay(false); comp().t = Number(e.target.value); };
 $('#vel').onchange = e => { est.vel = Number(e.target.value); };
-$('#tema').onchange = e => { est.o.tema = e.target.value; };
-$('#fondo').onchange = e => { for (const id of ['#lz1', '#lz2']) $(id).className = 'lienzo fondo-' + e.target.value; };
-$('#codigo').oninput = e => { est.o.codigo = e.target.value; };
-$('#tecs').onchange = e => { const k = e.target.dataset.k; if (k) est.k[k] = e.target.checked; };
-const todas = v => TECNICAS.forEach(([id]) => { est.k[id] = v; $('#k-' + id).checked = v; });
-$('#todas').onclick = () => todas(true);
-$('#ninguna').onclick = () => todas(false);
+$('#fondo').onchange = e => document.querySelectorAll('#duo .lienzo').forEach(l => { l.className = 'lienzo fondo-' + e.target.value; });
+$('#fmts').onchange = e => { comp().fmt = e.target.value; ajustarLienzos(); };
+$('#form').addEventListener('input', e => { const n = e.target.name; if (!n) return; comp().o[n] = e.target.value; condiciones(); $('#tl').max = comp().L(comp().o); });
+$('#restablecer').onclick = () => { const c = comp(); c.o = { ...defectos(c.pl), ...c.fijos }; montarComp(); };
 addEventListener('keydown', e => {
-  if (e.target.matches('input[type=text]')) return;
+  if (!(est.vista in COMPS) || e.target.matches('input[type=text],input[type=number]')) return;
   if (e.key === ' ' && !e.target.matches('button')) { e.preventDefault(); ponerPlay(!est.play); }
   else if (e.key === 'ArrowLeft' && !e.target.matches('input[type=range]')) paso(-1);
   else if (e.key === 'ArrowRight' && !e.target.matches('input[type=range]')) paso(1);
 });
+abrir((location.hash || '').slice(1));
 ponerPlay(est.play);
-minis.forEach(pintarMini); // primer fotograma de todas, aunque aún no se vean
+minis.forEach(pintarMini); // primer fotograma de todas
 requestAnimationFrame(bucle);
 </script>
