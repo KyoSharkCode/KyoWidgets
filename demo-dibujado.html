@@ -1,0 +1,536 @@
+<meta charset="utf-8">
+<title>Acabado Dibujado</title>
+<meta name="robots" content="noindex">
+<style>
+/* Laboratorio del Estudio: escenario comparativo arriba, mandos debajo, glosario de técnicas en rejilla. Mismo sistema visual que Kyo Estudio. */
+:root{
+  --bg:#0a0720; --panel:#120d33; --panel2:#0e0a2a; --line:rgba(184,149,255,.22); --line2:rgba(184,149,255,.4);
+  --acc:#FF8A2B; --acc2:#6FE3F0; --pur:#9B6BFF; --txt:#F5F3FB; --dim:#cfc7ef; --faint:#958dbd;
+  --f-disp:"Cherry Bomb One","Fredoka",system-ui,sans-serif; --f-body:"Fredoka",system-ui,sans-serif; --f-ui:"Chakra Petch",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:radial-gradient(900px 500px at 90% -10%,rgba(155,107,255,.18),transparent 60%),radial-gradient(700px 400px at -10% 110%,rgba(255,138,43,.1),transparent 60%),var(--bg);
+  color:var(--txt);font-family:var(--f-body);font-size:15px;line-height:1.45;padding-inline:16px;padding-block:0 56px}
+.w{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-direction:column;gap:6px;padding-top:22px}
+.eyebrow{font:700 12px var(--f-ui);letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
+h1{margin:0;font-family:var(--f-disp);font-weight:400;font-size:clamp(30px,6vw,42px);line-height:1.05;-webkit-text-stroke:6px var(--bg);paint-order:stroke fill;text-wrap:balance}
+h1 span{color:var(--acc2)}
+.intro{margin:0;color:var(--dim);max-width:64ch}
+h2{margin:0;font:700 12px var(--f-ui);letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px}
+
+/* escenario */
+.duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:820px){.duo{grid-template-columns:minmax(0,1fr)}}
+.stage{display:flex;flex-direction:column;gap:8px;min-width:0}
+.stage .cab{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.stage .cab b{font:700 13px var(--f-ui);letter-spacing:.12em;text-transform:uppercase}
+.stage .cab small{color:var(--faint);font-size:12.5px}
+.stage.nuevo .cab b{color:var(--acc2)}
+.lienzo{position:relative;aspect-ratio:16/9;max-width:100%;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.lienzo canvas{position:absolute;inset:0;width:100%;height:100%}
+.fondo-noche{background:radial-gradient(120% 90% at 50% 0%,#2a1f6b 0%,#140f3c 55%,#0a0720 100%)}
+.fondo-ajedrez{background:repeating-conic-gradient(#2a2550 0 25%,#1c1840 0 50%) 0 0/24px 24px}
+.fondo-claro{background:linear-gradient(#efeaff,#d9d2f2)}
+
+/* mandos */
+.mandos{display:flex;flex-direction:column;gap:12px}
+.fila{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tl{display:flex;align-items:center;gap:10px;flex:1 1 280px;min-width:0}
+.tl input{flex:1;min-width:0;accent-color:var(--acc)}
+.reloj{font:600 13px var(--f-ui);color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+.btn{font:600 14px var(--f-body);color:var(--txt);background:var(--panel2);border:1px solid var(--line2);border-radius:999px;padding:8px 14px;cursor:pointer;line-height:1}
+.btn.prim{background:var(--acc);border-color:var(--acc);color:#1a0d05;min-width:96px}
+.btn:hover{border-color:var(--acc2)}
+.btn:focus-visible,.chips label:focus-within,.tec label:focus-within{outline:2px solid var(--acc2);outline-offset:2px}
+.grupo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.grupo > span{font:700 11.5px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips label{display:inline-flex;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13.5px;font-weight:600;cursor:pointer;user-select:none;color:var(--dim)}
+.chips label:has(input:checked){border-color:var(--acc);background:rgba(255,138,43,.12);color:var(--txt)}
+.chips input{position:absolute;opacity:0;width:0;height:0}
+input[type=text]{font:500 14px var(--f-body);background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:7px 10px;width:150px}
+input[type=text]:focus{outline:none;border-color:var(--acc2)}
+
+/* técnicas */
+.tecs{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.tec label{display:flex;gap:10px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px 12px;cursor:pointer;height:100%}
+.tec label:has(input:checked){border-color:var(--acc2)}
+.tec input{accent-color:var(--acc2);margin-top:3px;flex:none}
+.tec b{display:block;font-size:14px}
+.tec small{display:block;color:var(--faint);font-size:12.5px}
+.sec-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+
+/* glosario */
+.glos{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.ficha{display:flex;flex-direction:column;gap:8px;min-width:0}
+.ficha .mini{position:relative;aspect-ratio:16/9;max-width:100%;border-radius:12px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
+.ficha .mini canvas{position:absolute;inset:0;width:100%;height:100%}
+.ficha h3{margin:0;font-size:15.5px}
+.ficha p{margin:0;color:var(--faint);font-size:13px}
+
+.notas{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;color:var(--dim);max-width:72ch}
+.notas b{color:var(--txt)}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
+</style>
+
+<div class="w">
+  <header>
+    <span class="eyebrow">Kyo Estudio · Laboratorio</span>
+    <h1>Acabado <span>dibujado</span></h1>
+    <p class="intro">La misma animación dos veces. A la izquierda, la plantilla real del Estudio tal como está hoy. A la derecha, el mismo diseño con el kit de animación dibujada. Activa y desactiva cada técnica para ver qué aporta. El Estudio no se ha modificado.</p>
+  </header>
+
+  <section class="duo" aria-label="Comparación">
+    <div class="stage">
+      <div class="cab"><b>Limpio</b><small>Plantilla actual del Estudio</small></div>
+      <div class="lienzo fondo-noche" id="lz1"><canvas id="cv1" width="960" height="540" aria-label="Pegatina del código, versión actual"></canvas></div>
+    </div>
+    <div class="stage nuevo">
+      <div class="cab"><b>Dibujado</b><small>Con el kit de animación</small></div>
+      <div class="lienzo fondo-noche" id="lz2"><canvas id="cv2" width="960" height="540" aria-label="Pegatina del código, versión dibujada"></canvas></div>
+    </div>
+  </section>
+
+  <section class="card mandos" aria-label="Reproducción">
+    <div class="fila">
+      <button class="btn prim" id="play" type="button">⏸ Pausa</button>
+      <button class="btn" id="atras" type="button" aria-label="Fotograma anterior">◀ 1</button>
+      <button class="btn" id="adelante" type="button" aria-label="Fotograma siguiente">1 ▶</button>
+      <div class="tl"><input type="range" id="tl" min="0" max="6.6" step="0.001" value="0" aria-label="Línea de tiempo"><span class="reloj" id="reloj">0,00 s · fot. 0</span></div>
+    </div>
+    <div class="fila">
+      <div class="grupo"><span>Velocidad</span><div class="chips" id="vel"><label><input type="radio" name="vel" value="1" checked>1×</label><label><input type="radio" name="vel" value="0.5">0,5×</label><label><input type="radio" name="vel" value="0.25">0,25×</label></div></div>
+      <div class="grupo"><span>Estilo</span><div class="chips" id="tema"><label><input type="radio" name="tema" value="marea" checked>🌊 Normal</label><label><input type="radio" name="tema" value="octubre">🎃 Halloween</label><label><input type="radio" name="tema" value="navidad">🎄 Navidad</label></div></div>
+      <div class="grupo"><span>Fondo</span><div class="chips" id="fondo"><label><input type="radio" name="fondo" value="noche" checked>Noche</label><label><input type="radio" name="fondo" value="ajedrez">Transparente</label><label><input type="radio" name="fondo" value="claro">Claro</label></div></div>
+      <div class="grupo"><span>Texto grande</span><input type="text" id="codigo" value="KYOSUMI" maxlength="16" aria-label="Texto grande"></div>
+    </div>
+  </section>
+
+  <section class="card mandos" aria-label="Técnicas">
+    <div class="sec-cab"><h2>Técnicas del panel «Dibujado»</h2><div class="fila"><button class="btn" id="todas" type="button">Activar todas</button><button class="btn" id="ninguna" type="button">Desactivar todas</button></div></div>
+    <div class="tecs" id="tecs"></div>
+  </section>
+
+  <section class="mandos" aria-label="Glosario">
+    <h2>Glosario en movimiento</h2>
+    <p class="intro">Cada técnica por separado sobre una forma sencilla: a la izquierda sin ella, a la derecha con ella.</p>
+    <div class="glos" id="glos"></div>
+  </section>
+
+  <section class="card mandos" aria-label="Si se lleva al Estudio">
+    <h2>Si se lleva al Estudio</h2>
+    <ul class="notas">
+      <li><b>Un selector nuevo, «Acabado: Limpio / Dibujado»,</b> junto a «Estilo» en todas las plantillas. «Limpio» se queda exactamente como hoy.</li>
+      <li><b>La exportación no cambia.</b> El kit depende solo del tiempo, así que el .mov o .mp4 sale igual que la vista previa, con la transparencia intacta.</li>
+      <li><b>Se puede ir de una en una:</b> primero una plantilla, la revisas y, si te convence, la siguiente.</li>
+      <li><b>Límites de esta demo:</b> solo cubre la Pegatina del código en formato horizontal y no exporta vídeo.</li>
+    </ul>
+  </section>
+</div>
+
+<script type="module">
+import { PLANTILLAS, EASE, UT } from './animaciones/plantillas.js';
+import * as K from './animaciones/kit-dibujado.js';
+
+const { paleta, rr, fuente, ancho, destello, rad, ICONOS } = UT;
+const [BOLSA, ASA] = ICONOS.bolsa, [CORAZON] = ICONOS.corazon, [ALETA] = ICONOS.aleta;
+const SPK = new Path2D('M50 0C53 38 62 47 100 50 62 53 53 62 50 100 47 62 38 53 0 50 38 47 47 38 50 0Z');
+const lerp = (a, b, p) => a + (b - a) * p;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = s => document.querySelector(s);
+const L = 6.6, T_GOLPE = .82, FPS_EXPORT = 30;
+
+// Fotogramas clave (igual que en plantillas.js)
+function kf(t, frames, ease = EASE.out) {
+  if (t <= frames[0][0]) return frames[0][1];
+  for (let i = 1; i < frames.length; i++) {
+    if (t <= frames[i][0]) {
+      const [t0, a] = frames[i - 1], [t1, b] = frames[i], p = ease((t - t0) / (t1 - t0 || 1)), o = {};
+      for (const k in b) o[k] = lerp(a[k] ?? b[k], b[k], p);
+      return o;
+    }
+  }
+  return frames[frames.length - 1][1];
+}
+
+// =====================================================================
+// Pegatina del código · versión dibujada (mismo diseño y tiempos que la original)
+// =====================================================================
+function movGeneral(tm, k) {
+  if (!k.muelle) {
+    const p = kf(tm, [[0, { s: .2, r: -14, a: 0 }], [.42, { s: 1.07, r: 2, a: 1 }], [.7, { s: 1, r: 0, a: 1 }], [5.88, { s: 1, r: 0, a: 1 }], [6.16, { s: 1.07, r: -2, a: 1 }], [6.58, { s: .15, r: 10, a: 0 }]], EASE.back);
+    return { ...p, y: 0, sx: 1, sy: 1 };
+  }
+  const R = { frec: 1.8, amort: 5.2 };
+  if (tm < 5.9) {
+    const p = K.resorte(tm, 0, R), e = K.estirar(K.velocidad(x => K.resorte(x, 0, R), tm), { fuerza: .045, max: .22 });
+    return { s: lerp(.2, 1, p), r: lerp(-14, 0, p), a: clamp(tm / .1, 0, 1), y: 0, sx: e.ancho, sy: e.largo };
+  }
+  // salida: se agacha (anticipación) y sale disparada hacia arriba girando
+  const an = K.anticipa(tm, 6.06, { largo: .18, fuerza: .14 });
+  const p = clamp((tm - 6.06) / .46, 0, 1), pe = p * p * p, st = p > 0 ? 1 + .22 * Math.sin(Math.PI * Math.min(1, p * 1.4)) : 1;
+  return { s: lerp(1, .15, pe), r: lerp(0, 16, pe), a: 1 - clamp((p - .55) / .45, 0, 1), y: -160 * pe, sx: an.sx / st, sy: an.sy * st };
+}
+function movCodigo(tm, k) {
+  if (!k.muelle) {
+    const c = kf(tm, [[.63, { s: 2.4, r: -12, a: 0 }], [.91, { s: .92, r: 5, a: 1 }], [1.12, { s: 1.06, r: 2, a: 1 }], [1.33, { s: 1, r: 3, a: 1 }], [3.22, { s: 1, r: 3, a: 1 }], [3.43, { s: 1.12, r: -2, a: 1 }], [3.71, { s: 1, r: 3, a: 1 }]], EASE.back);
+    return { ...c, sx: 1, sy: 1 };
+  }
+  // cae acelerando hacia la tarjeta…
+  if (tm < T_GOLPE) { const p = clamp((tm - .63) / (T_GOLPE - .63), 0, 1), q = Math.pow(p, 1.5); return { s: lerp(2.4, 1, q), r: lerp(-12, 3, q), a: clamp(p * 4, 0, 1), sx: 1, sy: 1 }; }
+  // …se aplasta al chocar, y a mitad se agacha y da un latido con rebote
+  const ap = K.aplaston(tm, T_GOLPE, { fuerza: .26, frec: 3, amort: 8 });
+  const an = K.anticipa(tm, 3.32, { largo: .14, fuerza: .12 }), lat = K.impulso(tm, 3.32, { frec: 2.2, amort: 5 });
+  return { s: 1 + .16 * lat, r: 3 - 5 * lat - 4 * K.impulso(tm, T_GOLPE, { frec: 3, amort: 8 }), a: 1, sx: ap.sx * an.sx, sy: ap.sy * an.sy };
+}
+// Tarjeta tipo pegatina con contornos dibujados; devuelve el contorno de la cara (para recortar brillos)
+function tarjeta(ctx, x, y, w, h, r, { fill, p, o, ring, out, drop, suave = true }, k, d) {
+  const e = ring + out, forma = (xx, yy, ww, hh, rr_, s) => K.rrDibujado(xx, yy, ww, hh, rr_, { sem: d.sem * 10 + s, dib: d.dib, amp: d.amp });
+  const borde = forma(x - e, y - e, w + 2 * e, h + 2 * e, r + e, 1), caida = forma(x - e, y - e + drop, w + 2 * e, h + 2 * e, r + e, 2);
+  if (suave) {
+    if (k.sombras) K.sombraDura(ctx, caida.camino, drop * .9, drop * 1.6, o, { paso: 11, alfa: .75 });
+    else { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 20; ctx.fillStyle = o; ctx.fill(caida.camino); ctx.restore(); }
+  }
+  ctx.fillStyle = o; ctx.fill(caida.camino); ctx.fill(borde.camino);
+  if (d.trazo < 1) {
+    // el borde blanco se dibuja solo: trazo grueso por el centro del anillo
+    const medio = K.rrDibujado(x - ring / 2, y - ring / 2, w + ring, h + ring, r + ring / 2, { sem: d.sem * 10 + 3, dib: d.dib, amp: d.amp });
+    ctx.save(); ctx.strokeStyle = p; ctx.lineWidth = ring * 1.15; ctx.lineCap = 'round'; K.trazar(ctx, medio.camino, medio.largo, d.trazo); ctx.restore();
+  } else { ctx.fillStyle = p; ctx.fill(forma(x - ring, y - ring, w + 2 * ring, h + 2 * ring, r + ring, 3).camino); }
+  const cara = forma(x, y, w, h, r, 4);
+  ctx.fillStyle = fill; ctx.fill(cara.camino);
+  return cara.camino;
+}
+function estrellaDibujada(ctx, cx, cy, tam, color, tinta, s, rot, a, dib, amp, sem) {
+  if (s <= 0 || a <= 0) return;
+  ctx.save(); ctx.globalAlpha *= a; ctx.translate(cx, cy); ctx.rotate(rad(rot)); ctx.scale(s * tam / 100, s * tam / 100); ctx.translate(-50, -50);
+  if (amp) K.tiembla(ctx, 50, 50, sem, dib, 2.5, 4);
+  ctx.lineJoin = 'round'; ctx.lineWidth = 10; ctx.strokeStyle = tinta; ctx.stroke(SPK); ctx.fillStyle = color; ctx.fill(SPK);
+  ctx.restore();
+}
+
+function cuerpo(ctx, tm, o, W, H, k, dib, amp) {
+  const P = paleta(o);
+  let u = Number(o.tam) || 1;
+  const F = uu => ({ chip: `700 ${20 * uu}px "Chakra Petch"`, chipE: 3.2 * uu, l1: `700 ${46 * uu}px "Fredoka"`, code: `400 ${94 * uu}px "Cherry Bomb One"`, codeE: 1.9 * uu, l2: `700 ${40 * uu}px "Fredoka"` });
+  const medir = uu => {
+    const f = F(uu), padX = 38 * uu;
+    const chipW = o.chip ? ancho(ctx, o.chip.toUpperCase(), f.chip, f.chipE) + 32 * uu : 0;
+    const l1W = o.l1 ? ancho(ctx, o.l1, f.l1) : 0;
+    const codeW = ancho(ctx, o.codigo || ' ', f.code, f.codeE) + 68 * uu;
+    const ico = o.icono === 'ninguno' ? 0 : 56 * uu;
+    const l2txt = (o.l2 || '') + (o.l2 && o.dest ? ' ' : '');
+    const l2W = (o.l2 || o.dest) ? ico + ancho(ctx, l2txt + (o.dest || ''), f.l2) : 0;
+    const w = Math.max(640 * uu, Math.max(chipW, l1W, codeW + 20 * uu, l2W) + 2 * padX);
+    let h = 22 * uu;
+    if (o.chip) h += 40 * uu;
+    if (o.l1) h += 57 * uu;
+    h += 10 * uu + 112 * uu + 14 * uu;
+    if (o.l2 || o.dest) h += 48 * uu;
+    h += 28 * uu;
+    return { f, padX, chipW, l1W, codeW, ico, l2txt, l2W, w, h };
+  };
+  let m = medir(u);
+  if (m.w > W - 150) { u *= (W - 150) / m.w; m = medir(u); }
+  const { f, padX, w, h } = m;
+  const x0 = (W - w) / 2, y0 = (H - h) / 2, cx = x0 + w / 2, cy = y0 + h / 2, xIzq = x0 + padX;
+  const A = amp * u; // temblor en px a esta escala
+
+  const g = movGeneral(tm, k);
+  if (g.a <= .001) return;
+  ctx.save();
+  ctx.globalAlpha *= clamp(g.a, 0, 1);
+  ctx.translate(cx, cy + g.y * u); ctx.rotate(rad(g.r)); ctx.scale(g.s, g.s); ctx.translate(-cx, -cy);
+  K.deformar(ctx, cx, y0 + h, g.sx, g.sy); // squash & stretch apoyado en la base
+  const wb = (1 - Math.cos(2 * Math.PI * tm / 3.2)) / 2;
+  ctx.translate(cx, cy - 6 * u * wb); ctx.rotate(rad(1.2 * wb)); ctx.translate(-cx, -cy);
+
+  // aleta (detrás de la tarjeta)
+  if (o.aleta !== 'no') {
+    let fy, fa, fsx = 1, fsy = 1;
+    if (k.muelle) {
+      const R = { frec: 2.4, amort: 7 }, p = K.resorte(tm, .98, R), e = K.estirar(K.velocidad(x => K.resorte(x, .98, R), tm), { fuerza: .03, max: .3 });
+      fy = lerp(70, 0, p); fa = clamp((tm - .98) / .1, 0, 1); fsx = e.ancho; fsy = e.largo;
+    } else { const q = kf(tm, [[.98, { y: 70, a: 0 }], [1.4, { y: -6, a: 1 }], [1.68, { y: 0, a: 1 }]], EASE.back); fy = q.y; fa = q.a; }
+    if (fa > 0) {
+      ctx.save(); ctx.globalAlpha *= clamp(fa, 0, 1);
+      ctx.translate(x0 + w - 166 * u, y0 - 78 * u + fy * u); ctx.scale(u, u);
+      K.deformar(ctx, 58, 78, fsx, fsy);
+      if (amp) K.tiembla(ctx, 58, 40, 11, dib, 1.6, 1.2);
+      ctx.fillStyle = P.c; ctx.fill(ALETA); ctx.lineWidth = 7; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = P.p;
+      if (k.trazos) K.trazar(ctx, ALETA, 330, clamp((tm - 1.02) / .5, 0, 1)); else ctx.stroke(ALETA);
+      ctx.restore();
+    }
+  }
+
+  // tarjeta (inclinada -2°)
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rad(-2)); ctx.translate(-cx, -cy);
+  tarjeta(ctx, x0, y0, w, h, 34 * u, { fill: P.c, p: P.p, o: P.o, ring: 7 * u, out: 6 * u, drop: 14 * u }, k,
+    { sem: 1, dib, amp: 2.2 * A, trazo: k.trazos ? clamp((tm - .04) / .6, 0, 1) : 1 });
+  ctx.textBaseline = 'middle';
+  let y = y0 + 22 * u;
+  if (o.chip) {
+    const a = k.muelle ? { y: lerp(16, 0, K.resorte(tm, .28, { frec: 2.6, amort: 8 })), a: clamp((tm - .28) / .15, 0, 1) } : kf(tm, [[.28, { y: 16, a: 0 }], [.63, { y: 0, a: 1 }]]);
+    ctx.save(); ctx.globalAlpha *= a.a;
+    if (amp) K.tiembla(ctx, xIzq + m.chipW / 2, y + 17 * u, 21, dib, 1.2 * u, .6);
+    ctx.fillStyle = P.a; ctx.fill(K.rrDibujado(xIzq, y + a.y * u, m.chipW, 34 * u, 17 * u, { sem: 21, dib, amp: 1.2 * A }).camino);
+    fuente(ctx, f.chip, f.chipE); ctx.fillStyle = P.o; ctx.textAlign = 'left'; ctx.fillText(o.chip.toUpperCase(), xIzq + 16 * u, y + 17 * u + a.y * u + 1);
+    ctx.restore(); y += 40 * u;
+  }
+  if (o.l1) {
+    let a;
+    if (k.muelle) {
+      const R = { frec: 2.2, amort: 7 }, e = K.estirar(K.velocidad(x => K.resorte(x, .49, R), tm) * 40, { fuerza: .001, max: .22 });
+      a = { x: lerp(-40, 0, K.resorte(tm, .49, R)), a: clamp((tm - .49) / .12, 0, 1), sx: e.largo, sy: e.ancho };
+    } else a = { ...kf(tm, [[.49, { x: -40, a: 0 }], [.84, { x: 0, a: 1 }]], EASE.back), sx: 1, sy: 1 };
+    ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1);
+    K.deformar(ctx, xIzq + a.x * u, y + 26 * u, a.sx, a.sy);
+    if (amp) K.tiembla(ctx, xIzq + m.l1W / 2, y + 26 * u, 31, dib, 1.2 * u, .5);
+    fuente(ctx, f.l1); ctx.fillStyle = P.t; ctx.textAlign = 'left'; ctx.fillText(o.l1, xIzq + a.x * u, y + 26 * u);
+    ctx.restore(); y += 57 * u;
+  }
+
+  // código
+  y += 10 * u;
+  {
+    const cw = m.codeW, ch = 112 * u, x = xIzq - 6 * u, ccx = x + cw / 2, ccy = y + ch / 2;
+    const dibCodigo = c => {
+      if (c.a <= .01) return;
+      ctx.save(); ctx.globalAlpha *= clamp(c.a, 0, 1);
+      ctx.translate(ccx, ccy); ctx.rotate(rad(c.r)); ctx.scale(c.s, c.s); ctx.translate(-ccx, -ccy);
+      K.deformar(ctx, ccx, y + ch, c.sx, c.sy);
+      const cara = tarjeta(ctx, x, y, cw, ch, 24 * u, { fill: P.a, p: P.p, o: P.o, ring: 7 * u, out: 5 * u, drop: 10 * u, suave: false }, k, { sem: 2, dib, amp: 1.8 * A, trazo: 1 });
+      ctx.save(); if (amp) K.tiembla(ctx, ccx, ccy, 41, dib, 1.4 * u, .8);
+      fuente(ctx, f.code, f.codeE); ctx.fillStyle = P.o; ctx.textAlign = 'center'; ctx.fillText(o.codigo || '', ccx, ccy + 4 * u);
+      ctx.restore();
+      // brillo que cruza el código
+      const sh = tm < 3 ? kf(tm, [[1.4, { x: -.6 }], [2.1, { x: 1.4 }]], EASE.io) : kf(tm, [[4.06, { x: -.6 }], [4.62, { x: 1.4 }]], EASE.io);
+      if (sh.x > -.6 && sh.x < 1.4) {
+        ctx.save(); ctx.clip(cara);
+        const bx = x + sh.x * cw, bw = .32 * cw;
+        ctx.translate(bx + bw / 2, ccy); ctx.transform(1, 0, Math.tan(rad(-20)), 1, 0, 0);
+        if (k.sombras) { ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillRect(-bw * .3, -ch * .7, bw * .38, ch * 1.4); ctx.fillRect(bw * .18, -ch * .7, bw * .1, ch * 1.4); }
+        else {
+          const gr = ctx.createLinearGradient(-bw / 2, 0, bw / 2, 0); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(255,255,255,.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.fillStyle = gr; ctx.fillRect(-bw / 2, -ch * .7, bw, ch * 1.4);
+        }
+        ctx.restore();
+      }
+      ctx.restore();
+    };
+    if (k.impacto) {
+      K.rafaga(ctx, ccx, ccy, (tm - T_GOLPE) / .32, { r0: cw * .42, r1: cw * .95, n: 16, color: P.a, grosor: 18 * u, sem: 5 });
+      if (k.muelle && tm >= .63 && tm < T_GOLPE) K.estela(ctx, tm, x => dibCodigo(movCodigo(x, k)), { copias: 3, paso: 1 / 45, alfa: .22 });
+    }
+    dibCodigo(movCodigo(tm, k));
+    y += ch + 14 * u;
+  }
+  if (o.l2 || o.dest) {
+    const a = k.muelle ? { y: lerp(24, 0, K.resorte(tm, 1.19, { frec: 2.4, amort: 7 })), a: clamp((tm - 1.19) / .12, 0, 1) } : kf(tm, [[1.19, { y: 24, a: 0 }], [1.61, { y: 0, a: 1 }]], EASE.back);
+    ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1);
+    let x = xIzq; const yy = y + 24 * u + a.y * u;
+    if (amp) K.tiembla(ctx, x + m.l2W / 2, yy, 51, dib, 1.2 * u, .5);
+    if (o.icono !== 'ninguno') {
+      ctx.save(); ctx.translate(x, yy - 22 * u); ctx.scale(44 * u / 24, 44 * u / 24);
+      ctx.fillStyle = P.a; ctx.strokeStyle = P.a;
+      if (o.icono === 'corazon') ctx.fill(CORAZON);
+      else { ctx.fill(BOLSA); ctx.lineWidth = 2; ctx.lineCap = 'round'; if (k.trazos) K.trazar(ctx, ASA, 17, clamp((tm - 1.35) / .35, 0, 1)); else ctx.stroke(ASA); }
+      ctx.restore(); x += 56 * u;
+    }
+    fuente(ctx, f.l2); ctx.textAlign = 'left';
+    ctx.fillStyle = P.t; ctx.fillText(m.l2txt, x, yy); x += ctx.measureText(m.l2txt).width;
+    ctx.fillStyle = P.a; ctx.fillText(o.dest || '', x, yy);
+    ctx.restore();
+  }
+  ctx.restore(); // tarjeta
+
+  // destellos
+  const sp = [[-26, 120, '#ffffff', .05, 'l'], [10, 160, '#F4C542', .12, 'r'], [-30, -40, P.a, 0, 'rb'], [.4, -40, '#ffffff', .18, 'pb'], [.3, -30, '#F4C542', .09, 'pt']];
+  const S = 56 * u;
+  sp.forEach(([a, b, col, dl, modo], i) => {
+    let x, yy;
+    if (modo === 'l') { x = x0 + a * u; yy = y0 + b * u; }
+    else if (modo === 'r') { x = x0 + w - 10 * u - S; yy = y0 + 160 * u; }
+    else if (modo === 'rb') { x = x0 + w + 30 * u - S; yy = y0 + h - 40 * u - S; }
+    else if (modo === 'pb') { x = x0 + w * a; yy = y0 + h + 40 * u - S; }
+    else { x = x0 + w * a; yy = y0 - 30 * u; }
+    const q = kf(tm - dl, [[.98, { s: 0, r: 0, a: 0 }], [1.26, { s: 1.25, r: 40, a: 1 }], [1.96, { s: .8, r: 90, a: .9 }], [3.08, { s: .7, r: 120, a: .6 }], [3.5, { s: 1.15, r: 160, a: 1 }], [4.34, { s: .7, r: 200, a: .7 }], [5.88, { s: .7, r: 260, a: .7 }], [6.3, { s: 0, r: 280, a: 0 }]]);
+    if (k.sombras) estrellaDibujada(ctx, x + S / 2, yy + S / 2, S, col, P.o, q.s, q.r, q.a, dib, amp, 60 + i);
+    else destello(ctx, x + S / 2, yy + S / 2, S, col, q.s, q.r, q.a);
+  });
+  ctx.restore();
+}
+
+function dibujado(ctx, t0, o, W, H, k) {
+  const t = k.enDos ? K.enDos(t0) : t0;          // posa en dos: 12 dibujos por segundo
+  const dib = k.temblor ? K.dibujo(t0) : 0;       // cambia el temblor 12 veces por segundo
+  const amp = k.temblor ? 1 : 0;
+  const todo = tm => cuerpo(ctx, tm, o, W, H, k, dib, amp);
+  if (k.impacto && k.muelle && t > 6.12 && t < 6.5) K.estela(ctx, t, todo, { copias: 2, paso: 1 / 30, alfa: .18 });
+  todo(t);
+  if (k.impacto && K.esImpacto(t0, T_GOLPE, 2)) K.silueta(ctx, paleta(o).p);
+  if (k.papel) K.papel(ctx, K.dibujo(t0), { fuerza: .1 });
+}
+
+// =====================================================================
+// Glosario: cada técnica sola, sin (izquierda) y con (derecha)
+// =====================================================================
+const C = { a: '#6FE3F0', c: '#0f1a4a', p: '#ffffff', o: '#0A1030', oro: '#F4C542', nar: '#FF8A2B', dim: 'rgba(207,199,239,.25)' };
+function bola(ctx, x, y, r, color) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = C.o; ctx.stroke(); }
+function suelo(ctx, x0, x1, y) { ctx.strokeStyle = C.dim; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); }
+function estrellita(ctx, cx, cy, tam, rot, color) { ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(tam / 100, tam / 100); ctx.translate(-50, -50); ctx.lineJoin = 'round'; ctx.lineWidth = 9; ctx.strokeStyle = C.o; ctx.stroke(SPK); ctx.fillStyle = color; ctx.fill(SPK); ctx.restore(); }
+const mitad = (ctx, lado, fn) => { ctx.save(); ctx.beginPath(); ctx.rect(lado * 160, 0, 160, 180); ctx.clip(); ctx.translate(lado * 160, 0); fn(); ctx.restore(); };
+const GLOS = [
+  { t: 'Resorte', d: 'Llega pasándose un poco y rebota hasta quedarse quieto, como un objeto con peso. Sustituye a las curvas fijas.', f(ctx, t) {
+    const q = t % 2.4, ida = q < 1.2, x = ida ? q : q - 1.2;
+    const fijo = EASE.out(clamp(x / .5, 0, 1)), muelle = K.resorte(x, 0, { frec: 1.6, amort: 4.5 });
+    [[0, fijo], [1, muelle]].forEach(([lado, p]) => mitad(ctx, lado, () => { suelo(ctx, 28, 132, 120); const v = ida ? p : 1 - p; bola(ctx, lerp(36, 124, v), 100, 16, C.a); }));
+  } },
+  { t: 'Squash & stretch', d: 'Se estira cuando va rápido y se aplasta al tocar el suelo, sin perder volumen. Es el principio básico de la animación.', f(ctx, t) {
+    const per = .9, alt = x => Math.abs(Math.sin(Math.PI * x / per)), q = t % per, hgt = alt(q), base = 150, R = 16, yb = base - R - hgt * 95;
+    mitad(ctx, 0, () => { suelo(ctx, 30, 130, base); bola(ctx, 80, yb, R, C.oro); });
+    mitad(ctx, 1, () => {
+      suelo(ctx, 30, 130, base);
+      const cerca = Math.max(0, 1 - hgt / .14), v = K.velocidad(x => alt(x) * 95, q), e = K.estirar(v, { fuerza: .0011, max: .3 });
+      let sx = e.ancho, sy = e.largo; if (cerca > 0) { const a = .45 * cerca; sx = 1 + a; sy = 1 / (1 + a); }
+      ctx.save(); K.deformar(ctx, 80, base, sx, sy); bola(ctx, 80, Math.min(yb, base - R), R, C.oro); ctx.restore();
+    });
+  } },
+  { t: 'Animar en dos', d: 'Cambia 12 veces por segundo en vez de 30 o 60. Es el ritmo del anime y le quita el aspecto de interpolación digital.', f(ctx, t) {
+    [[0, t], [1, K.enDos(t)]].forEach(([lado, tt]) => mitad(ctx, lado, () => { const q = (tt % 2) / 2, x = 30 + 100 * (q < .5 ? q * 2 : 2 - q * 2); estrellita(ctx, x, 90, 52, tt * 3, C.oro); }));
+  } },
+  { t: 'Línea que tiembla', d: 'El contorno se redibuja un poco en cada dibujo, como si cada fotograma estuviera hecho a mano. En animación se llama «line boil».', f(ctx, t) {
+    [[0, 0], [1, 1]].forEach(([lado, amp]) => mitad(ctx, lado, () => {
+      const dib = K.dibujo(t, 8), caja = K.rrDibujado(30, 60, 100, 60, 18, { sem: 7, dib, amp: 2.4 * amp });
+      ctx.fillStyle = C.o; ctx.save(); ctx.translate(0, 6); ctx.fill(caja.camino); ctx.restore(); ctx.fillStyle = C.nar; ctx.fill(caja.camino); ctx.lineWidth = 3; ctx.strokeStyle = C.p; ctx.stroke(caja.camino);
+      ctx.save(); if (amp) K.tiembla(ctx, 80, 90, 3, dib, 1.2, 1.5); ctx.font = '400 26px "Cherry Bomb One"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = C.o; ctx.fillText('¡hola!', 80, 92); ctx.restore();
+    }));
+  } },
+  { t: 'Trazo que se dibuja', d: 'El contorno aparece trazándose en vez de aparecer de golpe o con un fundido. Es lo que en After Effects se llama «Trim Paths».', f(ctx, t) {
+    const q = t % 2.6, p = clamp(q / 1.1, 0, 1), relleno = clamp((q - 1) / .3, 0, 1), fuera = q > 2.3 ? 1 - (q - 2.3) / .3 : 1;
+    const caja = K.rrDibujado(30, 55, 100, 70, 20, { sem: 9, amp: 0 });
+    mitad(ctx, 0, () => { ctx.globalAlpha = Math.min(EASE.out(p), fuera); ctx.fillStyle = C.c; ctx.fill(caja.camino); ctx.lineWidth = 5; ctx.strokeStyle = C.a; ctx.stroke(caja.camino); });
+    mitad(ctx, 1, () => { ctx.globalAlpha = fuera; ctx.globalAlpha *= relleno; ctx.fillStyle = C.c; ctx.fill(caja.camino); ctx.globalAlpha = fuera; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.strokeStyle = C.a; K.trazar(ctx, caja.camino, caja.largo, EASE.io(p)); });
+  } },
+  { t: 'Sombra de cómic', d: 'Sombra plana desplazada con trama de puntos y brillo de bordes duros, en lugar del difuminado digital.', f(ctx, t) {
+    const yb = 4 * Math.sin(t * 2.4), sh = ((t % 2.2) / 1.4) * 1.6 - .4;
+    [[0, false], [1, true]].forEach(([lado, comic]) => mitad(ctx, lado, () => {
+      const caja = K.rrDibujado(32, 50 + yb, 96, 66, 18, { sem: 4, amp: 0 });
+      if (comic) K.sombraDura(ctx, caja.camino, 9, 13, '#000', { paso: 6, alfa: .9 });
+      else { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 18; ctx.shadowOffsetY = 10; ctx.fillStyle = C.a; ctx.fill(caja.camino); ctx.restore(); }
+      ctx.fillStyle = C.a; ctx.fill(caja.camino); ctx.lineWidth = 3; ctx.strokeStyle = C.o; ctx.stroke(caja.camino);
+      if (sh > -.3 && sh < 1.3) {
+        ctx.save(); ctx.clip(caja.camino); ctx.translate(32 + sh * 96, 83 + yb); ctx.transform(1, 0, Math.tan(rad(-20)), 1, 0, 0);
+        if (comic) { ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillRect(-10, -60, 12, 120); ctx.fillRect(8, -60, 4, 120); }
+        else { const g = ctx.createLinearGradient(-16, 0, 16, 0); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.5, 'rgba(255,255,255,.85)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(-16, -60, 32, 120); }
+        ctx.restore();
+      }
+    }));
+  } },
+  { t: 'Textura de papel', d: 'Grano fino que cambia con cada dibujo. Solo afecta a lo dibujado, así que la transparencia del .mov se conserva.', f(ctx, t) {
+    [0, 1].forEach(lado => mitad(ctx, lado, () => {
+      bola(ctx, 62, 84, 30, C.nar);
+      const caja = K.rrDibujado(70, 92, 62, 44, 12, { sem: 2, amp: 0 }); ctx.fillStyle = C.a; ctx.fill(caja.camino); ctx.lineWidth = 3; ctx.strokeStyle = C.o; ctx.stroke(caja.camino);
+      if (lado) K.papel(ctx, K.dibujo(t), { fuerza: .3 });
+    }));
+  } },
+  { t: 'Estela e impacto', d: 'En los golpes rápidos: copias que dejan rastro, líneas de impacto estilo manga y dos fotogramas en silueta.', f(ctx, t) {
+    const per = 1.8, q = t % per, golpe = .45, base = 140;
+    const pos = x => { const p = clamp(x / golpe, 0, 1); return lerp(18, base - 40, p * p); };
+    mitad(ctx, 0, () => { suelo(ctx, 30, 130, base); ctx.fillStyle = C.a; rr(ctx, 60, pos(q), 40, 40, 8); ctx.fill(); });
+    mitad(ctx, 1, () => {
+      suelo(ctx, 30, 130, base);
+      const bloque = (x, sq) => { ctx.save(); K.deformar(ctx, 80, base, sq.sx, sq.sy); ctx.fillStyle = C.a; rr(ctx, 60, pos(x), 40, 40, 8); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = C.o; ctx.stroke(); ctx.restore(); };
+      K.rafaga(ctx, 80, base - 10, (q - golpe) / .35, { r0: 26, r1: 70, n: 12, color: C.oro, grosor: 7, sem: 2 });
+      if (q < golpe) K.estela(ctx, q, x => bloque(x, { sx: 1, sy: 1 }), { copias: 3, paso: 1 / 30, alfa: .35 });
+      bloque(q, K.aplaston(q, golpe, { fuerza: .35, frec: 3, amort: 8 }));
+      if (K.esImpacto(q, golpe, 2)) K.silueta(ctx, C.p);
+    });
+  } }
+];
+
+// =====================================================================
+// Página
+// =====================================================================
+const FUENTES = [
+  ['Cherry Bomb One', 'fonts/cherry-bomb-one-latin-400-normal.woff2', '400'],
+  ['Fredoka', 'fonts/fredoka-latin-600-normal.woff2', '600'],
+  ['Fredoka', 'fonts/fredoka-latin-700-normal.woff2', '700'],
+  ['Chakra Petch', 'fonts/chakra-petch-latin-700-normal.woff2', '700']
+];
+await Promise.all(FUENTES.map(([n, url, w]) => new FontFace(n, `url(${url})`, { weight: w }).load().then(f => document.fonts.add(f)).catch(() => {})));
+
+const TECNICAS = [
+  ['muelle', 'Resortes y squash & stretch', 'Entradas con rebote, anticipación antes de salir y aplastón al chocar.'],
+  ['enDos', 'Animar en dos', 'La animación cambia 12 veces por segundo, como el anime.'],
+  ['temblor', 'Línea que tiembla', 'Contornos, textos y destellos se redibujan un poco en cada dibujo.'],
+  ['trazos', 'Trazos que se dibujan', 'El borde blanco, la aleta y el asa de la bolsa aparecen trazándose.'],
+  ['sombras', 'Sombras y brillos de cómic', 'Sombra con trama de puntos, brillo de bordes duros y destellos con contorno.'],
+  ['papel', 'Textura de papel', 'Grano fino sobre lo dibujado, sin tocar la transparencia.'],
+  ['impacto', 'Estela e impacto', 'Rastro al caer el código, líneas de impacto, silueta de dos fotogramas y estela al salir.']
+];
+const ORIGINAL = PLANTILLAS.find(p => p.id === 'pegatina-codigo');
+const BASE = Object.fromEntries(ORIGINAL.campos.filter(c => c.tipo !== 'imagen' && c.tipo !== 'media').map(c => [c.k, c.def]));
+const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const est = { t: reducido ? 1.6 : 0, tg: reducido ? .3 : 0, play: !reducido, vel: 1, o: { ...BASE, posh: 'centro', tam: '1.5' }, k: Object.fromEntries(TECNICAS.map(([id]) => [id, true])) };
+
+const c1 = $('#cv1').getContext('2d'), c2 = $('#cv2').getContext('2d');
+$('#tecs').innerHTML = TECNICAS.map(([id, t, d]) => `<div class="tec"><label><input type="checkbox" id="k-${id}" data-k="${id}" checked><span><b>${t}</b><small>${d}</small></span></label></div>`).join('');
+$('#glos').innerHTML = GLOS.map((g, i) => `<article class="ficha"><div class="mini"><canvas id="g${i}" width="640" height="360" aria-label="${g.t}: comparación"></canvas></div><h3>${g.t}</h3><p>${g.d}</p></article>`).join('');
+const minis = GLOS.map((g, i) => ({ g, ctx: document.getElementById('g' + i).getContext('2d'), visible: true }));
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver(es => es.forEach(e => { minis[+e.target.id.slice(1)].visible = e.isIntersecting; }));
+  minis.forEach(m => { m.visible = false; io.observe(m.ctx.canvas); });
+}
+
+function pintarMini(m) {
+  const ctx = m.ctx;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, 640, 360); ctx.setTransform(2, 0, 0, 2, 0, 0);
+  m.g.f(ctx, est.tg);
+  ctx.setTransform(2, 0, 0, 2, 0, 0);
+  ctx.strokeStyle = 'rgba(184,149,255,.22)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(160, 12); ctx.lineTo(160, 168); ctx.stroke();
+  ctx.font = '700 10px "Chakra Petch"'; ctx.letterSpacing = '1.5px'; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#958dbd'; ctx.fillText('SIN', 10, 10); ctx.fillStyle = '#6FE3F0'; ctx.fillText('CON', 170, 10);
+}
+function pintar() {
+  for (const [ctx, fn] of [[c1, () => ORIGINAL.dibujar(c1, est.t, est.o, 'horizontal', 1920, 1080)], [c2, () => dibujado(c2, est.t, est.o, 1920, 1080, est.k)]]) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, 960, 540); ctx.setTransform(.5, 0, 0, .5, 0, 0); fn();
+  }
+  minis.forEach(m => { if (m.visible) pintarMini(m); });
+  $('#tl').value = est.t;
+  $('#reloj').textContent = est.t.toFixed(2).replace('.', ',') + ' s · fot. ' + Math.floor(est.t * FPS_EXPORT + 1e-6);
+}
+let ult = performance.now();
+function bucle(ahora) {
+  const dt = Math.min(.05, (ahora - ult) / 1000); ult = ahora;
+  if (est.play) { est.t = (est.t + dt * est.vel) % L; est.tg += dt * est.vel; }
+  pintar(); requestAnimationFrame(bucle);
+}
+const ponerPlay = v => { est.play = v; $('#play').textContent = v ? '⏸ Pausa' : '▶ Reproducir'; };
+const paso = d => { ponerPlay(false); est.t = (est.t + d / FPS_EXPORT + L) % L; est.tg += d / FPS_EXPORT; };
+$('#play').onclick = () => ponerPlay(!est.play);
+$('#atras').onclick = () => paso(-1);
+$('#adelante').onclick = () => paso(1);
+$('#tl').oninput = e => { ponerPlay(false); est.t = Number(e.target.value); };
+$('#vel').onchange = e => { est.vel = Number(e.target.value); };
+$('#tema').onchange = e => { est.o.tema = e.target.value; };
+$('#fondo').onchange = e => { for (const id of ['#lz1', '#lz2']) $(id).className = 'lienzo fondo-' + e.target.value; };
+$('#codigo').oninput = e => { est.o.codigo = e.target.value; };
+$('#tecs').onchange = e => { const k = e.target.dataset.k; if (k) est.k[k] = e.target.checked; };
+const todas = v => TECNICAS.forEach(([id]) => { est.k[id] = v; $('#k-' + id).checked = v; });
+$('#todas').onclick = () => todas(true);
+$('#ninguna').onclick = () => todas(false);
+addEventListener('keydown', e => {
+  if (e.target.matches('input[type=text]')) return;
+  if (e.key === ' ' && !e.target.matches('button')) { e.preventDefault(); ponerPlay(!est.play); }
+  else if (e.key === 'ArrowLeft' && !e.target.matches('input[type=range]')) paso(-1);
+  else if (e.key === 'ArrowRight' && !e.target.matches('input[type=range]')) paso(1);
+});
+ponerPlay(est.play);
+minis.forEach(pintarMini); // primer fotograma de todas, aunque aún no se vean
+requestAnimationFrame(bucle);
+</script>
