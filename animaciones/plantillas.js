@@ -49,7 +49,7 @@ function conAcabado(pl) {
     AC = { k, P: paleta(o), dib: k.temblor ? K.dibujo(t) : 0, amp: k.temblor ? 1 : 0, golpe: null, tReal: t };
     let d;
     try { base.call(this, ctx, k.enDos ? K.enDos(t) : t, o, fmt, W, H); } finally { d = AC; AC = null; }
-    if (k.impacto && k.golpe === 'invertido' && d.golpe != null && K.esImpacto(t, d.golpe, 2)) K.invertir(ctx);
+    if (k.impacto && d.golpe != null && K.esImpacto(t, d.golpe, 2)) { if (k.golpe === 'invertido') K.invertir(ctx); else if (d.silGlobal) K.silueta(ctx, d.P.p); }
     if (k.papel) K.papel(ctx, K.dibujo(t), { fuerza: .12 });
   };
   pl.dibujar._acabado = true;
@@ -95,6 +95,28 @@ function puntoVivo(ctx, cx, cy, r, tm, t0) {
   ctx.save(); ctx.translate(cx, cy); ctx.scale(sc, sc); ctx.translate(-12, -12);
   ctx.fillStyle = '#fff'; ctx.fill(p > 0 ? K.morfear(...parMorph('vivo', D_PLAY, D_PUNTO), p) : new Path2D(D_PLAY)); ctx.restore();
   return p;
+}
+// Pieza que aparece con resorte y se aplasta al asentarse (acabado dibujado)
+function popResorte(tm, t0, { s0 = .2, r0 = 0, y0 = 0 } = {}) {
+  if (tm <= t0) return { s: s0, r: r0, y: y0, a: 0, sx: 1, sy: 1 };
+  const p = K.resorte(tm, t0, { frec: 2, amort: 6.5 }), ap = K.aplaston(tm, t0 + .12, { fuerza: .2, frec: 3, amort: 9 });
+  return { s: lerp(s0, 1, p), r: lerp(r0, 0, p), y: lerp(y0, 0, p), a: clamp((tm - t0) / .08, 0, 1), sx: ap.sx, sy: ap.sy };
+}
+// Pieza que cae de golpe (de grande a su tamaño), se estira en los últimos fotogramas y se aplasta al chocar
+function caidaGolpe(tm, t0, t1, s0, r0, r1) {
+  if (tm < t1) {
+    const p = clamp((tm - t0) / (t1 - t0), 0, 1), q = Math.pow(p, 1.5), e = AC.k.impacto && AC.k.smear === 'estirado' ? 1 + 1.1 * clamp((p - .45) / .55, 0, 1) : 1;
+    return { s: lerp(s0, 1, q), r: lerp(r0, r1, q), a: clamp(p * 4, 0, 1), sx: 1 / Math.sqrt(e), sy: e };
+  }
+  const ap = K.aplaston(tm, t1, { fuerza: .26, frec: 3, amort: 8 });
+  return { s: 1, r: r1 - 4 * K.impulso(tm, t1, { frec: 3, amort: 8 }), a: 1, sx: ap.sx, sy: ap.sy };
+}
+// Golpe (acabado dibujado): líneas de impacto alrededor de un punto y fotograma de impacto en tG.
+// global = la plantilla es transparente y el fotograma en silueta puede cubrir todo lo dibujado
+function golpeEn(ctx, cx, cy, rx, ry, tm, tG, color, { global = false, n = 16, grosor = 20, sem = 7 } = {}) {
+  if (!AC || !AC.k.impacto) return;
+  AC.golpe = tG; if (global) AC.silGlobal = true;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(1, ry / rx); K.rafaga(ctx, 0, 0, (tm - tG) / .45, { r0: rx * .62, r1: rx * 1.1, n, color, grosor, sem }); ctx.restore();
 }
 // Entrada de una letra que salta: con resortes se estira al subir y rebota como gelatina
 function movLetra(tm, ti, y0) {
@@ -1102,10 +1124,11 @@ const merch = {
     ctx.restore();
     // foto-pegatina (polaroid)
     const fx = vert ? cx - F / 2 : pos.x + pad, fy = vert ? pos.y + pad + 10 * u : cy - F / 2;
-    const fa = kf(tm, [[.3, { s: 1.9, r: -22, a: 0 }], [.62, { s: .94, r: -2, a: 1 }], [.8, { s: 1.03, r: -5, a: 1 }], [.95, { s: 1, r: -4, a: 1 }]], EASE.back);
+    const fa = AC && AC.k.muelle ? caidaGolpe(tm, .3, .58, 1.9, -22, -4) : kf(tm, [[.3, { s: 1.9, r: -22, a: 0 }], [.62, { s: .94, r: -2, a: 1 }], [.8, { s: 1.03, r: -5, a: 1 }], [.95, { s: 1, r: -4, a: 1 }]], EASE.back);
+    if (AC) golpeEn(ctx, fx + F / 2, fy + F / 2, F * .78, F * .78, tm, .58, P.a, { global: true, grosor: 22 * u });
     if (fa.a > 0.01) {
       const fcx = fx + F / 2, fcy = fy + F / 2, sway = Math.sin(t * 1.6) * .8;
-      ctx.save(); ctx.globalAlpha *= clamp(fa.a, 0, 1); ctx.translate(fcx, fcy); ctx.rotate(rad(fa.r + sway)); ctx.scale(fa.s, fa.s); ctx.translate(-fcx, -fcy);
+      ctx.save(); ctx.globalAlpha *= clamp(fa.a, 0, 1); ctx.translate(fcx, fcy); ctx.rotate(rad(fa.r + sway)); ctx.scale(fa.s * (fa.sx ?? 1), fa.s * (fa.sy ?? 1)); ctx.translate(-fcx, -fcy);
       pegatina(ctx, fx, fy, F, F, 18 * u, { fill: P.p, p: P.p, o: P.o, ring: 0, out: 6 * u, drop: 10 * u, suave: true });
       const ip = 14 * u, ix = fx + ip, iy = fy + ip, iw = F - 2 * ip;
       rr(ctx, ix, iy, iw, iw, 10 * u); ctx.fillStyle = o.fondo === 'oscuro' ? P.c : o.fondo === 'acento' ? P.a : '#EAF1FB'; ctx.fill();
@@ -1139,8 +1162,8 @@ const merch = {
     // etiqueta de precio
     if (o.precio) {
       y += 20 * u; const pw = m.precioW, ph = 64 * u, px = vert ? cx - pw / 2 : x0, pcx = px + pw / 2, pcy = y + ph / 2;
-      const a = kf(tm, [[1.1, { s: 0, r: 30 }], [1.4, { s: 1.15, r: 3 }], [1.6, { s: 1, r: 6 }]], EASE.back);
-      if (a.s > 0) { ctx.save(); ctx.translate(pcx, pcy); ctx.rotate(rad(a.r)); ctx.scale(a.s, a.s); ctx.translate(-pcx, -pcy);
+      const a = AC && AC.k.muelle ? (q => Object.assign(q, { r: q.r + 6 }))(popResorte(tm, 1.1, { s0: 0, r0: 24 })) : kf(tm, [[1.1, { s: 0, r: 30 }], [1.4, { s: 1.15, r: 3 }], [1.6, { s: 1, r: 6 }]], EASE.back);
+      if (a.s > 0) { ctx.save(); ctx.translate(pcx, pcy); ctx.rotate(rad(a.r)); ctx.scale(a.s * (a.sx ?? 1), a.s * (a.sy ?? 1)); ctx.translate(-pcx, -pcy);
         pegatina(ctx, px, y, pw, ph, 16 * u, { fill: '#F4C542', p: P.p, o: P.o, ring: 5 * u, out: 4 * u, drop: 7 * u, suave: false });
         fuente(ctx, f.precio); ctx.fillStyle = P.o; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(o.precio, pcx, pcy + 3 * u); ctx.restore(); }
     }
@@ -1264,9 +1287,10 @@ const transicion = {
           ctx.beginPath(); ctx.arc(bx + Math.sin(t * 4 + b) * 10 * u - rad0 * .35, by - rad0 * .35, rad0 * .22, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fill();
         }
       }
-      const cx = W / 2, cy = H / 2, pop = kf(t, [[.25, { s: .6 }], [.62, { s: 1.08 }], [.78, { s: 1 }]], EASE.back);
+      const cx = W / 2, cy = H / 2, pop = AC && AC.k.muelle ? popResorte(t, .25, { s0: .6 }) : kf(t, [[.25, { s: .6 }], [.62, { s: 1.08 }], [.78, { s: 1 }]], EASE.back);
       const vaiven = Math.sin(t * 5) * 2;
-      ctx.translate(cx, cy); ctx.rotate(rad(vaiven)); ctx.scale(pop.s, pop.s); ctx.translate(-cx, -cy);
+      if (AC && (o.imagen || o.texto)) golpeEn(ctx, cx, cy, 520 * u, 360 * u, t, .37, P.a, { grosor: 26 * u, n: 18 });
+      ctx.translate(cx, cy); ctx.rotate(rad(vaiven)); ctx.scale(pop.s * (pop.sx ?? 1), pop.s * (pop.sy ?? 1)); ctx.translate(-cx, -cy);
       const D2 = 240 * u, fT = `400 ${150 * u}px "Cherry Bomb One"`;
       const hayImg = !!o.imagen, hayTxt = !!o.texto;
       const tot = (hayImg ? D2 + 22 * u : 0) + (hayTxt ? 150 * u : 0);
@@ -1275,6 +1299,7 @@ const transicion = {
       if (hayTxt) {
         fuente(ctx, fT); let s = 1; const tw = ctx.measureText(o.texto).width; if (tw > W - 160 * u) s = (W - 160 * u) / tw;
         ctx.save(); ctx.translate(cx, y + 75 * u); ctx.scale(s, s); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        if (AC && AC.k.sombras) { ctx.save(); ctx.globalAlpha *= .55; ctx.fillStyle = ctx.strokeStyle = K.trama(ctx, '#000', 9); ctx.lineWidth = 26 * u; ctx.strokeText(o.texto, 14 * u, 30 * u); ctx.fillText(o.texto, 14 * u, 30 * u); ctx.restore(); }
         ctx.lineWidth = 26 * u; ctx.strokeStyle = P.o; ctx.strokeText(o.texto, 0, 6 * u);
         ctx.lineWidth = 16 * u; ctx.strokeStyle = P.p; ctx.strokeText(o.texto, 0, 0);
         ctx.fillStyle = P.a; ctx.fillText(o.texto, 0, 0); ctx.restore();
@@ -1462,7 +1487,8 @@ const momentazo = {
     const pos = colocar(fmt, o, W, H, m.w, m.h, 0);
     const cx = pos.x + m.w / 2, cy = pos.y + m.h / 2;
     // entrada/salida
-    const en = kf(tm, [[0, { s: 0, r: -25 }], [.2, { s: 1.18, r: 4 }], [.34, { s: 1, r: 0 }], [FIN - .38, { s: 1, r: 0 }], [FIN - .22, { s: 1.12, r: -3 }], [FIN - .01, { s: 0, r: 20 }]], EASE.out);
+    const enKF = [[0, { s: 0, r: -25 }], [.2, { s: 1.18, r: 4 }], [.34, { s: 1, r: 0 }], [FIN - .38, { s: 1, r: 0 }], [FIN - .22, { s: 1.12, r: -3 }], [FIN - .01, { s: 0, r: 20 }]];
+    const en = AC && AC.k.muelle && tm < FIN - .38 ? (p => ({ s: Math.max(0, p), r: lerp(-25, 0, p) }))(K.resorte(tm, 0, { frec: 2.2, amort: 6 })) : kf(tm, enKF, EASE.out);
     if (en.s <= .001) return;
     const sh = tm > .3 && tm < .85 ? (1 - (tm - .3) / .55) * 16 * u : 0;
     const jx = Math.sin(tm * 97) * sh, jy = Math.cos(tm * 83) * sh;
@@ -1486,6 +1512,7 @@ const momentazo = {
     const lat = 1 + Math.sin(t * 6) * .015; ctx.scale(lat, lat);
     // estallido exterior (pegatina) + interior
     const ext = caminoEstallido(m.rx, m.ry, 13, tm, 5), int = caminoEstallido(m.rx * .8, m.ry * .78, 11, tm * 1.3, 9);
+    if (AC && AC.k.sombras) K.sombraDura(ctx, ext, 22 * u, 40 * u, '#000', { paso: 11 * u, alfa: .5 });
     ctx.save(); ctx.translate(0, 16 * u); ctx.lineJoin = 'round'; ctx.lineWidth = 30 * u; ctx.strokeStyle = P.o; ctx.stroke(ext); ctx.fillStyle = P.o; ctx.fill(ext); ctx.restore();
     ctx.lineJoin = 'round'; ctx.lineWidth = 30 * u; ctx.strokeStyle = P.o; ctx.stroke(ext);
     ctx.lineWidth = 16 * u; ctx.strokeStyle = P.p; ctx.stroke(ext);
@@ -1496,10 +1523,11 @@ const momentazo = {
     for (let gx = -m.rx; gx < m.rx; gx += 22 * u) for (let gy = -m.ry; gy < m.ry; gy += 22 * u) { const d = Math.hypot(gx / m.rx, gy / m.ry); if (d > .45) { ctx.beginPath(); ctx.arc(gx + (Math.round(gy / (22 * u)) % 2 ? 11 * u : 0), gy, 4.5 * u * d, 0, Math.PI * 2); ctx.fill(); } }
     ctx.restore();
     // texto que golpea
-    const tx = kf(tm, [[.1, { s: 3, a: 0 }], [.3, { s: .9, a: 1 }], [.42, { s: 1.06, a: 1 }], [.52, { s: 1, a: 1 }]], EASE.out);
+    const tx = AC && AC.k.muelle ? caidaGolpe(tm, .1, .3, 3, 0, 0) : kf(tm, [[.1, { s: 3, a: 0 }], [.3, { s: .9, a: 1 }], [.42, { s: 1.06, a: 1 }], [.52, { s: 1, a: 1 }]], EASE.out);
     const dy = m.subTxt ? -16 * u : 0;
+    if (AC) golpeEn(ctx, 0, dy, m.rx * 1.6, m.ry * 1.6, tm, .3, P.p, { global: true, grosor: 24 * u, n: 20 });
     if (tx.a > 0) {
-      ctx.save(); ctx.globalAlpha *= clamp(tx.a, 0, 1); ctx.translate(0, dy); ctx.scale(tx.s, tx.s); ctx.rotate(rad(-3));
+      ctx.save(); ctx.globalAlpha *= clamp(tx.a, 0, 1); ctx.translate(0, dy); ctx.scale(tx.s * (tx.sx ?? 1), tx.s * (tx.sy ?? 1)); ctx.rotate(rad(-3));
       fuente(ctx, m.f.t); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       textoPegatina(ctx, txt, 0, 0, u, P.t, P, .62);
       ctx.restore();
@@ -1833,18 +1861,19 @@ const outro = {
     if (tg > 0 && tg < 1.1) { const r = azar(31), gr = 2400 * u;
       for (let i = 0; i < 30; i++) { const x0 = r() * W, y0 = H * (.4 + r() * .4), vx = (r() * 2 - 1) * 380 * u, vy = -(500 + r() * 650) * u, rr0 = (8 + r() * 14) * u;
         const gx = x0 + vx * tg, gy = y0 + vy * tg + gr * tg * tg / 2, a = tg < .8 ? 1 : 1 - (tg - .8) / .3; if (gy > H + 40) continue;
-        ctx.save(); ctx.globalAlpha *= a; ctx.beginPath(); ctx.arc(gx, gy, rr0, 0, Math.PI * 2); ctx.lineWidth = 5 * u; ctx.strokeStyle = P.o; ctx.stroke(); ctx.fillStyle = i % 3 ? P.a : P.p; ctx.fill(); ctx.restore(); } }
+        ctx.save(); ctx.globalAlpha *= a; if (AC && AC.k.impacto && AC.k.smear === 'estirado') { const sm = K.smear(vx, vy + gr * tg, { umbral: 300 * u, fuerza: .0012 / u, max: 1.4 }); K.deformar(ctx, gx, gy, sm.largo, sm.ancho, sm.giro); }
+        ctx.beginPath(); ctx.arc(gx, gy, rr0, 0, Math.PI * 2); ctx.lineWidth = 5 * u; ctx.strokeStyle = P.o; ctx.stroke(); ctx.fillStyle = i % 3 ? P.a : P.p; ctx.fill(); ctx.restore(); } }
     // título
     if (o.titulo) letrasSaltan(ctx, o.titulo, W / 2, 150 * k, 120 * k, P, tm, .7, .05, t, W - 700 * k);
     // huecos
     const hz = this._huecos(o);
     hz.videos.forEach(([x, y, w, h], i) => {
       x *= k; y *= k; w *= k; h *= k;
-      const a = kf(tm, [[1.05 + i * .15, { s: .4, a: 0, r: -6 }], [1.4 + i * .15, { s: 1.05, a: 1, r: 1.5 }], [1.6 + i * .15, { s: 1, a: 1, r: 0 }]], EASE.back);
+      const ti = 1.05 + i * .15, a = AC && AC.k.muelle ? popResorte(tm, ti, { s0: .4, r0: -6 }) : kf(tm, [[1.05 + i * .15, { s: .4, a: 0, r: -6 }], [1.4 + i * .15, { s: 1.05, a: 1, r: 1.5 }], [1.6 + i * .15, { s: 1, a: 1, r: 0 }]], EASE.back);
       if (a.a <= .01) return;
       const cx = x + w / 2, cy = y + h / 2;
-      ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(cx, cy); ctx.rotate(rad(a.r + (i ? 1 : -1))); ctx.scale(a.s, a.s); ctx.translate(-cx, -cy);
-      pegatina(ctx, x, y, w, h, 28 * u, { fill: P.o, p: P.p, o: P.o, ring: 9 * u, out: 7 * u, drop: 14 * u });
+      ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(cx, cy); ctx.rotate(rad(a.r + (i ? 1 : -1))); ctx.scale(a.s * (a.sx ?? 1), a.s * (a.sy ?? 1)); ctx.translate(-cx, -cy);
+      pegatina(ctx, x, y, w, h, 28 * u, { fill: P.o, p: P.p, o: P.o, ring: 9 * u, out: 7 * u, drop: 14 * u, trazo: clamp((tm - ti) / .5, 0, 1) });
       rr(ctx, x + 18 * u, y + 18 * u, w - 36 * u, h - 36 * u, 16 * u); ctx.setLineDash([16 * u, 12 * u]); ctx.lineDashOffset = -t * 30 * u; ctx.lineWidth = 3 * u; ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.stroke(); ctx.setLineDash([]);
       icono(ctx, PLAY, cx - 40 * u, cy - 40 * u, 80 * u, 'rgba(255,255,255,.18)');
       const et = i ? o.e2 : o.e1;
@@ -1852,9 +1881,10 @@ const outro = {
       ctx.restore();
     });
     { let [cx, cy, d] = hz.sub; cx *= k; cy *= k; d *= k; const R = d / 2;
-      const a = kf(tm, [[1.45, { s: .3, a: 0 }], [1.8, { s: 1.12, a: 1 }], [1.95, { s: 1, a: 1 }]], EASE.back);
+      const a = AC && AC.k.muelle ? popResorte(tm, 1.45, { s0: .3 }) : kf(tm, [[1.45, { s: .3, a: 0 }], [1.8, { s: 1.12, a: 1 }], [1.95, { s: 1, a: 1 }]], EASE.back);
+      if (AC) golpeEn(ctx, cx, cy, R * 1.5, R * 1.5, tm, 1.57, P.a, { grosor: 18 * u, n: 16 });
       if (a.a > .01) {
-        ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(cx, cy); ctx.scale(a.s, a.s); ctx.translate(-cx, -cy);
+        ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(cx, cy); ctx.scale(a.s * (a.sx ?? 1), a.s * (a.sy ?? 1)); ctx.translate(-cx, -cy);
         const pul = (t % 1.6) / 1.6; ctx.save(); ctx.globalAlpha *= (1 - pul) * .7; ctx.beginPath(); ctx.arc(cx, cy, R + 14 * u + pul * 50 * u, 0, Math.PI * 2); ctx.lineWidth = 6 * u; ctx.strokeStyle = P.a; ctx.stroke(); ctx.restore();
         ctx.beginPath(); ctx.arc(cx, cy + 14 * u, R + 16 * u, 0, Math.PI * 2); ctx.fillStyle = P.o; ctx.fill();
         ctx.beginPath(); ctx.arc(cx, cy, R + 16 * u, 0, Math.PI * 2); ctx.fill();
@@ -1927,7 +1957,7 @@ const rotulo = {
     if (m.chipTxt) { const a = kf(t, [[.4, { x: -20 }], [.7, { x: 0 }]], EASE.back);
       rr(ctx, tx + a.x * u, ty, m.chipW, 32 * u, 16 * u); ctx.fillStyle = P.a; ctx.fill();
       fuente(ctx, f.chip, f.chipE); ctx.fillStyle = P.o; ctx.fillText(m.chipTxt, tx + 16 * u + a.x * u, ty + 17 * u); ty += 42 * u; }
-    { const a = kf(t, [[.5, { x: -30, s: .8 }], [.85, { x: 0, s: 1 }]], EASE.back);
+    { const a = AC && AC.k.muelle ? (p => ({ x: lerp(-30, 0, p), s: lerp(.8, 1, p) }))(K.resorte(t, .5, { frec: 2.2, amort: 7 })) : kf(t, [[.5, { x: -30, s: .8 }], [.85, { x: 0, s: 1 }]], EASE.back);
       fuente(ctx, f.nom); ctx.lineWidth = 9 * u; ctx.lineJoin = 'round'; ctx.strokeStyle = P.o; ctx.fillStyle = P.t;
       ctx.strokeText(o.nombre || '', tx + a.x * u, ty + 36 * u); ctx.fillText(o.nombre || '', tx + a.x * u, ty + 36 * u); ty += 72 * u; }
     if (o.sub) { const a = kf(t, [[.65, { y: 12 }], [.95, { y: 0 }]], EASE.back); fuente(ctx, f.sub); ctx.fillStyle = P.s; ctx.fillText(o.sub, tx, ty + 14 * u + a.y * u); }
@@ -1936,8 +1966,10 @@ const rotulo = {
     // avatar (fuera del barrido para que sobresalga)
     if (D) {
       const ax = x + 6 * u, ay = cy;
-      const av = kf(t, [[.3, { s: 0, r: -30 }], [.6, { s: 1.15, r: 8 }], [.8, { s: 1, r: 0 }], [L - .75, { s: 1, r: 0 }], [L - .55, { s: 1.1, r: -6 }], [L - .35, { s: 0, r: 20 }]], EASE.back);
-      if (av.s > .01) { ctx.save(); ctx.translate(ax, ay); ctx.rotate(rad(av.r + Math.sin(t * 2.5) * 3)); ctx.scale(av.s, av.s); ctx.translate(-ax, -ay);
+      const avKF = [[.3, { s: 0, r: -30 }], [.6, { s: 1.15, r: 8 }], [.8, { s: 1, r: 0 }], [L - .75, { s: 1, r: 0 }], [L - .55, { s: 1.1, r: -6 }], [L - .35, { s: 0, r: 20 }]];
+      const av = AC && AC.k.muelle && t < L - .75 ? popResorte(t, .3, { s0: 0, r0: -30 }) : kf(t, avKF, EASE.back);
+      if (AC) golpeEn(ctx, ax, ay, D * .95, D * .95, t, .45, P.a, { global: true, grosor: 12 * u, n: 12 });
+      if (av.s > .01) { ctx.save(); ctx.translate(ax, ay); ctx.rotate(rad(av.r + Math.sin(t * 2.5) * 3)); ctx.scale(av.s * (av.sx ?? 1), av.s * (av.sy ?? 1)); ctx.translate(-ax, -ay);
         avatar(ctx, ax, ay, D, P, o.imagen, o.icono === 'corazon' ? CORAZON : o.icono === 'play' ? PLAY : ESTRELLA, u); ctx.restore(); }
       const k2 = kf(t, [[.7, { s: 0, r: 0, a: 0 }], [.9, { s: 1.2, r: 60, a: 1 }], [1.4, { s: 0, r: 140, a: 0 }]]);
       destello(ctx, ax + D * .42, ay - D * .45, 44 * u, '#F4C542', k2.s, k2.r, k2.a);
@@ -2202,12 +2234,13 @@ const anuncioMerch = {
     const fondoF = o.fondoFoto === 'acento' ? P.a : o.fondoFoto === 'oscuro' ? P.o : '#ffffff';
     cajas.forEach(([x, y, w, h], i) => {
       x *= k; y *= k; w *= k; h *= k;
-      const ti = .8 + i * .3, a = kf(t, [[ti, { s: .2, r: -16, a: 0, y: 80 }], [ti + .35, { s: 1.08, r: 4, a: 1, y: -10 }], [ti + .55, { s: 1, r: 0, a: 1, y: 0 }]], EASE.back);
+      const ti = .8 + i * .3, a = AC && AC.k.muelle ? popResorte(t, ti, { s0: .2, r0: -16, y0: 80 }) : kf(t, [[ti, { s: .2, r: -16, a: 0, y: 80 }], [ti + .35, { s: 1.08, r: 4, a: 1, y: -10 }], [ti + .55, { s: 1, r: 0, a: 1, y: 0 }]], EASE.back);
+      if (AC) golpeEn(ctx, x + w / 2, y + h / 2, w * .72, h * .72, t, ti + .12, P.a, { grosor: 20 * u, n: 14, sem: 3 + i });
       if (a.a <= .01) return;
       const cx = x + w / 2, cy = y + h / 2, base = (i % 2 ? 2.5 : -2.5) + (n === 3 && i === 2 ? 2 : 0);
       const bob = Math.sin(t * 2.2 + i * 1.3) * 6 * u, rb = Math.sin(t * 1.6 + i) * 1.2;
-      ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(cx, cy + a.y * u + bob); ctx.rotate(rad(a.r + base + rb)); ctx.scale(a.s, a.s); ctx.translate(-cx, -cy);
-      pegatina(ctx, x, y, w, h, 34 * u, { fill: fondoF, p: P.p, o: P.o, ring: 9 * u, out: 7 * u, drop: 16 * u });
+      ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(cx, cy + a.y * u + bob); ctx.rotate(rad(a.r + base + rb)); ctx.scale(a.s * (a.sx ?? 1), a.s * (a.sy ?? 1)); ctx.translate(-cx, -cy);
+      pegatina(ctx, x, y, w, h, 34 * u, { fill: fondoF, p: P.p, o: P.o, ring: 9 * u, out: 7 * u, drop: 16 * u, trazo: clamp((t - ti) / .5, 0, 1) });
       const img = o['imagen' + (i + 1)];
       ctx.save(); rr(ctx, x, y, w, h, 34 * u); ctx.clip();
       if (img) { const z = clamp(Number(o['zoom' + (i + 1)]) || 100, 50, 250) / 100, bw = w * .88 * z, bh = h * .78 * z; imagenEn(ctx, img, cx - bw / 2, y + h * .45 - bh / 2, bw, bh, 'contener'); }
@@ -2420,12 +2453,14 @@ const presentacion = {
         }
       } else {
         const pop = kf(t, [[PR.baja, { s: .92 }], [PR.fuera, { s: 1.03 }], [PR.fuera + .3, { s: 1 }]], EASE.out).s;
-        ctx.translate(cx, abajo); ctx.scale(pop, pop); ctx.translate(-cx, -abajo);
+        const ap = AC && AC.k.muelle ? K.aplaston(t, PR.fuera - .15, { fuerza: .12, frec: 2.5, amort: 6 }) : { sx: 1, sy: 1 };
+        ctx.translate(cx, abajo); ctx.scale(pop * ap.sx, pop * ap.sy); ctx.translate(-cx, -abajo);
         if (m) caja = ponerModelo(ctx, m, m.cv, cx, abajo, altoM, maxW);
         else { caja = siluetaEjemplo(ctx, cx, abajo, altoM, P.a2); fuente(ctx, `700 ${34 * u}px "Fredoka"`); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = P.t; ctx.fillText('Sube tu modelo ✨', cx, abajo - altoM * .35); }
       }
       ctx.restore();
     }
+    if (AC && rev && caja) golpeEn(ctx, caja.x + caja.w / 2, caja.y + caja.h * .45, Math.max(caja.w, caja.h) * .62, caja.h * .62, t, PR.fuera - .15, P.a, { grosor: 30 * u, n: 22 }); // cuando el mar ya ha bajado
     // "?" que late junto a la silueta
     if (!rev && caja && aparece > .5) {
       const pq = 1 + Math.sin(t * 5) * .08, a = kf(t, [[PR.sil + .7, { s: 0 }], [PR.sil + 1.05, { s: 1.15 }], [PR.sil + 1.25, { s: 1 }]], EASE.back).s;
@@ -2480,7 +2515,8 @@ const presentacion = {
   }
 };
 
-[pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, nota].forEach(conAcabado);
+// todas las animaciones aceptan el acabado dibujado
+[intro, outro, presentacion, rotulo, pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, merch, transicion, nota, momentazo].forEach(conAcabado);
 export const PLANTILLAS = [intro, outro, presentacion, rotulo, pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, merch, transicion, nota, momentazo];
 export const FORMATOS = { horizontal: { w: 1920, h: 1080 }, vertical: { w: 1080, h: 1920 }, retrato: { w: 1080, h: 1350 }, cuadrado: { w: 1080, h: 1080 } };
 // =====================================================================
@@ -2770,6 +2806,8 @@ export const FONDOS = {
 };
 
 // Anuncios (pestaña propia)
+// todos los anuncios aceptan el acabado dibujado
+[anuncioHoy, anuncioMerch, anuncioCuenta, anuncioDirecto].forEach(conAcabado);
 export const ANUNCIOS = [anuncioHoy, anuncioMerch, anuncioCuenta, anuncioDirecto];
 // Utilidades de dibujo para otras pestañas (paneles de Twitch)
 export const UT = { TEMAS, paleta, pegatina, rr, fuente, ancho, destello, icono, azar, rad,
