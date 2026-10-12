@@ -214,3 +214,23 @@ export function emparejar(a, b) {
 }
 // Forma intermedia entre a y b (p de 0 a 1), lista para rellenar o trazar
 export const morfear = (a, b, p) => caminoSuave(a.map((q, i) => [lerp(q[0], b[i][0], p), lerp(q[1], b[i][1], p)]));
+// Reparte n puntos a lo largo de una polilínea (lista de [x, y]), a distancias iguales
+export function remuestrear(pts, n) {
+  const ac = [0]; for (let i = 1; i < pts.length; i++) ac.push(ac[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const L = ac[ac.length - 1] || 1, out = []; let s = 1;
+  for (let i = 0; i < n; i++) {
+    const d = L * i / (n - 1); while (s < pts.length - 1 && ac[s] < d) s++;
+    const q = (d - ac[s - 1]) / ((ac[s] - ac[s - 1]) || 1);
+    out.push([lerp(pts[s - 1][0], pts[s][0], q), lerp(pts[s - 1][1], pts[s][1], q)]);
+  }
+  return out;
+}
+// Morphing de iconos de línea (como + o ✓): a y b son listas con el mismo número de polilíneas abiertas
+export function morfearTrazo(a, b, p, n = 24) {
+  const c = new Path2D();
+  a.forEach((pa, i) => {
+    const A = remuestrear(pa, n), B = remuestrear(b[i], n);
+    A.forEach((q, j) => { const x = lerp(q[0], B[j][0], p), y = lerp(q[1], B[j][1], p); j ? c.lineTo(x, y) : c.moveTo(x, y); });
+  });
+  return c;
+}
