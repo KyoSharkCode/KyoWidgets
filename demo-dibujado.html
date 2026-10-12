@@ -85,8 +85,8 @@ input[type=text]:focus{outline:none;border-color:var(--acc2)}
 .ficha-info{margin:0;color:var(--dim);max-width:80ch}
 .duo[data-fmt="vertical"],.duo[data-fmt="cuadrado"]{grid-template-columns:repeat(2,minmax(0,380px));justify-content:center}
 @media (max-width:820px){.duo[data-fmt="vertical"],.duo[data-fmt="cuadrado"]{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.lienzo.marco{background:#070b24}
-.lienzo.marco iframe{position:absolute;left:0;top:0;width:1920px;height:1080px;border:0;transform-origin:0 0;pointer-events:none}
+.volver{align-self:flex-start;font:600 14px var(--f-body);color:var(--acc2);text-decoration:none}
+.volver:hover,.volver:focus-visible{text-decoration:underline}
 .dos{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;align-items:start}
 @media (max-width:900px){.dos{grid-template-columns:minmax(0,1fr)}}
 .dos .tecs{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
@@ -101,16 +101,16 @@ input[type=color]{width:64px;height:34px;border:1px solid var(--line);border-rad
 
 <div class="w">
   <header>
+    <a class="volver" href="index.html">← Volver al Estudio</a>
     <span class="eyebrow">Kyo Estudio · Laboratorio</span>
     <h1>Acabado <span>dibujado</span></h1>
-    <p class="intro">Cada pieza dos veces: a la izquierda, tal como está hoy en el Estudio; a la derecha, con el acabado dibujado. Las animaciones usan las plantillas reales del Estudio y sus mismos campos, así que puedes editarlas aquí igual que allí.</p>
+    <p class="intro">Cada pieza dos veces: a la izquierda, tal como está hoy en el Estudio; a la derecha, con el acabado dibujado. Todas usan las plantillas reales del Estudio y sus mismos campos. En el Estudio, el acabado se elige con el campo «Acabado: Limpio / Dibujado».</p>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Piezas">
     <button type="button" role="tab" data-tab="pegatina">Pegatina del código</button>
     <button type="button" role="tab" data-tab="intro">Intro de YouTube</button>
     <button type="button" role="tab" data-tab="anuncio">Anuncio «¡Hoy hay directo!»</button>
-    <button type="button" role="tab" data-tab="overlay">Overlay «Comenzando»</button>
     <button type="button" role="tab" data-tab="glosario">Glosario</button>
   </nav>
 
@@ -147,10 +147,10 @@ input[type=color]{width:64px;height:34px;border:1px solid var(--line);border-rad
         <div class="fila"><button class="btn" id="mia" type="button">Mi combinación</button><button class="btn" id="todas" type="button">Activar todas</button><button class="btn" id="ninguna" type="button">Desactivar todas</button></div>
         <div class="tecs" id="tecs"></div>
         <div class="fila">
-          <div class="grupo"><span>Smear</span><div class="chips" id="smear"><label><input type="radio" name="smear" value="copias" checked>Copias fantasma</label><label><input type="radio" name="smear" value="estirado">Estirado</label></div></div>
+          <div class="grupo"><span>Smear</span><div class="chips" id="smear"><label><input type="radio" name="smear" value="copias">Copias fantasma</label><label><input type="radio" name="smear" value="estirado" checked>Estirado</label></div></div>
           <div class="grupo"><span>Golpe</span><div class="chips" id="golpe"><label><input type="radio" name="golpe" value="silueta" checked>Silueta</label><label><input type="radio" name="golpe" value="invertido">Colores invertidos</label></div></div>
         </div>
-        <p class="nota">«Mi combinación» es la que elegiste: resortes, trazos, sombras de cómic e impacto. Las técnicas se aplican a las tres animaciones.</p>
+        <p class="nota">«Mi combinación» es la del Estudio: resortes, trazos, sombras de cómic, impacto, smear estirado y golpe en silueta. Las técnicas se aplican a las tres animaciones.</p>
       </section>
       <section class="card mandos" aria-label="Editar">
         <div class="sec-cab"><h2>Editar</h2><button class="btn" id="restablecer" type="button">↺ Restablecer</button></div>
@@ -160,44 +160,18 @@ input[type=color]{width:64px;height:34px;border:1px solid var(--line);border-rad
     </div>
   </section>
 
-  <section id="p-overlay" class="panel" hidden>
-    <p class="ficha-info">Escena «Comenzando» (estilo Marea) en OBS. La versión dibujada usa solo CSS y SVG (técnica A): no hay canvas ni el kit de JavaScript. La cuenta atrás de la derecha dura 9 segundos para que veas el impacto al llegar a cero; la real usa los minutos de siempre.</p>
-    <div class="duo">
-      <div class="stage">
-        <div class="cab"><b>Actual</b><small>overlays/escenas/marea/comenzando.html</small></div>
-        <div class="lienzo marco"><iframe title="Escena Comenzando actual" data-src="overlays/escenas/marea/comenzando.html" tabindex="-1"></iframe></div>
-      </div>
-      <div class="stage nuevo">
-        <div class="cab"><b>Dibujado · técnica A</b><small>Archivo nuevo, el actual no cambia</small></div>
-        <div class="lienzo marco"><iframe title="Escena Comenzando dibujada" data-src="overlays/escenas/laboratorio/comenzando-dibujado.html?min=0.15" tabindex="-1"></iframe></div>
-      </div>
-    </div>
-    <div class="card mandos">
-      <div class="fila"><button class="btn prim" id="repetir" type="button">↻ Repetir las entradas</button></div>
-      <ul class="notas">
-        <li><b>Entradas con resorte:</b> el título, los enlaces, la frase y la tarjeta entran rebotando y se aplastan al llegar. Las curvas se calcularon con el mismo resorte del kit y se guardaron como fotogramas clave de CSS.</li>
-        <li><b>Pegatinas:</b> la tarjeta y la etiqueta @KyoSumiVT tienen borde blanco, contorno oscuro y sombra dura con trama de puntos, en lugar del brillo difuminado.</li>
-        <li><b>Trazo:</b> el borde blanco de la tarjeta se dibuja solo al aparecer (SVG).</li>
-        <li><b>Cada segundo</b> los números dan un pequeño aplastón, y la frase de estado entra con rebote cuando cambia.</li>
-        <li><b>Al llegar a cero:</b> líneas de impacto estilo manga alrededor de la tarjeta. Sin destello de pantalla, pensado para directo.</li>
-        <li><b>Destellos:</b> con contorno y parpadeo a saltos («en dos»). El fondo, la luna, la ilustración y las burbujas siguen como están.</li>
-        <li><b>En OBS:</b> las entradas se ven cada vez que se carga la escena. Para eso, activa «Actualizar navegador cuando la escena se active» en la fuente de navegador.</li>
-      </ul>
-    </div>
-  </section>
-
   <section id="p-glosario" class="panel" hidden>
     <p class="ficha-info">Cada técnica por separado sobre una forma sencilla, sin ella y con ella.</p>
     <div class="glos" id="glos"></div>
   </section>
 
-  <section class="card mandos" aria-label="Si se lleva al Estudio">
-    <h2>Si se lleva al Estudio</h2>
+  <section class="card mandos" aria-label="En el Estudio">
+    <h2>En el Estudio</h2>
     <ul class="notas">
-      <li><b>Todo sigue siendo editable.</b> El acabado es un campo más, «Acabado: Limpio / Dibujado», junto a «Estilo». Textos, colores, formatos, duración, imágenes y música funcionan igual.</li>
-      <li><b>«Limpio» queda exactamente como hoy.</b> La intro y los anuncios ya entienden el acabado dibujado, pero el Estudio todavía no muestra ese campo. Se comprobó fotograma a fotograma que todas las plantillas en limpio salen idénticas.</li>
-      <li><b>La exportación no cambia:</b> el .mov o .mp4 sale igual que la vista previa, con la transparencia intacta.</li>
-      <li><b>Los overlays</b> irían como archivos nuevos con técnica A, escena por escena, sin tocar los que usas ahora hasta que los apruebes.</li>
+      <li><b>Campo «Acabado: Limpio / Dibujado»,</b> junto a «Estilo», en la Pegatina del código, la Barra del código, ¡Sígueme!, ¡Suscríbete!, Directo en Twitch, Mi nota, la Intro de YouTube y los anuncios con cuenta atrás, de directo especial y «¡Hoy hay directo!».</li>
+      <li><b>«Dibujado» usa la combinación elegida:</b> resortes, trazos, sombras de cómic, impacto con smear estirado y golpe en silueta.</li>
+      <li><b>Morphing</b> (solo en «Dibujado»): «+» → ✓ en ¡Sígueme!, círculo → ✓ en ¡Suscríbete! y en la Barra del código, ▶ → ● en el punto «en directo», regalo → camiseta en el anuncio con cuenta atrás y estrellas → corazones en Mi nota con la nota máxima.</li>
+      <li><b>«Limpio» es exactamente lo de siempre</b> y es la opción por defecto. Todo sigue siendo editable y la exportación .mov/.mp4 funciona igual.</li>
     </ul>
   </section>
 </div>
@@ -206,248 +180,12 @@ input[type=color]{width:64px;height:34px;border:1px solid var(--line);border-rad
 import { PLANTILLAS, ANUNCIOS, FORMATOS, EASE, UT } from './animaciones/plantillas.js';
 import * as K from './animaciones/kit-dibujado.js';
 
-const { paleta, rr, fuente, ancho, destello, rad, ICONOS } = UT;
-const [BOLSA, ASA] = ICONOS.bolsa, [CORAZON] = ICONOS.corazon, [ALETA] = ICONOS.aleta;
+const { rr, rad } = UT;
 const SPK = new Path2D('M50 0C53 38 62 47 100 50 62 53 53 62 50 100 47 62 38 53 0 50 38 47 47 38 50 0Z');
 const lerp = (a, b, p) => a + (b - a) * p;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const $ = s => document.querySelector(s);
-const L = 6.6, T_GOLPE = .82, FPS_EXPORT = 30;
-
-// Fotogramas clave (igual que en plantillas.js)
-function kf(t, frames, ease = EASE.out) {
-  if (t <= frames[0][0]) return frames[0][1];
-  for (let i = 1; i < frames.length; i++) {
-    if (t <= frames[i][0]) {
-      const [t0, a] = frames[i - 1], [t1, b] = frames[i], p = ease((t - t0) / (t1 - t0 || 1)), o = {};
-      for (const k in b) o[k] = lerp(a[k] ?? b[k], b[k], p);
-      return o;
-    }
-  }
-  return frames[frames.length - 1][1];
-}
-
-// =====================================================================
-// Pegatina del código · versión dibujada (mismo diseño y tiempos que la original)
-// =====================================================================
-function movGeneral(tm, k) {
-  if (!k.muelle) {
-    const p = kf(tm, [[0, { s: .2, r: -14, a: 0 }], [.42, { s: 1.07, r: 2, a: 1 }], [.7, { s: 1, r: 0, a: 1 }], [5.88, { s: 1, r: 0, a: 1 }], [6.16, { s: 1.07, r: -2, a: 1 }], [6.58, { s: .15, r: 10, a: 0 }]], EASE.back);
-    return { ...p, y: 0, sx: 1, sy: 1 };
-  }
-  const R = { frec: 1.8, amort: 5.2 };
-  if (tm < 5.9) {
-    const p = K.resorte(tm, 0, R), e = K.estirar(K.velocidad(x => K.resorte(x, 0, R), tm), { fuerza: .045, max: .22 });
-    return { s: lerp(.2, 1, p), r: lerp(-14, 0, p), a: clamp(tm / .1, 0, 1), y: 0, sx: e.ancho, sy: e.largo };
-  }
-  // salida: se agacha (anticipación) y sale disparada hacia arriba girando
-  const an = K.anticipa(tm, 6.06, { largo: .18, fuerza: .14 });
-  const p = clamp((tm - 6.06) / .46, 0, 1), pe = p * p * p, fs = k.impacto && k.smear === 'estirado' ? .75 : .22, st = p > 0 ? 1 + fs * Math.sin(Math.PI * Math.min(1, p * 1.4)) : 1;
-  return { s: lerp(1, .15, pe), r: lerp(0, 16, pe), a: 1 - clamp((p - .55) / .45, 0, 1), y: -160 * pe, sx: an.sx / st, sy: an.sy * st };
-}
-function movCodigo(tm, k) {
-  if (!k.muelle) {
-    const c = kf(tm, [[.63, { s: 2.4, r: -12, a: 0 }], [.91, { s: .92, r: 5, a: 1 }], [1.12, { s: 1.06, r: 2, a: 1 }], [1.33, { s: 1, r: 3, a: 1 }], [3.22, { s: 1, r: 3, a: 1 }], [3.43, { s: 1.12, r: -2, a: 1 }], [3.71, { s: 1, r: 3, a: 1 }]], EASE.back);
-    return { ...c, sx: 1, sy: 1 };
-  }
-  // cae acelerando hacia la tarjeta…
-  if (tm < T_GOLPE) { const p = clamp((tm - .63) / (T_GOLPE - .63), 0, 1), q = Math.pow(p, 1.5); return { s: lerp(2.4, 1, q), r: lerp(-12, 3, q), a: clamp(p * 4, 0, 1), sx: 1, sy: 1 }; }
-  // …se aplasta al chocar, y a mitad se agacha y da un latido con rebote
-  const ap = K.aplaston(tm, T_GOLPE, { fuerza: .26, frec: 3, amort: 8 });
-  const an = K.anticipa(tm, 3.32, { largo: .14, fuerza: .12 }), lat = K.impulso(tm, 3.32, { frec: 2.2, amort: 5 });
-  return { s: 1 + .16 * lat, r: 3 - 5 * lat - 4 * K.impulso(tm, T_GOLPE, { frec: 3, amort: 8 }), a: 1, sx: ap.sx * an.sx, sy: ap.sy * an.sy };
-}
-// Tarjeta tipo pegatina con contornos dibujados; devuelve el contorno de la cara (para recortar brillos)
-function tarjeta(ctx, x, y, w, h, r, { fill, p, o, ring, out, drop, suave = true }, k, d) {
-  const e = ring + out, forma = (xx, yy, ww, hh, rr_, s) => K.rrDibujado(xx, yy, ww, hh, rr_, { sem: d.sem * 10 + s, dib: d.dib, amp: d.amp });
-  const borde = forma(x - e, y - e, w + 2 * e, h + 2 * e, r + e, 1), caida = forma(x - e, y - e + drop, w + 2 * e, h + 2 * e, r + e, 2);
-  if (suave) {
-    if (k.sombras) K.sombraDura(ctx, caida.camino, drop * .9, drop * 1.6, o, { paso: 11, alfa: .75 });
-    else { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 20; ctx.fillStyle = o; ctx.fill(caida.camino); ctx.restore(); }
-  }
-  ctx.fillStyle = o; ctx.fill(caida.camino); ctx.fill(borde.camino);
-  if (d.trazo < 1) {
-    // el borde blanco se dibuja solo: trazo grueso por el centro del anillo
-    const medio = K.rrDibujado(x - ring / 2, y - ring / 2, w + ring, h + ring, r + ring / 2, { sem: d.sem * 10 + 3, dib: d.dib, amp: d.amp });
-    ctx.save(); ctx.strokeStyle = p; ctx.lineWidth = ring * 1.15; ctx.lineCap = 'round'; K.trazar(ctx, medio.camino, medio.largo, d.trazo); ctx.restore();
-  } else { ctx.fillStyle = p; ctx.fill(forma(x - ring, y - ring, w + 2 * ring, h + 2 * ring, r + ring, 3).camino); }
-  const cara = forma(x, y, w, h, r, 4);
-  ctx.fillStyle = fill; ctx.fill(cara.camino);
-  return cara.camino;
-}
-function estrellaDibujada(ctx, cx, cy, tam, color, tinta, s, rot, a, dib, amp, sem) {
-  if (s <= 0 || a <= 0) return;
-  ctx.save(); ctx.globalAlpha *= a; ctx.translate(cx, cy); ctx.rotate(rad(rot)); ctx.scale(s * tam / 100, s * tam / 100); ctx.translate(-50, -50);
-  if (amp) K.tiembla(ctx, 50, 50, sem, dib, 2.5, 4);
-  ctx.lineJoin = 'round'; ctx.lineWidth = 10; ctx.strokeStyle = tinta; ctx.stroke(SPK); ctx.fillStyle = color; ctx.fill(SPK);
-  ctx.restore();
-}
-
-function cuerpo(ctx, tm, o, W, H, k, dib, amp) {
-  const P = paleta(o);
-  let u = Number(o.tam) || 1;
-  const F = uu => ({ chip: `700 ${20 * uu}px "Chakra Petch"`, chipE: 3.2 * uu, l1: `700 ${46 * uu}px "Fredoka"`, code: `400 ${94 * uu}px "Cherry Bomb One"`, codeE: 1.9 * uu, l2: `700 ${40 * uu}px "Fredoka"` });
-  const medir = uu => {
-    const f = F(uu), padX = 38 * uu;
-    const chipW = o.chip ? ancho(ctx, o.chip.toUpperCase(), f.chip, f.chipE) + 32 * uu : 0;
-    const l1W = o.l1 ? ancho(ctx, o.l1, f.l1) : 0;
-    const codeW = ancho(ctx, o.codigo || ' ', f.code, f.codeE) + 68 * uu;
-    const ico = o.icono === 'ninguno' ? 0 : 56 * uu;
-    const l2txt = (o.l2 || '') + (o.l2 && o.dest ? ' ' : '');
-    const l2W = (o.l2 || o.dest) ? ico + ancho(ctx, l2txt + (o.dest || ''), f.l2) : 0;
-    const w = Math.max(640 * uu, Math.max(chipW, l1W, codeW + 20 * uu, l2W) + 2 * padX);
-    let h = 22 * uu;
-    if (o.chip) h += 40 * uu;
-    if (o.l1) h += 57 * uu;
-    h += 10 * uu + 112 * uu + 14 * uu;
-    if (o.l2 || o.dest) h += 48 * uu;
-    h += 28 * uu;
-    return { f, padX, chipW, l1W, codeW, ico, l2txt, l2W, w, h };
-  };
-  let m = medir(u);
-  if (m.w > W - 150) { u *= (W - 150) / m.w; m = medir(u); }
-  const { f, padX, w, h } = m;
-  const x0 = (W - w) / 2, y0 = (H - h) / 2, cx = x0 + w / 2, cy = y0 + h / 2, xIzq = x0 + padX;
-  const A = amp * u; // temblor en px a esta escala
-
-  const g = movGeneral(tm, k);
-  if (g.a <= .001) return;
-  ctx.save();
-  ctx.globalAlpha *= clamp(g.a, 0, 1);
-  ctx.translate(cx, cy + g.y * u); ctx.rotate(rad(g.r)); ctx.scale(g.s, g.s); ctx.translate(-cx, -cy);
-  K.deformar(ctx, cx, y0 + h, g.sx, g.sy); // squash & stretch apoyado en la base
-  const wb = (1 - Math.cos(2 * Math.PI * tm / 3.2)) / 2;
-  ctx.translate(cx, cy - 6 * u * wb); ctx.rotate(rad(1.2 * wb)); ctx.translate(-cx, -cy);
-
-  // aleta (detrás de la tarjeta)
-  if (o.aleta !== 'no') {
-    let fy, fa, fsx = 1, fsy = 1;
-    if (k.muelle) {
-      const R = { frec: 2.4, amort: 7 }, p = K.resorte(tm, .98, R), e = K.estirar(K.velocidad(x => K.resorte(x, .98, R), tm), { fuerza: .03, max: .3 });
-      fy = lerp(70, 0, p); fa = clamp((tm - .98) / .1, 0, 1); fsx = e.ancho; fsy = e.largo;
-    } else { const q = kf(tm, [[.98, { y: 70, a: 0 }], [1.4, { y: -6, a: 1 }], [1.68, { y: 0, a: 1 }]], EASE.back); fy = q.y; fa = q.a; }
-    if (fa > 0) {
-      ctx.save(); ctx.globalAlpha *= clamp(fa, 0, 1);
-      ctx.translate(x0 + w - 166 * u, y0 - 78 * u + fy * u); ctx.scale(u, u);
-      K.deformar(ctx, 58, 78, fsx, fsy);
-      if (amp) K.tiembla(ctx, 58, 40, 11, dib, 1.6, 1.2);
-      ctx.fillStyle = P.c; ctx.fill(ALETA); ctx.lineWidth = 7; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.strokeStyle = P.p;
-      if (k.trazos) K.trazar(ctx, ALETA, 330, clamp((tm - 1.02) / .5, 0, 1)); else ctx.stroke(ALETA);
-      ctx.restore();
-    }
-  }
-
-  // tarjeta (inclinada -2°)
-  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rad(-2)); ctx.translate(-cx, -cy);
-  tarjeta(ctx, x0, y0, w, h, 34 * u, { fill: P.c, p: P.p, o: P.o, ring: 7 * u, out: 6 * u, drop: 14 * u }, k,
-    { sem: 1, dib, amp: 2.2 * A, trazo: k.trazos ? clamp((tm - .04) / .6, 0, 1) : 1 });
-  ctx.textBaseline = 'middle';
-  let y = y0 + 22 * u;
-  if (o.chip) {
-    const a = k.muelle ? { y: lerp(16, 0, K.resorte(tm, .28, { frec: 2.6, amort: 8 })), a: clamp((tm - .28) / .15, 0, 1) } : kf(tm, [[.28, { y: 16, a: 0 }], [.63, { y: 0, a: 1 }]]);
-    ctx.save(); ctx.globalAlpha *= a.a;
-    if (amp) K.tiembla(ctx, xIzq + m.chipW / 2, y + 17 * u, 21, dib, 1.2 * u, .6);
-    ctx.fillStyle = P.a; ctx.fill(K.rrDibujado(xIzq, y + a.y * u, m.chipW, 34 * u, 17 * u, { sem: 21, dib, amp: 1.2 * A }).camino);
-    fuente(ctx, f.chip, f.chipE); ctx.fillStyle = P.o; ctx.textAlign = 'left'; ctx.fillText(o.chip.toUpperCase(), xIzq + 16 * u, y + 17 * u + a.y * u + 1);
-    ctx.restore(); y += 40 * u;
-  }
-  if (o.l1) {
-    let a;
-    if (k.muelle) {
-      const R = { frec: 2.2, amort: 7 }, e = K.estirar(K.velocidad(x => K.resorte(x, .49, R), tm) * 40, { fuerza: .001, max: .22 });
-      a = { x: lerp(-40, 0, K.resorte(tm, .49, R)), a: clamp((tm - .49) / .12, 0, 1), sx: e.largo, sy: e.ancho };
-    } else a = { ...kf(tm, [[.49, { x: -40, a: 0 }], [.84, { x: 0, a: 1 }]], EASE.back), sx: 1, sy: 1 };
-    ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1);
-    K.deformar(ctx, xIzq + a.x * u, y + 26 * u, a.sx, a.sy);
-    if (amp) K.tiembla(ctx, xIzq + m.l1W / 2, y + 26 * u, 31, dib, 1.2 * u, .5);
-    fuente(ctx, f.l1); ctx.fillStyle = P.t; ctx.textAlign = 'left'; ctx.fillText(o.l1, xIzq + a.x * u, y + 26 * u);
-    ctx.restore(); y += 57 * u;
-  }
-
-  // código
-  y += 10 * u;
-  {
-    const cw = m.codeW, ch = 112 * u, x = xIzq - 6 * u, ccx = x + cw / 2, ccy = y + ch / 2;
-    const dibCodigo = c => {
-      if (c.a <= .01) return;
-      ctx.save(); ctx.globalAlpha *= clamp(c.a, 0, 1);
-      ctx.translate(ccx, ccy); ctx.rotate(rad(c.r)); ctx.scale(c.s, c.s); ctx.translate(-ccx, -ccy);
-      K.deformar(ctx, ccx, y + ch, c.sx, c.sy);
-      const cara = tarjeta(ctx, x, y, cw, ch, 24 * u, { fill: P.a, p: P.p, o: P.o, ring: 7 * u, out: 5 * u, drop: 10 * u, suave: false }, k, { sem: 2, dib, amp: 1.8 * A, trazo: 1 });
-      ctx.save(); if (amp) K.tiembla(ctx, ccx, ccy, 41, dib, 1.4 * u, .8);
-      fuente(ctx, f.code, f.codeE); ctx.fillStyle = P.o; ctx.textAlign = 'center'; ctx.fillText(o.codigo || '', ccx, ccy + 4 * u);
-      ctx.restore();
-      // brillo que cruza el código
-      const sh = tm < 3 ? kf(tm, [[1.4, { x: -.6 }], [2.1, { x: 1.4 }]], EASE.io) : kf(tm, [[4.06, { x: -.6 }], [4.62, { x: 1.4 }]], EASE.io);
-      if (sh.x > -.6 && sh.x < 1.4) {
-        ctx.save(); ctx.clip(cara);
-        const bx = x + sh.x * cw, bw = .32 * cw;
-        ctx.translate(bx + bw / 2, ccy); ctx.transform(1, 0, Math.tan(rad(-20)), 1, 0, 0);
-        if (k.sombras) { ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillRect(-bw * .3, -ch * .7, bw * .38, ch * 1.4); ctx.fillRect(bw * .18, -ch * .7, bw * .1, ch * 1.4); }
-        else {
-          const gr = ctx.createLinearGradient(-bw / 2, 0, bw / 2, 0); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(255,255,255,.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-          ctx.fillStyle = gr; ctx.fillRect(-bw / 2, -ch * .7, bw, ch * 1.4);
-        }
-        ctx.restore();
-      }
-      ctx.restore();
-    };
-    if (k.impacto) {
-      K.rafaga(ctx, ccx, ccy, (tm - T_GOLPE) / .32, { r0: cw * .42, r1: cw * .95, n: 16, color: P.a, grosor: 18 * u, sem: 5 });
-      if (k.muelle && k.smear !== 'estirado' && tm >= .63 && tm < T_GOLPE) K.estela(ctx, tm, x => dibCodigo(movCodigo(x, k)), { copias: 3, paso: 1 / 45, alfa: .22 });
-    }
-    const cod = movCodigo(tm, k);
-    // smear estirado: en los últimos fotogramas de la caída el código se alarga como un chicle
-    if (k.impacto && k.muelle && k.smear === 'estirado' && tm >= .63 && tm < T_GOLPE) { const e = 1 + 1.1 * clamp(((tm - .63) / (T_GOLPE - .63) - .45) / .55, 0, 1); cod.sx /= Math.sqrt(e); cod.sy *= e; }
-    dibCodigo(cod);
-    y += ch + 14 * u;
-  }
-  if (o.l2 || o.dest) {
-    const a = k.muelle ? { y: lerp(24, 0, K.resorte(tm, 1.19, { frec: 2.4, amort: 7 })), a: clamp((tm - 1.19) / .12, 0, 1) } : kf(tm, [[1.19, { y: 24, a: 0 }], [1.61, { y: 0, a: 1 }]], EASE.back);
-    ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1);
-    let x = xIzq; const yy = y + 24 * u + a.y * u;
-    if (amp) K.tiembla(ctx, x + m.l2W / 2, yy, 51, dib, 1.2 * u, .5);
-    if (o.icono !== 'ninguno') {
-      ctx.save(); ctx.translate(x, yy - 22 * u); ctx.scale(44 * u / 24, 44 * u / 24);
-      ctx.fillStyle = P.a; ctx.strokeStyle = P.a;
-      if (o.icono === 'corazon') ctx.fill(CORAZON);
-      else { ctx.fill(BOLSA); ctx.lineWidth = 2; ctx.lineCap = 'round'; if (k.trazos) K.trazar(ctx, ASA, 17, clamp((tm - 1.35) / .35, 0, 1)); else ctx.stroke(ASA); }
-      ctx.restore(); x += 56 * u;
-    }
-    fuente(ctx, f.l2); ctx.textAlign = 'left';
-    ctx.fillStyle = P.t; ctx.fillText(m.l2txt, x, yy); x += ctx.measureText(m.l2txt).width;
-    ctx.fillStyle = P.a; ctx.fillText(o.dest || '', x, yy);
-    ctx.restore();
-  }
-  ctx.restore(); // tarjeta
-
-  // destellos
-  const sp = [[-26, 120, '#ffffff', .05, 'l'], [10, 160, '#F4C542', .12, 'r'], [-30, -40, P.a, 0, 'rb'], [.4, -40, '#ffffff', .18, 'pb'], [.3, -30, '#F4C542', .09, 'pt']];
-  const S = 56 * u;
-  sp.forEach(([a, b, col, dl, modo], i) => {
-    let x, yy;
-    if (modo === 'l') { x = x0 + a * u; yy = y0 + b * u; }
-    else if (modo === 'r') { x = x0 + w - 10 * u - S; yy = y0 + 160 * u; }
-    else if (modo === 'rb') { x = x0 + w + 30 * u - S; yy = y0 + h - 40 * u - S; }
-    else if (modo === 'pb') { x = x0 + w * a; yy = y0 + h + 40 * u - S; }
-    else { x = x0 + w * a; yy = y0 - 30 * u; }
-    const q = kf(tm - dl, [[.98, { s: 0, r: 0, a: 0 }], [1.26, { s: 1.25, r: 40, a: 1 }], [1.96, { s: .8, r: 90, a: .9 }], [3.08, { s: .7, r: 120, a: .6 }], [3.5, { s: 1.15, r: 160, a: 1 }], [4.34, { s: .7, r: 200, a: .7 }], [5.88, { s: .7, r: 260, a: .7 }], [6.3, { s: 0, r: 280, a: 0 }]]);
-    if (k.sombras) estrellaDibujada(ctx, x + S / 2, yy + S / 2, S, col, P.o, q.s, q.r, q.a, dib, amp, 60 + i);
-    else destello(ctx, x + S / 2, yy + S / 2, S, col, q.s, q.r, q.a);
-  });
-  ctx.restore();
-}
-
-function dibujado(ctx, t0, o, W, H, k) {
-  const t = k.enDos ? K.enDos(t0) : t0;          // posa en dos: 12 dibujos por segundo
-  const dib = k.temblor ? K.dibujo(t0) : 0;       // cambia el temblor 12 veces por segundo
-  const amp = k.temblor ? 1 : 0;
-  const todo = tm => cuerpo(ctx, tm, o, W, H, k, dib, amp);
-  if (k.impacto && k.muelle && k.smear !== 'estirado' && t > 6.12 && t < 6.5) K.estela(ctx, t, todo, { copias: 2, paso: 1 / 30, alfa: .18 });
-  todo(t);
-  if (k.impacto && K.esImpacto(t0, T_GOLPE, 2)) { if (k.golpe === 'invertido') K.invertir(ctx); else K.silueta(ctx, paleta(o).p); }
-  if (k.papel) K.papel(ctx, K.dibujo(t0), { fuerza: .1 });
-}
+const FPS_EXPORT = 30;
 
 // =====================================================================
 // Glosario: cada técnica sola, sin (izquierda) y con (derecha)
@@ -581,14 +319,14 @@ const TECNICAS = [
 ];
 const MI_COMBINACION = { muelle: true, enDos: false, temblor: false, trazos: true, sombras: true, papel: false, impacto: true };
 const reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const est = { play: !reducido, vel: 1, tg: reducido ? .3 : 0, tab: 'pegatina', k: { ...MI_COMBINACION, smear: 'copias', golpe: 'silueta' } };
+const est = { play: !reducido, vel: 1, tg: reducido ? .3 : 0, tab: 'pegatina', k: { ...MI_COMBINACION, smear: 'estirado', golpe: 'silueta' } };
 
 const ORIGINAL = PLANTILLAS.find(p => p.id === 'pegatina-codigo'), INTRO = PLANTILLAS.find(p => p.id === 'intro'), HOY = ANUNCIOS.find(p => p.id === 'anuncio-hoy');
 const defectos = pl => Object.fromEntries(pl.campos.filter(c => c.tipo !== 'imagen' && c.tipo !== 'media').map(c => [c.k, c.def]));
 const COMPS = {
-  pegatina: { pl: ORIGINAL, fmts: ['horizontal'], fmt: 'horizontal', fijos: { posh: 'centro', tam: '1.5' }, ocultos: ['posh', 'posv', 'tam', 'dur'], t: reducido ? 1.6 : 0,
-    info: 'Pestaña Animaciones del Estudio. El lado dibujado es una copia de la plantilla con el kit aplicado.',
-    L: () => L, limpio: (ctx, t, o, f, W, H) => ORIGINAL.dibujar(ctx, t, o, f, W, H), dibujado: (ctx, t, o, f, W, H) => dibujado(ctx, t, o, W, H, est.k) },
+  pegatina: { pl: ORIGINAL, fmts: ['horizontal', 'vertical'], fmt: 'horizontal', fijos: { posh: 'centro', tam: '1.5' }, ocultos: ['posh', 'posv', 'tam'], t: reducido ? 1.6 : 0,
+    info: 'Pestaña Animaciones del Estudio. Los dos lados son la misma plantilla real; el derecho lleva el acabado dibujado.',
+    L: o => ORIGINAL.duracion(o), limpio: (ctx, t, o, f, W, H) => ORIGINAL.dibujar(ctx, t, o, f, W, H), dibujado: (ctx, t, o, f, W, H) => ORIGINAL.dibujar(ctx, t, { ...o, acabado: 'dibujado', kit: est.k }, f, W, H) },
   intro: { pl: INTRO, fmts: ['horizontal', 'vertical'], fmt: 'horizontal', fijos: {}, ocultos: ['musica', 'efectos', 'vol'], t: reducido ? 3.2 : 0,
     info: 'Pestaña Animaciones del Estudio. Los dos lados son la misma plantilla real; el derecho lleva el acabado dibujado. Fíjate en las letras, el subtítulo, las gotas y el golpe cuando el nombre termina de aparecer.',
     L: o => INTRO.duracion(o), limpio: (ctx, t, o, f, W, H) => INTRO.dibujar(ctx, t, o, f, W, H), dibujado: (ctx, t, o, f, W, H) => INTRO.dibujar(ctx, t, { ...o, acabado: 'dibujado', kit: est.k }, f, W, H) },
@@ -596,7 +334,7 @@ const COMPS = {
     info: 'Pestaña Anuncios del Estudio. Los dos lados son la misma plantilla real; el derecho lleva el acabado dibujado. Fíjate en el título, en los bloques de la hora y en el golpe cuando caen.',
     L: o => HOY.duracion(o), limpio: (ctx, t, o, f, W, H) => HOY.dibujar(ctx, t, o, f, W, H), dibujado: (ctx, t, o, f, W, H) => HOY.dibujar(ctx, t, { ...o, acabado: 'dibujado', kit: est.k }, f, W, H) }
 };
-for (const c of Object.values(COMPS)) c.o = { ...defectos(c.pl), ...c.fijos };
+for (const c of Object.values(COMPS)) { c.o = { ...defectos(c.pl), ...c.fijos }; c.ocultos.push('acabado'); }
 const comp = () => COMPS[est.tab];
 const esc = x => String(x).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 const NOMBRE_FMT = { horizontal: 'Horizontal', vertical: 'Vertical', cuadrado: 'Cuadrado', retrato: 'Feed 4:5' };
@@ -638,7 +376,7 @@ $('#tecs').onchange = e => { const k = e.target.dataset.k; if (k) est.k[k] = e.t
 const ponerTodas = v => { TECNICAS.forEach(([id]) => { est.k[id] = v; }); marcarTecnicas(); };
 $('#todas').onclick = () => ponerTodas(true);
 $('#ninguna').onclick = () => ponerTodas(false);
-$('#mia').onclick = () => { Object.assign(est.k, MI_COMBINACION); marcarTecnicas(); };
+$('#mia').onclick = () => { Object.assign(est.k, MI_COMBINACION, { smear: 'estirado', golpe: 'silueta' }); marcarTecnicas(); $('#smear input[value=estirado]').checked = $('#golpe input[value=silueta]').checked = true; };
 $('#smear').onchange = e => { est.k.smear = e.target.value; };
 $('#golpe').onchange = e => { est.k.golpe = e.target.value; };
 
@@ -657,21 +395,13 @@ function pintarMini(m) {
   const [l0, l1] = m.g.lados || ['SIN', 'CON']; ctx.fillStyle = '#958dbd'; ctx.fillText(l0, 10, 10); ctx.fillStyle = '#6FE3F0'; ctx.fillText(l1, 170, 10);
 }
 
-// ---------- overlay ----------
-const marcos = [...document.querySelectorAll('#p-overlay iframe')];
-const escalar = () => marcos.forEach(f => { const w = f.parentElement.clientWidth; f.style.transform = `scale(${w / 1920})`; });
-new ResizeObserver(escalar).observe(document.querySelector('#p-overlay .lienzo'));
-const cargarMarcos = (forzar) => marcos.forEach(f => { if (forzar || !f.src) f.src = f.dataset.src; });
-$('#repetir').onclick = () => cargarMarcos(true);
 
 // ---------- pestañas ----------
 function abrir(tab) {
-  if (!['pegatina', 'intro', 'anuncio', 'overlay', 'glosario'].includes(tab)) tab = 'pegatina';
+  if (!['pegatina', 'intro', 'anuncio', 'glosario'].includes(tab)) tab = 'pegatina';
   document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   const lienzo = tab in COMPS;
-  $('#p-canvas').hidden = !lienzo; $('#p-overlay').hidden = tab !== 'overlay'; $('#p-glosario').hidden = tab !== 'glosario';
-  if (tab === 'overlay') { cargarMarcos(false); requestAnimationFrame(escalar); }
-  else marcos.forEach(f => { f.removeAttribute('src'); }); // los overlays solo corren mientras se ven
+  $('#p-canvas').hidden = !lienzo; $('#p-glosario').hidden = tab !== 'glosario';
   if (lienzo) { est.tab = tab; montarComp(); }
   else est.tab = est.tab in COMPS ? est.tab : 'pegatina';
   est.vista = tab;

@@ -35,7 +35,9 @@ header small{color:var(--faint);font-weight:600}
 nav.tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px}
 nav.tabs button{font:600 13.5px "Fredoka",sans-serif;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:9px 11px;cursor:pointer}
 nav.tabs button[aria-selected="true"]{background:var(--acc);border-color:var(--acc);color:#1a0d05}
-nav.tabs button:focus-visible,.btn:focus-visible,.chips label:focus-within{outline:2px solid var(--acc2);outline-offset:2px}
+nav.tabs a.lab{font:600 13.5px "Fredoka",sans-serif;color:var(--dim);background:var(--panel);border:1px dashed var(--line2);border-radius:999px;padding:9px 11px;text-decoration:none}
+nav.tabs a.lab:hover{color:var(--txt);border-color:var(--acc2)}
+nav.tabs a.lab:focus-visible,nav.tabs button:focus-visible,.btn:focus-visible,.chips label:focus-within{outline:2px solid var(--acc2);outline-offset:2px}
 .grid{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:18px;align-items:start}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px}
 .opts{display:flex;flex-direction:column;gap:16px}
@@ -327,6 +329,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <button role="tab" data-tab="aletabot" aria-selected="false">🦈 AletaBot</button>
     <button role="tab" data-tab="prensa" aria-selected="false">📰 Prensa</button>
     <button role="tab" data-tab="conexiones" aria-selected="false">🔌 Conexiones</button>
+    <a class="lab" href="demo-dibujado.html">🧪 Laboratorio</a>
   </nav>
   <nav class="subtabs" id="subtabs" aria-label="Widgets para OBS">
     <button type="button" data-sub="spotify" aria-pressed="true">🎵 Música (Spotify)</button>
