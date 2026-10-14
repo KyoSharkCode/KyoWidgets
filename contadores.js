@@ -1,4 +1,4 @@
-// Kyo Estudio · Widgets → 🔢 Contadores
+// Kyo Estudio · En directo → 🔢 Contadores
 // Crea tus contadores (muertes, rage quits…), súmalos o réstalos desde aquí o desde el Stream Deck,
 // y copia el enlace de cada uno para OBS. Todo se guarda en Supabase (función "contador")
 // y los cambios llegan al momento por Supabase Realtime.

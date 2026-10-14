@@ -1,4 +1,4 @@
-// Kyo Estudio · Widgets → 💰 Meta de donaciones
+// Kyo Estudio · En directo → 💰 Meta de donaciones
 // Lee los tips de StreamElements (función "meta" de Supabase) y guarda el total, así no se reinicia solo.
 // Aquí ajustas la meta, sumas o corriges a mano y ves si la conexión con StreamElements está bien.
 
