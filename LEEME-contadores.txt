@@ -13,7 +13,7 @@ KyoWidgets · 🔢 Contadores — cómo activarlo (una sola vez)
 
 4) GitHub Desktop → Commit + Push. Espera 1–2 min y abre el Estudio con Ctrl+F5.
 
-5) Estudio → 🧰 Widgets → 🔢 Contadores:
+5) Estudio → 🔴 En directo → 🔢 Contadores:
    - Crea el contador (ej. "Muertes"). El nombre se puede cambiar luego sin romper enlaces.
    - 📋 OBS → Fuente de navegador (560×200 en Pegatina normal).
    - 🎛 Stream Deck +1 / −1 → acción "Sistema → Sitio web", pega el enlace en URL

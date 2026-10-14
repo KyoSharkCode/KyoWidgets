@@ -55,7 +55,7 @@ function abrir() {
       '<div class="ovesc-cuerpo"><div class="ovesc-ctl">' +
       '<div class="f"><span>Estilo</span><div class="chips">' + TEMAS.map(([t, tn]) => '<label><input type="radio" name="tema" value="' + t + '"' + (t === sel(e).tema ? ' checked' : '') + '>' + tn + '</label>').join('') + '</div></div>' +
       '<div class="f"><span>Formato</span><div class="chips"><label><input type="radio" name="fmt" value="h"' + (sel(e).fmt !== 'v' ? ' checked' : '') + '>🖥️ Horizontal 1920×1080</label><label data-vert><input type="radio" name="fmt" value="v"' + (sel(e).fmt === 'v' ? ' checked' : '') + '>📱 Vertical 1080×1920</label></div></div>' +
-      '<div class="f"><span>Enlace para OBS</span><input type="text" readonly data-url></div>' +
+      '<div class="f"><span>Enlace para OBS</span><input type="text" readonly data-url aria-label="Enlace para OBS"></div>' +
       '<div class="acciones"><button class="btn pri" type="button" data-copiar>📋 Copiar enlace</button><a class="btn" data-abrir target="_blank" rel="noopener">↗ Abrir</a></div>' +
       '<p class="nota" data-tam></p>' +
       (CON_ANUNCIOS.includes(e) ? '<p class="nota">Los anuncios se editan más abajo, en <b>📣 Anuncios</b>; la vista previa ya los muestra.</p>' : '') +
@@ -64,7 +64,7 @@ function abrir() {
     '<p class="nota">Salen en grande en el lugar de la imagen de Kyo y van rotando. Si no hay ninguno activo, vuelve Kyo. Pulsa <b>Guardar</b> y en unos 30 segundos OBS los cambia solo, aunque estés en directo. La cuenta atrás usa tu hora local.</p>' +
     '<div class="ovestado" id="ovEstado">Cargando anuncios…</div>' +
     '<div class="ovedit"><div class="ovcol"><div id="ovLista" class="ovads"></div>' +
-    '<div class="acciones"><select id="ovTipoNuevo">' + TIPOS.map(([v, l]) => '<option value="' + v + '">' + l + '</option>').join('') + '</select><button class="btn" type="button" id="ovAnadir">＋ Añadir anuncio</button></div></div>' +
+    '<div class="acciones"><select id="ovTipoNuevo" aria-label="Tipo de anuncio nuevo">' + TIPOS.map(([v, l]) => '<option value="' + v + '">' + l + '</option>').join('') + '</select><button class="btn" type="button" id="ovAnadir">＋ Añadir anuncio</button></div></div>' +
     '<div class="ovcol ovprev"><div class="f"><span>Vista previa</span>' +
     '<div class="chips" id="ovPrevTema">' + TEMAS.map(([t, tn]) => '<label><input type="radio" name="ovpt" value="' + t + '"' + (t === prevTema ? ' checked' : '') + '>' + tn.split(' ')[0] + ' ' + tn.split(' ').slice(1).join(' ') + '</label>').join('') + '</div>' +
     '<div class="chips" id="ovPrevEsc"><label><input type="radio" name="ovpe" value="ya-regreso" checked>Ya regreso</label><label><input type="radio" name="ovpe" value="terminando">Terminando</label></div></div>' +
@@ -110,7 +110,7 @@ function abrir() {
       const c = a.tipo === 'cuenta';
       return '<div class="ovad' + (a.activo === false ? ' apagado' : '') + '" data-i="' + i + '">' +
         '<div class="ovadcab"><label class="ovsw"><input type="checkbox" data-k="activo"' + (a.activo !== false ? ' checked' : '') + '><span></span></label>' +
-        '<select data-k="tipo">' + opts(TIPOS, a.tipo) + '</select><div class="ovmover"><button class="btn" type="button" data-sube title="Subir">↑</button><button class="btn" type="button" data-quita title="Quitar">✕</button></div></div>' +
+        '<select data-k="tipo" aria-label="Tipo de anuncio">' + opts(TIPOS, a.tipo) + '</select><div class="ovmover"><button class="btn" type="button" data-sube title="Subir">↑</button><button class="btn" type="button" data-quita title="Quitar">✕</button></div></div>' +
         '<div class="ovcampos">' +
         campo('Icono', '<select data-k="icono">' + opts(ICONOS, a.icono) + '</select>') +
         campo('Texto pequeño (arriba)', inp('etiqueta', a.etiqueta, 40, '¡Nueva merch!')) +

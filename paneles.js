@@ -109,8 +109,8 @@ function abrir() {
       '</div>' +
       '<div class="panlista">' + st.lista.map(([txt, ic], i) =>
         '<div class="panfila" data-i="' + i + '"><canvas></canvas><div class="panctl">' +
-        '<input type="text" data-txt maxlength="28" value="' + esc(txt) + '">' +
-        '<select data-ic>' + ICONOS.map(([v, l]) => '<option value="' + v + '"' + (v === ic ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>' +
+        '<input type="text" data-txt maxlength="28" aria-label="Título del panel ' + (i + 1) + '" value="' + esc(txt) + '">' +
+        '<select data-ic aria-label="Icono del panel ' + (i + 1) + '">' + ICONOS.map(([v, l]) => '<option value="' + v + '"' + (v === ic ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>' +
         '<button class="btn" type="button" data-png>⬇ PNG</button>' +
         '<button class="btn" type="button" data-sube title="Subir">↑</button><button class="btn" type="button" data-quita title="Quitar">✕</button></div></div>').join('') + '</div>' +
       '<div class="acciones"><button class="btn" type="button" data-nuevo>＋ Añadir panel</button><button class="btn pri" type="button" data-zip>⬇ Descargar todos (.zip)</button></div>' +
