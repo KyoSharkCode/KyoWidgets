@@ -52,8 +52,8 @@ function abrir() {
   let borrador = null; try { borrador = JSON.parse(localStorage.getItem(BORRADOR) || 'null'); } catch (e) {}
 
   const bi = (k, etq, larga) => '<div class="f prbi"><span>' + etq + '</span><div class="prpar">' +
-    ['es', 'en'].map(l => (larga ? '<textarea rows="5" data-k="' + k + '.' + l + '" placeholder="' + l.toUpperCase() + '"></textarea>' : '<input type="text" data-k="' + k + '.' + l + '" placeholder="' + l.toUpperCase() + '">') + '<em>' + l.toUpperCase() + '</em>').join('') + '</div></div>';
-  const selImg = (k, etq) => '<div class="f"><span>' + etq + '</span><select data-img="' + k + '">' + IMAGENES.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('') + '</select><input type="text" data-imgurl="' + k + '" placeholder="https://… (PNG sin fondo queda mejor)" hidden></div>';
+    ['es', 'en'].map(l => (larga ? '<textarea rows="5" data-k="' + k + '.' + l + '" aria-label="' + esc(etq) + ' (' + l.toUpperCase() + ')" placeholder="' + l.toUpperCase() + '"></textarea>' : '<input type="text" data-k="' + k + '.' + l + '" aria-label="' + esc(etq) + ' (' + l.toUpperCase() + ')" placeholder="' + l.toUpperCase() + '">') + '<em>' + l.toUpperCase() + '</em>').join('') + '</div></div>';
+  const selImg = (k, etq) => '<div class="f"><span>' + etq + '</span><select data-img="' + k + '" aria-label="' + esc(etq) + '">' + IMAGENES.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('') + '</select><input type="text" data-imgurl="' + k + '" placeholder="https://… (PNG sin fondo queda mejor)" hidden></div>';
   const bloqueLista = (k, titulo, nota) => '<div class="grupo"><h3>' + titulo + '</h3>' + (nota ? '<p class="nota">' + nota + '</p>' : '') + '<div class="prlista" data-lista="' + k + '"></div><button class="btn" type="button" data-mas="' + k + '">+ Añadir</button></div>';
 
   app.innerHTML =
@@ -101,8 +101,8 @@ function abrir() {
       const L = LISTAS[k], cont = $('[data-lista="' + k + '"]', form);
       cont.innerHTML = (st[k] || []).map((fila, i) => '<div class="prfila" data-i="' + i + '">' +
         L.campos.map(([c, ph, tipo]) => tipo === 'icono'
-          ? '<select data-c="' + c + '" title="Icono">' + ICONOS.map(([v, t]) => '<option value="' + v + '"' + (v === fila.icono ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>'
-          : '<input type="text" data-c="' + c + '" class="' + (tipo || '') + '" placeholder="' + esc(ph) + '" value="' + esc(leerK(fila, c) ?? '') + '">').join('') +
+          ? '<select data-c="' + c + '" title="Icono" aria-label="Icono">' + ICONOS.map(([v, t]) => '<option value="' + v + '"' + (v === fila.icono ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>'
+          : '<input type="text" data-c="' + c + '" class="' + (tipo || '') + '" aria-label="' + esc(ph) + '" placeholder="' + esc(ph) + '" value="' + esc(leerK(fila, c) ?? '') + '">').join('') +
         '<button class="btn prx" type="button" data-quitar title="Quitar">✕</button></div>').join('');
       $('[data-mas="' + k + '"]', form).hidden = (st[k] || []).length >= L.max;
     });

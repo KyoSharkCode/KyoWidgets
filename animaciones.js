@@ -201,8 +201,8 @@ function tarjeta(pl) {
   card.innerHTML =
     '<div class="animtop"><div><h2>' + esc(pl.nombre) + '</h2><p class="nota">' + esc(pl.desc) + '</p></div>' +
     '<button class="btn" type="button" data-reset>↺ Restablecer</button></div>' +
-    '<div class="versiones"><span>⭐ Mis versiones</span><select data-ver><option value="">Elegir versión guardada…</option></select>' +
-    '<input type="text" data-vernom maxlength="30" placeholder="Nombre (ej. Código Halloween)"><button class="btn" type="button" data-verguardar>💾 Guardar versión</button><button class="btn" type="button" data-verborrar hidden>🗑 Borrar</button></div>' +
+    '<div class="versiones"><span>⭐ Mis versiones</span><select data-ver aria-label="Versión guardada"><option value="">Elegir versión guardada…</option></select>' +
+    '<input type="text" data-vernom maxlength="30" aria-label="Nombre de la versión" placeholder="Nombre (ej. Código Halloween)"><button class="btn" type="button" data-verguardar>💾 Guardar versión</button><button class="btn" type="button" data-verborrar hidden>🗑 Borrar</button></div>' +
     '<div class="animgrid"><div class="animform opts">' + formulario(pl) + '</div>' +
     '<div class="animside"><div class="chips">' + FMTS(pl).map((k, i) => '<label><input type="radio" name="fmt-' + pl.id + '" value="' + k + '"' + ((pl.fmtDef ? k === pl.fmtDef : !i) ? ' checked' : '') + '>' + NOMBRE_FMT[k] + '</label>').join('') + '</div>' +
     '<div class="animprev"><canvas></canvas></div>' +

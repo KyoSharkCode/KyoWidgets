@@ -59,14 +59,9 @@ nav.tabs button[aria-current="true"]:focus-visible,.subtabs button[aria-pressed=
   .subtabs button:not([aria-pressed="true"]):hover,.subtabs a.lab:hover{border-color:var(--acc2);color:var(--txt)}
 }
 nav.tabs button:active,.subtabs button:active,.subtabs a.lab:active,.btn:active:not(:disabled){transform:scale(.97)}
-/* Al cambiar de apartado, el contenido entra con un fundido corto */
-[data-panel].entra{animation:panelEntra .22s var(--ease-out)}
-@keyframes panelEntra{from{opacity:0;transform:translateY(6px)}}
 /* Ir a… (Ctrl + K) */
 dialog#ir{width:min(520px,calc(100% - 32px));margin:12vh auto auto;padding:0;border:1px solid var(--line2);border-radius:18px;background:var(--panel);color:var(--txt);box-shadow:0 24px 70px rgba(0,0,0,.6)}
 dialog#ir::backdrop{background:rgba(7,5,26,.7)}
-dialog#ir[open]{animation:irEntra .18s var(--ease-out)}
-@keyframes irEntra{from{opacity:0;transform:translateY(-6px) scale(.97)}}
 .irform{display:grid;gap:10px;padding:12px}
 #irTexto{font-size:16px;padding:11px 12px}
 #irLista{list-style:none;margin:0;padding:0;display:grid;gap:2px;max-height:min(55vh,440px);overflow-y:auto}
@@ -86,8 +81,12 @@ dialog#ir[open]{animation:irEntra .18s var(--ease-out)}
 }
 @media (max-width:420px){nav.tabs button small{display:none}}
 @media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  /* Se quita el movimiento; los fundidos y cambios de color se quedan porque indican qué cambió */
   nav.tabs button:active,.subtabs button:active,.subtabs a.lab:active,.btn:active:not(:disabled){transform:none}
+  .toast{transform:translate(-50%,0);transition:opacity .2s var(--ease-out),visibility .2s}
+  .ctval.salta{transform:none}
+  .ovsw span::after{transition:background-color .16s var(--ease-out)}
+  .mtbarra i,.enfila i,.progreso i{transition:none}
 }
 .grid{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:18px;align-items:start}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px}
@@ -153,7 +152,7 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .enres{display:grid;gap:6px}
 .enfila{position:relative;display:flex;justify-content:space-between;gap:10px;padding:7px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;font-size:14px}
 .enfila span,.enfila b{position:relative;z-index:1}
-.enfila i{position:absolute;left:0;top:0;bottom:0;background:rgba(111,227,240,.18);transition:width .6s}
+.enfila i{position:absolute;left:0;top:0;bottom:0;background:rgba(111,227,240,.18);transition:width .3s var(--ease-out)}
 .enfila.gano{border-color:#F4C542}.enfila.gano i{background:rgba(244,197,66,.28)}
 .prgana{justify-self:start;font-size:13px;padding:5px 12px;margin:-2px 0 4px}
 #prTiempo{background:var(--panel2);color:inherit;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit}
@@ -178,7 +177,7 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .btn{font:600 14px "Fredoka",sans-serif;border:1px solid var(--line2);background:transparent;color:var(--dim);border-radius:999px;padding:8px 16px;cursor:pointer;transition:border-color .18s var(--ease-out),color .18s var(--ease-out),box-shadow .18s var(--ease-out),transform .16s var(--ease-out)}
 .btn:hover{border-color:var(--acc);color:#fff}
 .btn.pri{background:var(--acc);border-color:var(--acc);color:#1a0d05}
-.btn.pri:hover{box-shadow:0 0 16px rgba(255,138,43,.5)}
+@media (hover:hover) and (pointer:fine){.btn.pri:hover{box-shadow:0 0 16px rgba(255,138,43,.5)}}
 .btn.spot{background:#1ed760;border-color:#1ed760;color:#06260f}
 .url{display:flex;gap:8px}
 .url input{flex:1;min-width:0;font:600 12px ui-monospace,Menlo,Consolas,monospace;background:var(--panel2);color:#ffd08a;border:1px solid var(--line);border-radius:10px;padding:9px 10px}
@@ -204,7 +203,7 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .animprev{border-radius:14px;overflow:hidden;display:flex;justify-content:center;padding:10px;background:repeating-conic-gradient(#2a2f45 0 25%,#1d2133 0 50%) 0 0/24px 24px;border:1px solid var(--line)}
 .animprev canvas{display:block;width:100%;height:auto}
 .progreso{height:10px;border-radius:999px;background:var(--panel2);overflow:hidden;box-shadow:0 0 0 1px var(--line)}
-.progreso i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .3s}
+.progreso i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .2s linear}
 .fila3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color-scheme:dark}
 .panopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px}
@@ -247,10 +246,10 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 .ovcol > .acciones select{width:auto}
 .ovsw{position:relative;width:44px;height:24px;flex:none;cursor:pointer}
 .ovsw input{position:absolute;opacity:0}
-.ovsw span{position:absolute;inset:0;border-radius:999px;background:var(--panel2);border:1px solid var(--line2);transition:.2s}
-.ovsw span::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--faint);transition:.2s}
+.ovsw span{position:absolute;inset:0;border-radius:999px;background:var(--panel2);border:1px solid var(--line2);transition:background-color .16s var(--ease-out),border-color .16s var(--ease-out)}
+.ovsw span::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--faint);transition:transform .16s var(--ease-out),background-color .16s var(--ease-out)}
 .ovsw input:checked + span{background:rgba(255,138,43,.25);border-color:var(--acc)}
-.ovsw input:checked + span::after{left:23px;background:var(--acc)}
+.ovsw input:checked + span::after{transform:translateX(20px);background:var(--acc)}
 .ovsw input:focus-visible + span{outline:2px solid var(--acc2);outline-offset:2px}
 .ovmarco{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#070b24}
 .ovmarco iframe{position:absolute;left:0;top:0;width:1920px;height:1080px;border:0;transform-origin:0 0;pointer-events:none}
@@ -296,7 +295,8 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 #puerta p{margin:0;color:var(--dim)}
 #puerta .err{color:var(--bad);min-height:1.3em;font-weight:600}
 [hidden]{display:none!important}
-@media (max-width:860px){.grid{grid-template-columns:1fr}.prev{position:static}.colores{grid-template-columns:repeat(2,1fr)}}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}.prev{position:static}.colores{grid-template-columns:repeat(2,1fr)}}
 /* barra de desplazamiento propia (Chrome, Edge, Opera GX; Firefox usa la versión sencilla) */
 ::-webkit-scrollbar{width:14px;height:14px}
 ::-webkit-scrollbar-track{background:var(--panel2)}
@@ -315,8 +315,8 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 .ctico svg{width:60%;height:60%}
 .ctnom{font-weight:700!important;font-size:16px!important}
 .ctval{min-width:64px;text-align:center;font:700 34px/1 "Chakra Petch",monospace;font-variant-numeric:tabular-nums;color:#fff}
-.ctval.salta{animation:ctsalta .45s cubic-bezier(.34,1.56,.64,1)}
-@keyframes ctsalta{40%{transform:scale(1.35);color:var(--acc2)}}
+.ctval{transition:transform .2s var(--ease-out),color .2s var(--ease-out)}
+.ctval.salta{transform:scale(1.12);color:var(--acc2);transition-duration:.08s}
 .ctbtns{display:flex;gap:6px}
 .ctbtns .btn{min-width:52px;padding:10px 12px;font-size:17px;font-weight:700}
 .cticonos{display:flex;flex-wrap:wrap;gap:6px}
@@ -337,7 +337,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 @media (max-width:520px){.ctmain{grid-template-columns:auto minmax(0,1fr)}.ctval{grid-column:1}.ctbtns{justify-content:flex-end}}
 /* ---------- Meta de donaciones ---------- */
 .mtbarra{position:relative;height:44px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);overflow:hidden;margin:6px 0 12px}
-.mtbarra i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--acc2),var(--pur));border-radius:inherit;transition:width .8s cubic-bezier(.22,1,.36,1)}
+.mtbarra i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--acc2),var(--pur));border-radius:inherit;transition:width .3s var(--ease-out)}
 .mtbarra b{position:absolute;inset:0;display:grid;place-items:center;font:700 16px "Chakra Petch",monospace;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6)}
 .mtse{padding:9px 14px;border-radius:12px;font-size:14px;margin-bottom:12px;border:1px solid var(--line)}
 .mtse.ok{border-color:var(--acc2);color:#fff}
@@ -409,7 +409,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 
   <dialog id="ir" aria-label="Ir a una sección">
     <form method="dialog" class="irform">
-      <input type="text" id="irTexto" placeholder="¿A dónde vamos? Escribe: meta, chat, anuncios…" autocomplete="off" spellcheck="false" aria-controls="irLista" aria-autocomplete="list">
+      <input type="text" id="irTexto" aria-label="Buscar sección" placeholder="¿A dónde vamos? Escribe: meta, chat, anuncios…" autocomplete="off" spellcheck="false" aria-controls="irLista" aria-autocomplete="list">
       <ul id="irLista" role="listbox" aria-label="Secciones"></ul>
       <p class="nota irpie"><kbd>↑</kbd><kbd>↓</kbd> moverse · <kbd>Enter</kbd> abrir · <kbd>Esc</kbd> cerrar</p>
     </form>
@@ -417,6 +417,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 
   <!-- ===================== MÚSICA ===================== -->
   <section data-panel="spotify" class="grid">
+    <h2 class="sr-only">Música (Spotify)</h2>
     <form class="card opts" id="fSpotify" onsubmit="return false">
       <div class="grupo"><h3>Estilo</h3>
         <div class="f"><span>Temporada</span><div class="chips" data-radio="tema" data-val="octubre:🎃 Halloween,marea:🌊 Normal"></div></div>
@@ -450,6 +451,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 
   <!-- ===================== FORTNITE ===================== -->
   <section data-panel="fortnite" class="grid" hidden>
+    <h2 class="sr-only">Fortnite</h2>
     <form class="card opts" id="fFortnite" onsubmit="return false">
       <div class="grupo"><h3>Tu cuenta</h3>
         <div class="fila2">
@@ -491,6 +493,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   <!-- ===================== CONEXIONES ===================== -->
   <!-- ===================== CUENTA ATRÁS ===================== -->
   <section data-panel="cuenta" class="grid" hidden>
+    <h2 class="sr-only">Cuenta atrás</h2>
     <form class="card opts" id="fCuenta" onsubmit="return false">
       <div class="grupo"><h3>Textos</h3>
         <label class="f"><span>Texto de arriba (vacío = sin texto)</span><input type="text" name="titulo" maxlength="30"></label>
@@ -580,6 +583,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 
   <!-- ===================== CHAT ===================== -->
   <section data-panel="chat" class="grid" hidden>
+    <h2 class="sr-only">Chat</h2>
     <form class="card opts" id="fChat" onsubmit="return false">
       <div class="grupo"><h3>Tu canal</h3>
         <label class="f"><span>Canal de Twitch</span><input type="text" name="canal" maxlength="25"></label>
@@ -621,6 +625,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 
   <!-- ===================== SORTEO ===================== -->
   <section data-panel="sorteo" class="grid" hidden>
+    <h2 class="sr-only">Sorteo y encuesta</h2>
     <form class="card opts" id="fSorteo" onsubmit="return false">
       <div class="grupo"><h3>Cómo funciona</h3>
         <p class="nota">Una sola fuente de OBS para los dos. Solo aparece mientras hay un sorteo o una encuesta; si hay los dos a la vez, se turnan cada 10 s con una ola (el ganador y el resultado pasan delante). Se controlan desde la pestaña <b>🦈 AletaBot</b> o desde el chat (tú y tus mods):</p>
@@ -655,6 +660,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 
   <!-- ===================== PREDICCIÓN ===================== -->
   <section data-panel="prediccion" class="grid" hidden>
+    <h2 class="sr-only">Predicción</h2>
     <form class="card opts" id="fPrediccion" onsubmit="return false">
       <div class="grupo"><h3>Cómo funciona</h3>
         <p class="nota">Las predicciones de Twitch de verdad, con tus puntos del canal (necesita <b>🔌 Conexiones → Conectar mi canal</b>). Entra por el lado que elijas; al cerrar las apuestas se encoge en un cuadrito y espera ahí el resultado sin molestar. Con el resultado se vuelve a abrir y a los 30 s se va sola. Se controla desde <b>🦈 AletaBot</b>, desde Twitch o desde el chat (tú y tus mods):</p>
@@ -996,7 +1002,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     if (GRUPOS[n]) n = ultimaDe[n];
     const g = grupoDe(n); if (!g) return;
     ultimaDe[g] = n;
-    const cambia = n !== actual; actual = n;
+    actual = n;
     try { localStorage.setItem(SECCION, n); } catch (e) {}
     $$('nav.tabs [data-grupo]').forEach(b => b.dataset.grupo === g ? b.setAttribute('aria-current', 'true') : b.removeAttribute('aria-current'));
     $('#subtabs').hidden = GRUPOS[g].length < 2;
@@ -1004,7 +1010,6 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     $$('#subtabs button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.sub === n ? 'true' : 'false'); if (b.dataset.sub === n && b.parentElement.scrollWidth > b.parentElement.clientWidth) b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
     $$('[data-panel]').forEach(p => {
       p.hidden = p.dataset.panel !== n;
-      if (!p.hidden && cambia) { p.classList.remove('entra'); void p.offsetWidth; p.classList.add('entra'); }
     });
     if (n === 'contador' && window.kyoContadores) window.kyoContadores.abrir();
     if (n === 'meta' && window.kyoMeta) window.kyoMeta.abrir();
@@ -1012,7 +1017,6 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   }
   $$('nav.tabs [data-grupo]').forEach(b => b.addEventListener('click', () => tab(b.dataset.grupo)));
   $$('#subtabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.sub)));
-  document.addEventListener('animationend', e => { if (e.target.classList && e.target.classList.contains('entra')) e.target.classList.remove('entra'); });
 
   // ---------- Ir a… (Ctrl + K o /) ----------
   (() => {

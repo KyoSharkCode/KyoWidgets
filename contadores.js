@@ -104,7 +104,8 @@ function pintarValor(id) {
   const c = st.lista.find(x => x.id === id), fila = app.querySelector('.ctfila[data-id="' + CSS.escape(id) + '"]');
   if (!c || !fila) return;
   const v = $('[data-v]', fila); v.textContent = fmt(c.valor);
-  v.classList.remove('salta'); void v.offsetWidth; v.classList.add('salta');
+  // Pequeño salto al cambiar: transición corta que se puede interrumpir si pulsas varias veces seguidas
+  v.classList.add('salta'); clearTimeout(v._salta); v._salta = setTimeout(() => v.classList.remove('salta'), 90);
 }
 
 // ---------- Datos ----------

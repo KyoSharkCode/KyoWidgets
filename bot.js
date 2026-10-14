@@ -63,7 +63,7 @@ function abrir() {
         '<div class="card"><h2>🦈 Comandos del chat</h2>' +
           '<p class="nota">AletaBot los contesta en tu chat las 24 horas, aunque no tengas OBS abierto. Usan la misma forma de escribir que Nightbot, así que puedes pegar los tuyos tal cual. El comando se reconoce por la <b>primera palabra</b> del mensaje: <code>!discord</code>, <code>hola</code>, <code>f</code>…</p>' +
           '<div class="ovestado" id="botEstado">Cargando tus comandos…</div>' +
-          '<div class="acciones botbarra"><input type="text" id="botBuscar" placeholder="🔎 Buscar comando…"><button class="btn" type="button" id="botNuevo">+ Nuevo</button><button class="btn" type="button" id="botImportarAbrir">📥 Importar de Nightbot</button><button class="btn pri" type="button" id="botGuardar">💾 Guardar (en vivo)</button></div>' +
+          '<div class="acciones botbarra"><input type="text" id="botBuscar" aria-label="Buscar comando" placeholder="🔎 Buscar comando…"><button class="btn" type="button" id="botNuevo">+ Nuevo</button><button class="btn" type="button" id="botImportarAbrir">📥 Importar de Nightbot</button><button class="btn pri" type="button" id="botGuardar">💾 Guardar (en vivo)</button></div>' +
           '<div class="botimport" id="botImport" hidden>' +
             '<p class="nota">Pega tu lista de Nightbot, un comando por línea con el formato <code>!comando: respuesta</code>. Si alguno ya existe, se reemplaza. El número al azar de 2g.be se cambia solo a <code>$(random 0-100)</code>.</p>' +
             '<textarea id="botImportTxt" rows="8" placeholder="!discord: Bienvenid@ al Arrecife de Coral✨ https://discord.gg/…&#10;!beso: /me $(user) le dió un beso a $(touser)"></textarea>' +
@@ -75,7 +75,7 @@ function abrir() {
       '<div class="ovprev ovcol">' +
         '<div class="card" id="sorteoCard"><h2>🎁 Sorteo</h2>' +
           '<div class="ovestado" id="soEstado">Cargando…</div>' +
-          '<div class="acciones botbarra"><input type="text" id="soPremio" maxlength="60" placeholder="Premio: Peluche de Kyo"><button class="btn pri" type="button" data-so="abrir">Abrir sorteo</button></div>' +
+          '<div class="acciones botbarra"><input type="text" id="soPremio" maxlength="60" aria-label="Premio del sorteo" placeholder="Premio: Peluche de Kyo"><button class="btn pri" type="button" data-so="abrir">Abrir sorteo</button></div>' +
           '<div class="acciones"><button class="btn" type="button" data-so="cerrar">🔒 Cerrar entradas</button><button class="btn pri" type="button" data-so="ganador">🎉 Elegir ganador</button><button class="btn" type="button" data-so="cancelar">✖ Quitar</button></div>' +
           '<div class="sopart" id="soPart"></div>' +
           '<details class="soopts"><summary>⚙️ Opciones</summary>' +
@@ -94,7 +94,7 @@ function abrir() {
         '<div class="card" id="encCard"><h2>📊 Encuesta</h2>' +
           '<div class="ovestado" id="enEstado">Cargando…</div>' +
           '<label class="f"><span>Pregunta</span><input type="text" id="enPregunta" maxlength="90" placeholder="¿Qué jugamos hoy?"></label>' +
-          '<div class="enops" id="enOps">' + [1, 2, 3, 4, 5, 6].map(i => '<input type="text" data-op maxlength="40" placeholder="Opción ' + i + (i > 2 ? ' (opcional)' : '') + '"' + (i > 3 ? ' hidden' : '') + '>').join('') + '</div>' +
+          '<div class="enops" id="enOps">' + [1, 2, 3, 4, 5, 6].map(i => '<input type="text" data-op maxlength="40" aria-label="Opción ' + i + ' de la encuesta" placeholder="Opción ' + i + (i > 2 ? ' (opcional)' : '') + '"' + (i > 3 ? ' hidden' : '') + '>').join('') + '</div>' +
           '<div class="acciones"><button class="btn" type="button" id="enMas">+ Otra opción</button><button class="btn pri" type="button" data-en="abrir">Abrir encuesta</button></div>' +
           '<div class="acciones"><button class="btn pri" type="button" data-en="cerrar">🏁 Cerrar y anunciar</button><button class="btn" type="button" data-en="cancelar">✖ Quitar</button></div>' +
           '<div class="enres" id="enRes"></div>' +
@@ -108,7 +108,7 @@ function abrir() {
         '<div class="card" id="predCard"><h2>🔮 Predicción (puntos del canal)</h2>' +
           '<div class="ovestado" id="prEstado">Cargando…</div>' +
           '<label class="f"><span>Pregunta (máx. 45)</span><input type="text" id="prTitulo" maxlength="45" placeholder="¿Ganará Kyo el game?"></label>' +
-          '<div class="enops" id="prOps">' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => '<input type="text" data-op maxlength="25" placeholder="Opción ' + i + (i > 2 ? ' (opcional)' : '') + '"' + (i > 2 ? ' hidden' : '') + '>').join('') + '</div>' +
+          '<div class="enops" id="prOps">' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => '<input type="text" data-op maxlength="25" aria-label="Opción ' + i + ' de la predicción" placeholder="Opción ' + i + (i > 2 ? ' (opcional)' : '') + '"' + (i > 2 ? ' hidden' : '') + '>').join('') + '</div>' +
           '<div class="acciones"><button class="btn" type="button" id="prMas">+ Otra opción</button>' +
             '<select id="prTiempo" aria-label="Tiempo para apostar"><option value="">Tiempo por defecto</option><option value="60">1 min</option><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option><option value="900">15 min</option><option value="1800">30 min</option></select>' +
             '<button class="btn pri" type="button" data-pr="abrir">Abrir predicción</button></div>' +
@@ -122,7 +122,7 @@ function abrir() {
         '</div>' +
         '<div class="card"><h2>🧪 Probar</h2>' +
           '<p class="nota">Escribe como si fueras alguien del chat. Te muestra lo que contestaría AletaBot <b>sin escribir nada en tu chat</b> ni sumar contadores. Usa también los cambios que aún no has guardado.</p>' +
-          '<div class="acciones botbarra"><input type="text" id="botProbarTxt" placeholder="!beso @alguien"><button class="btn pri" type="button" id="botProbar">Probar</button></div>' +
+          '<div class="acciones botbarra"><input type="text" id="botProbarTxt" aria-label="Mensaje de prueba del comando" placeholder="!beso @alguien"><button class="btn pri" type="button" id="botProbar">Probar</button></div>' +
           '<div class="botres" id="botRes" hidden></div>' +
         '</div>' +
         '<div class="card"><h2>🧩 Variables</h2><ul class="botvars">' +
