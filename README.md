@@ -10,6 +10,7 @@ Widgets y animaciones propias para los directos y videos de **KyoSumiVT**, con e
 - **Contadores**: contadores personalizados (muertes, rage quits…) que se suman desde el Estudio o con un botón del Stream Deck, y se ven al momento en OBS.
 - **Meta de donaciones**: barra de meta que lee los tips de StreamElements y guarda el total en Supabase, así no se reinicia sola. Se ajusta a mano desde el Estudio.
 - **Animaciones**: plantillas editables (textos, colores, posición y duración) que se descargan como video con transparencia, listas para usar en el editor.
+- **Equipo (ZZZ)**: tres agentes y un bangboo en tarjetas que caen una a una, con su rol. Se eligen del repo de assets o con imagen propia, y el nombre se puede cambiar.
 - **Guía de discos (ZZZ)**: plantilla en cuatro clips (título y sets, discos 4-5-6, substats y atributos recomendados con su valor objetivo, que sube contando) para poner encima del gameplay en shorts y guías. Los iconos de sets y atributos se suben una vez a su galería y aparecen solos cada vez que se escribe ese nombre; los atributos sin icono propio usan uno dibujado. El retrato del personaje y las insignias de elemento y especialidad se eligen de una lista que se lee del repo de la comunidad [ZZZdle-Assets](https://github.com/Gaiiiaaa-GH/ZZZdle-Assets) (por jsDelivr y fijado a un commit, sin copiar nada aquí); también se puede subir una imagen propia, que tiene prioridad.
 
 Todo tiene versión normal y ediciones de temporada (Halloween y Navidad).
