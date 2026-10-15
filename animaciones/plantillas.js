@@ -2584,19 +2584,26 @@ export function pintarIconoGaleria(ctx, grupo, nombre, img, S) {
   else badgeIcono(ctx, S / 2, S / 2, S * .86, P, img, iconoAtributo(nombre));
 }
 const limpio = v => String(v || '').trim();
-const clipDe = o => ['1', '2', '3'].includes(String(o.clip)) ? String(o.clip) : '1';
+// "≥ 86.6%" a mitad de animación → "≥ 43.3%": el primer número del texto sube desde 0 (respeta decimales y la coma)
+function contando(txt, p) {
+  const mt = /^([^\d]*)(\d+(?:[.,]\d+)?)(.*)$/.exec(txt); if (!mt || p >= 1) return txt;
+  const sep = mt[2].includes(',') ? ',' : '.', dec = (mt[2].split(/[.,]/)[1] || '').length, n = Number(mt[2].replace(',', '.'));
+  return mt[1] + (n * EASE.out(p)).toFixed(dec).replace('.', sep) + mt[3];
+}
+const clipDe = o => ['1', '2', '3', '4'].includes(String(o.clip)) ? String(o.clip) : '1';
 function listasGuia(o) {
   return {
     sets: [[o.set4, o.set4sub, '4'], [o.set2, o.set2sub, '2']].filter(s => limpio(s[0])).map(([n, s, p]) => ({ nombre: limpio(n), sub: limpio(s), piezas: p })),
     filas: [['4', o.d4, o.d4b], ['5', o.d5, o.d5b], ['6', o.d6, o.d6b]].filter(f => limpio(f[1])).map(([n, a, b]) => ({ n, main: limpio(a), alt: limpio(b) })),
-    subs: [o.s1, o.s2, o.s3, o.s4].map(limpio).filter(Boolean)
+    subs: [o.s1, o.s2, o.s3, o.s4].map(limpio).filter(Boolean),
+    objs: [[o.o1, o.v1], [o.o2, o.v2], [o.o3, o.v3], [o.o4, o.v4]].filter(x => limpio(x[0])).map(([n, v]) => ({ nombre: limpio(n), valor: limpio(v) }))
   };
 }
 // Momento en que entra cada elemento del clip, fin de la entrada y duración mínima
 function tiemposGuia(o) {
   const L = listasGuia(o), c = clipDe(o);
-  const ts = c === '1' ? L.sets.map((_, i) => .8 + i * .55) : c === '2' ? L.filas.map((_, i) => .75 + i * .5) : L.subs.map((_, i) => .75 + i * .4);
-  const ultAlt = c === '2' && L.filas.length && L.filas[L.filas.length - 1].alt ? .25 : 0;
+  const ts = c === '1' ? L.sets.map((_, i) => .8 + i * .55) : c === '2' ? L.filas.map((_, i) => .75 + i * .5) : c === '3' ? L.subs.map((_, i) => .75 + i * .4) : L.objs.map((_, i) => .75 + i * .45);
+  const ultAlt = c === '2' && L.filas.length && L.filas[L.filas.length - 1].alt ? .25 : c === '4' && L.objs.length ? .5 : 0;
   const intro = (ts.length ? ts[ts.length - 1] + ultAlt : .5) + .7, fin = intro + 1.2 + .7;
   return { ts, intro, fin, minimo: o.salida === 'no' ? intro + .3 : fin };
 }
@@ -2605,11 +2612,11 @@ function medirGuia(ctx, o, u) {
   const f = {
     chip: `700 ${20 * u}px "Chakra Petch"`, chipE: 3 * u, pj: `400 ${62 * u}px "Cherry Bomb One"`, pjS: `700 ${30 * u}px "Fredoka"`,
     nom: `700 ${36 * u}px "Fredoka"`, sub: `600 ${25 * u}px "Fredoka"`, pz: `700 ${22 * u}px "Fredoka"`, num: `700 ${30 * u}px "Fredoka"`,
-    atr: `700 ${34 * u}px "Fredoka"`, pill: `700 ${30 * u}px "Fredoka"`
+    atr: `700 ${34 * u}px "Fredoka"`, pill: `700 ${30 * u}px "Fredoka"`, val: `700 ${32 * u}px "Fredoka"`
   };
   const pad = 34 * u, L = listasGuia(o), pj = limpio(o.personaje);
-  const tit = { 1: limpio(o.titulo1).toUpperCase(), 2: limpio(o.titulo2).toUpperCase(), 3: limpio(o.titulo3).toUpperCase() };
-  const chipW = {}; ['1', '2', '3'].forEach(k => { chipW[k] = tit[k] ? ancho(ctx, tit[k], f.chip, f.chipE) + 32 * u : 0; });
+  const tit = { 1: limpio(o.titulo1).toUpperCase(), 2: limpio(o.titulo2).toUpperCase(), 3: limpio(o.titulo3).toUpperCase(), 4: limpio(o.titulo4).toUpperCase() };
+  const chipW = {}; ['1', '2', '3', '4'].forEach(k => { chipW[k] = tit[k] ? ancho(ctx, tit[k], f.chip, f.chipE) + 32 * u : 0; });
   const pjW = pj ? ancho(ctx, pj, f.pj) + 10 * u : 0, pjSW = pj ? ancho(ctx, pj, f.pjS) : 0;
   // avatar (imagen propia o retrato del repo) e insignias de elemento y especialidad
   const conAv = !!o.imagen || !!limpio(o.agente), ins = [['elemento', limpio(o.elemento)], ['especialidad', limpio(o.especialidad)]].filter(i => i[1]);
@@ -2620,7 +2627,7 @@ function medirGuia(ctx, o, u) {
     return { w: chipW[k] + (resto ? (chipW[k] ? 16 * u : 0) + resto : 0), h: (tit[k] || pj || conAv || ins.length) ? 52 * u : 0 };
   };
   const txtH1 = (tit[1] ? 46 * u : 0) + (pj || ins.length ? 76 * u : 0);
-  const head = { 1: { w: avOff + Math.max(chipW[1], (pj ? pjW : 0) + insW), h: Math.max(txtH1, conAv ? avD + 20 * u : 0), txtH: txtH1 }, 2: cab('2'), 3: cab('3') };
+  const head = { 1: { w: avOff + Math.max(chipW[1], (pj ? pjW : 0) + insW), h: Math.max(txtH1, conAv ? avD + 20 * u : 0), txtH: txtH1 }, 2: cab('2'), 3: cab('3'), 4: cab('4') };
   // clip 1: sets
   const D = 80 * u, rowPad = 16 * u, rowH1 = 108 * u, gap1 = 26 * u, txtGap = 26 * u;
   const sets = L.sets.map(s => Object.assign({}, s, { w: rowPad + D + txtGap + Math.max(ancho(ctx, s.nombre, f.nom), s.sub ? ancho(ctx, s.sub, f.sub) : 0) + 26 * u }));
@@ -2636,7 +2643,14 @@ function medirGuia(ctx, o, u) {
   const c2 = { w: Math.max(0, ...filas.map(r => r.w)), h: filas.reduce((a, r) => a + r.h, 0) + Math.max(0, filas.length - 1) * gap2 };
   // clip 3: substats en fila, unidas con ›, que saltan de línea si no caben
   const pillH = 66 * u, icP = 46 * u, chev = 40 * u, gap3 = 16 * u;
-  const limite = Math.max(c1.w, c2.w, head[1].w, head[2].w, head[3].w, 560 * u);
+  // clip 4: atributos recomendados con su valor objetivo (≥ 86.6 %)
+  const rowH4 = 74 * u, gap4 = 12 * u, icO = 48 * u, valH = 52 * u, signo = o.signo ? o.signo + ' ' : '';
+  const objs = L.objs.map(x => {
+    const txt = x.valor ? signo + x.valor : '', vw = txt ? ancho(ctx, txt, f.val) + 34 * u : 0;
+    return Object.assign({}, x, { txt, vw, w: rowPad + icO + 12 * u + ancho(ctx, x.nombre, f.atr) + (vw ? 40 * u + vw : 0) + rowPad });
+  });
+  const c4 = { w: Math.max(0, ...objs.map(x => x.w)), h: objs.length ? objs.length * rowH4 + (objs.length - 1) * gap4 : 0 };
+  const limite = Math.max(c1.w, c2.w, c4.w, head[1].w, head[2].w, head[3].w, head[4].w, 560 * u);
   let px = 0, py = 0, maxX = 0; const pills = [];
   L.subs.forEach((s, i) => {
     const pw = 12 * u + icP + 12 * u + ancho(ctx, s, f.pill) + 22 * u;
@@ -2645,9 +2659,9 @@ function medirGuia(ctx, o, u) {
     pills.push({ txt: s, x: px, y: py, w: pw, chev: cv }); px += pw; maxX = Math.max(maxX, px);
   });
   const c3 = { w: maxX, h: pills.length ? py + pillH : 0 };
-  const w = Math.max(head[1].w, head[2].w, head[3].w, c1.w, c2.w, c3.w, 480 * u) + 2 * pad;
+  const w = Math.max(head[1].w, head[2].w, head[3].w, head[4].w, c1.w, c2.w, c3.w, c4.w, 480 * u) + 2 * pad;
   const alto = (k, c) => pad + head[k].h + (c.h ? 14 * u : 0) + c.h + pad;
-  return { f, pad, pj, tit, chipW, pjW, pjSW, head, conAv, ins, avD, avOff, insD, avS, insS, D, rowPad, rowH1, gap1, txtGap, sets, numD, icD, rowH2, rowH2b, gap2, slashW, oW, filas, pillH, icP, chev, pills, w, h: { 1: alto('1', c1), 2: alto('2', c2), 3: alto('3', c3) } };
+  return { f, pad, pj, tit, chipW, pjW, pjSW, head, conAv, ins, avD, avOff, insD, avS, insS, D, rowPad, rowH1, gap1, txtGap, sets, numD, icD, rowH2, rowH2b, gap2, slashW, oW, filas, pillH, icP, chev, pills, rowH4, gap4, icO, valH, objs, w, h: { 1: alto('1', c1), 2: alto('2', c2), 3: alto('3', c3), 4: alto('4', c4) } };
 }
 const guiaDiscos = {
   id: 'guia-discos',
@@ -2658,14 +2672,14 @@ const guiaDiscos = {
   formatos: ['vertical', 'horizontal'],
   fotoMomento: 60,
   // "⬇ Los 3 clips" descarga una versión por cada valor del campo clip
-  variantes: { k: 'clip', todos: '⬇ Los 3 clips', valores: [['1', 'clip1-sets'], ['2', 'clip2-discos'], ['3', 'clip3-substats']] },
+  variantes: { k: 'clip', todos: '⬇ Los 4 clips', valores: [['1', 'clip1-sets'], ['2', 'clip2-discos'], ['3', 'clip3-substats'], ['4', 'clip4-objetivos']] },
   // Galería de iconos: se guardan por nombre y se reutilizan en cualquier personaje
   galeria: {
-    grupos: [{ id: 'set', label: 'Sets de discos', campos: ['set4', 'set2'] }, { id: 'atributo', label: 'Atributos', campos: ['d4', 'd4b', 'd5', 'd5b', 'd6', 'd6b', 's1', 's2', 's3', 's4'] }],
+    grupos: [{ id: 'set', label: 'Sets de discos', campos: ['set4', 'set2'] }, { id: 'atributo', label: 'Atributos', campos: ['d4', 'd4b', 'd5', 'd5b', 'd6', 'd6b', 's1', 's2', 's3', 's4', 'o1', 'o2', 'o3', 'o4'] }],
     pintar: pintarIconoGaleria
   },
   campos: [
-    { k: 'clip', label: 'Clip', tipo: 'chips', def: '1', opciones: [['1', '1 · Título y sets'], ['2', '2 · Discos'], ['3', '3 · Substats']] },
+    { k: 'clip', label: 'Clip', tipo: 'chips', def: '1', opciones: [['1', '1 · Título y sets'], ['2', '2 · Discos'], ['3', '3 · Substats'], ['4', '4 · Objetivos']] },
     { k: 'personaje', label: 'Personaje', tipo: 'texto', def: 'Personaje', max: 28 },
     { k: 'agente', label: 'Retrato (del repo de assets ZZZdle)', tipo: 'lista', def: '', vacio: 'Sin retrato', cargar: () => ZZZ.lista('retrato') },
     { k: 'imagen', label: '…o sube tu imagen (tiene prioridad sobre la del repo)', tipo: 'imagen' },
@@ -2688,11 +2702,23 @@ const guiaDiscos = {
     { k: 's2', label: 'Substat 2', tipo: 'texto', def: 'Porcentaje de Ataque', max: 30, si: 'clip=3' },
     { k: 's3', label: 'Substat 3 (opcional)', tipo: 'texto', def: 'Daño Crítico', max: 30, si: 'clip=3' },
     { k: 's4', label: 'Substat 4 (opcional)', tipo: 'texto', def: '', max: 30, si: 'clip=3' },
+    { k: 'titulo4', label: 'Título', tipo: 'texto', def: 'Atributo recomendado', max: 30, si: 'clip=4' },
+    { k: 'signo', label: 'Signo delante del valor', tipo: 'chips', def: '≥', si: 'clip=4', opciones: [['≥', '≥ Igual o superior'], ['≤', '≤ Igual o inferior'], ['≈', '≈ Aproximado'], ['', 'Sin signo']] },
+    { k: 'o1', label: 'Atributo 1', tipo: 'texto', def: 'Probabilidad de Crítico', max: 30, si: 'clip=4' },
+    { k: 'v1', label: 'Valor 1 (ej. 86.6%)', tipo: 'texto', def: '86.6%', max: 12, si: 'clip=4' },
+    { k: 'o2', label: 'Atributo 2 (opcional)', tipo: 'texto', def: 'Daño Crítico', max: 30, si: 'clip=4' },
+    { k: 'v2', label: 'Valor 2', tipo: 'texto', def: '112.4%', max: 12, si: 'clip=4' },
+    { k: 'o3', label: 'Atributo 3 (opcional)', tipo: 'texto', def: 'Ataque', max: 30, si: 'clip=4' },
+    { k: 'v3', label: 'Valor 3', tipo: 'texto', def: '2200', max: 12, si: 'clip=4' },
+    { k: 'o4', label: 'Atributo 4 (opcional)', tipo: 'texto', def: '', max: 30, si: 'clip=4' },
+    { k: 'v4', label: 'Valor 4', tipo: 'texto', def: '', max: 12, si: 'clip=4' },
+    { k: 'contar', label: 'Números', tipo: 'chips', def: 'si', si: 'clip=4', opciones: [['si', '🔢 Suben contando'], ['no', 'Aparecen fijos']] },
     { k: 'salida', label: 'Al terminar', tipo: 'chips', def: 'si', opciones: [['si', '✨ Sale con animación'], ['no', '⏸ Se queda quieto']] },
     ...conDef(COMUNES, { posv: 'centro' }),
     { k: 'dur1', label: 'Duración del clip 1 (segundos)', tipo: 'numero', def: 5, min: 3, max: 30, paso: 0.1, si: 'clip=1' },
     { k: 'dur2', label: 'Duración del clip 2 (segundos)', tipo: 'numero', def: 6, min: 3, max: 30, paso: 0.1, si: 'clip=2' },
-    { k: 'dur3', label: 'Duración del clip 3 (segundos)', tipo: 'numero', def: 6, min: 3, max: 30, paso: 0.1, si: 'clip=3' }
+    { k: 'dur3', label: 'Duración del clip 3 (segundos)', tipo: 'numero', def: 6, min: 3, max: 30, paso: 0.1, si: 'clip=3' },
+    { k: 'dur4', label: 'Duración del clip 4 (segundos)', tipo: 'numero', def: 6, min: 3, max: 30, paso: 0.1, si: 'clip=4' }
   ],
   // antes de exportar: espera a que lleguen las imágenes del repo de assets
   preparar: o => Promise.all([['retrato', o.agente], ['elemento', o.elemento], ['especialidad', o.especialidad]].map(([t, s]) => ZZZ.cargar(t, limpio(s)))),
@@ -2862,11 +2888,36 @@ const guiaDiscos = {
         atributo(x0 + p.x + 12 * u, pcy, p.txt, m.icP, f.pill, ti);
       });
     });
+    // --- clip 4: atributos recomendados con su valor objetivo ---
+    if (c === '4') m.objs.forEach((x, i) => {
+      const ti = T.ts[i], ry = y + i * (m.rowH4 + m.gap4), rcy = ry + m.rowH4 / 2;
+      conEntrada(ti, x0, rcy, () => {
+        fondoFila(ti, x0, ry, cw, m.rowH4, 22 * u);
+        atributo(x0 + m.rowPad, rcy, x.nombre, m.icO, f.atr, ti + .05);
+        if (!x.txt) return;
+        // el valor: pegatina de acento que salta y cuyo número sube contando hasta el objetivo
+        const tv = ti + .2, vx = x0 + cw - m.rowPad - x.vw, vcx = vx + x.vw / 2;
+        const k = kf(tm, [[tv, { s: 0, r: -8 }], [tv + .3, { s: 1.12, r: 3 }], [tv + .45, { s: 1, r: 0 }]], EASE.back);
+        if (k.s <= .01) return;
+        ctx.save(); ctx.translate(vcx, rcy); ctx.rotate(rad(k.r)); ctx.scale(k.s, k.s); ctx.translate(-vcx, -rcy);
+        rr(ctx, vx, rcy - m.valH / 2, x.vw, m.valH, m.valH / 2); ctx.fillStyle = P.o; ctx.fill();
+        rr(ctx, vx + 3 * u, rcy - m.valH / 2 + 3 * u, x.vw - 6 * u, m.valH - 6 * u, m.valH / 2); ctx.fillStyle = P.a; ctx.fill();
+        fuente(ctx, f.val); ctx.fillStyle = P.o; ctx.textAlign = 'right';
+        ctx.fillText(o.contar === 'no' ? x.txt : contando(x.txt, clamp((tm - tv) / .75, 0, 1)), vx + x.vw - 17 * u, rcy + 1.5 * u);
+        ctx.textAlign = 'left'; ctx.restore();
+        brillo(tv + .2, vx + x.vw - 6 * u, rcy - m.valH / 2, 34 * u, '#F4C542');
+      });
+    });
     destellosCaja(ctx, pos, w, h, u, P, tm, T.intro - .3, FIN);
     ctx.restore();
   }
 };
 
+// Sugerencias al escribir un atributo (se puede elegir de la lista o escribir cualquier otro)
+const ATRIBUTOS_ZZZ = ['Probabilidad de Crítico', 'Daño Crítico', 'Ataque', 'Porcentaje de Ataque', 'Tasa de Perforación', 'Perforación', 'Recuperación de Energía',
+  'Maestría de anomalía', 'Competencia de anomalía', 'Impacto', 'PV', 'Porcentaje de PV', 'Defensa', 'Porcentaje de Defensa',
+  'Bono de daño físico', 'Bono de daño de fuego', 'Bono de daño de hielo', 'Bono de daño eléctrico', 'Bono de daño etéreo'];
+guiaDiscos.campos.forEach(c => { if (guiaDiscos.galeria.grupos[1].campos.includes(c.k)) c.sugerencias = ATRIBUTOS_ZZZ; });
 // todas las animaciones aceptan el acabado dibujado
 [intro, outro, presentacion, rotulo, guiaDiscos, pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, merch, transicion, nota, momentazo].forEach(conAcabado);
 export const PLANTILLAS = [intro, outro, presentacion, rotulo, guiaDiscos, pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, merch, transicion, nota, momentazo];

@@ -67,7 +67,9 @@ async function prepararImagen(file, max = 1400) {
 function formulario(pl) {
   return pl.campos.map(c => {
     const si = c.si ? ' data-si="' + c.si + '"' : '';
-    if (c.tipo === 'texto') return '<label class="f"' + si + '><span>' + c.label + '</span><input type="text" name="' + c.k + '" maxlength="' + (c.max || 40) + '"></label>';
+    if (c.tipo === 'texto') { const dl = c.sugerencias ? 'sug-' + pl.id + '-' + c.k : '';
+      return '<label class="f"' + si + '><span>' + c.label + '</span><input type="text" name="' + c.k + '" maxlength="' + (c.max || 40) + '"' + (dl ? ' list="' + dl + '" autocomplete="off"' : '') + '>' +
+        (dl ? '<datalist id="' + dl + '">' + c.sugerencias.map(v => '<option value="' + esc(v) + '">').join('') + '</datalist>' : '') + '</label>'; }
     if (c.tipo === 'numero') return '<label class="f"' + si + '><span>' + c.label + '</span><input type="number" name="' + c.k + '" min="' + c.min + '" max="' + c.max + '" step="' + c.paso + '"></label>';
     if (c.tipo === 'imagen') return '<div class="f"' + si + '><span>' + c.label + '</span><div class="imgpick"><label class="btn"><input type="file" accept="image/*" data-img="' + c.k + '" hidden>📁 Elegir imagen</label><button class="btn" type="button" data-quitar="' + c.k + '" hidden>✕ Quitar</button><small data-imgnom="' + c.k + '">Sin imagen</small></div></div>';
     if (c.tipo === 'media') return '<div class="f"' + si + '><span>' + c.label + '</span><div class="imgpick"><label class="btn"><input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" data-img="' + c.k + '" data-media hidden>📁 Elegir imagen o vídeo</label><button class="btn" type="button" data-quitar="' + c.k + '" hidden>✕ Quitar</button><small data-imgnom="' + c.k + '">Sin archivo</small></div></div>';
