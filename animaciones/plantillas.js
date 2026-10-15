@@ -2695,7 +2695,7 @@ const guiaDiscos = {
     { k: 'd4', label: 'Disco 4', tipo: 'texto', def: 'Probabilidad de Crítico', max: 32, si: 'clip=2' },
     { k: 'd4b', label: 'Disco 4 · alternativa (opcional)', tipo: 'texto', def: '', max: 32, si: 'clip=2' },
     { k: 'd5', label: 'Disco 5', tipo: 'texto', def: 'Tasa de Perforación', max: 32, si: 'clip=2' },
-    { k: 'd5b', label: 'Disco 5 · alternativa (opcional)', tipo: 'texto', def: 'Bono de daño aéreo', max: 32, si: 'clip=2' },
+    { k: 'd5b', label: 'Disco 5 · alternativa (opcional)', tipo: 'texto', def: '', max: 32, si: 'clip=2' },
     { k: 'd6', label: 'Disco 6', tipo: 'texto', def: 'Recuperación de Energía', max: 32, si: 'clip=2' },
     { k: 'd6b', label: 'Disco 6 · alternativa (opcional)', tipo: 'texto', def: '', max: 32, si: 'clip=2' },
     { k: 'titulo3', label: 'Título', tipo: 'texto', def: 'Atributos secundarios', max: 30, si: 'clip=3' },
@@ -2954,7 +2954,7 @@ const equipoZZZ = {
       { k: 'a' + n, label: 'Agente ' + n + ' (del repo)', tipo: 'lista', def: ['ellen', 'lycaon', 'soukaku'][i], vacio: 'Ninguno', cargar: () => ZZZ.lista('retrato') },
       { k: 'a' + n + 'img', label: '…o su imagen (tiene prioridad)', tipo: 'imagen' },
       { k: 'a' + n + 'nom', label: 'Nombre (vacío = el del repo)', tipo: 'texto', def: '', max: 20 },
-      { k: 'a' + n + 'rol', label: 'Rol (opcional)', tipo: 'texto', def: ['DPS principal', 'Aturdimiento', 'Apoyo'][i], max: 18, sugerencias: ROLES_ZZZ }
+      { k: 'a' + n + 'rol', label: 'Rol (opcional)', tipo: 'elegir', def: ['DPS principal', 'Aturdimiento', 'Apoyo'][i], max: 18, opciones: ROLES_ZZZ }
     ]),
     { k: 'bb', label: 'Bangboo (del repo)', tipo: 'lista', def: 'sharkboo', vacio: 'Sin bangboo', cargar: () => ZZZ.lista('bangboo') },
     { k: 'bbimg', label: '…o su imagen (tiene prioridad)', tipo: 'imagen' },
@@ -3223,11 +3223,18 @@ const habilidadesZZZ = {
   }
 };
 
-// Sugerencias al escribir un atributo (se puede elegir de la lista o escribir cualquier otro)
-const ATRIBUTOS_ZZZ = ['Probabilidad de Crítico', 'Daño Crítico', 'Ataque', 'Porcentaje de Ataque', 'Tasa de Perforación', 'Perforación', 'Recuperación de Energía',
-  'Maestría de anomalía', 'Competencia de anomalía', 'Impacto', 'PV', 'Porcentaje de PV', 'Defensa', 'Porcentaje de Defensa',
-  'Bono de daño físico', 'Bono de daño de fuego', 'Bono de daño de hielo', 'Bono de daño eléctrico', 'Bono de daño etéreo'];
-guiaDiscos.campos.forEach(c => { if (guiaDiscos.galeria.grupos[1].campos.includes(c.k)) c.sugerencias = ATRIBUTOS_ZZZ; });
+// Desplegables de atributos: cada hueco muestra solo lo que puede salir en él (y siempre "✏️ Otro" para escribir)
+const PCT = ['Porcentaje de Ataque', 'Porcentaje de PV', 'Porcentaje de Defensa'];
+const BONOS = ['Bono de daño físico', 'Bono de daño de fuego', 'Bono de daño de hielo', 'Bono de daño eléctrico', 'Bono de daño etéreo'];
+const ATR_DISCO = {
+  4: ['Probabilidad de Crítico', 'Daño Crítico', 'Competencia de anomalía', ...PCT],
+  5: ['Tasa de Perforación', ...BONOS, ...PCT],
+  6: ['Recuperación de Energía', 'Maestría de anomalía', 'Impacto', ...PCT]
+};
+const ATR_SUBSTATS = ['Probabilidad de Crítico', 'Daño Crítico', 'Porcentaje de Ataque', 'Ataque', 'Perforación', 'Competencia de anomalía', 'Porcentaje de PV', 'PV', 'Porcentaje de Defensa', 'Defensa'];
+const ATR_TODOS = [...new Set([...ATR_SUBSTATS, ...ATR_DISCO[4], ...ATR_DISCO[5], ...ATR_DISCO[6]])];
+const listaAtr = k => /^d[456]b?$/.test(k) ? ATR_DISCO[k[1]] : /^s\d$/.test(k) ? ATR_SUBSTATS : /^o\d$/.test(k) ? ATR_TODOS : null;
+guiaDiscos.campos.forEach(c => { const l = listaAtr(c.k); if (l) Object.assign(c, { tipo: 'elegir', opciones: l }); });
 // todas las animaciones aceptan el acabado dibujado
 [intro, outro, presentacion, rotulo, guiaDiscos, equipoZZZ, habilidadesZZZ, pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, merch, transicion, nota, momentazo].forEach(conAcabado);
 export const PLANTILLAS = [intro, outro, presentacion, rotulo, guiaDiscos, equipoZZZ, habilidadesZZZ, pegatinaCodigo, barraCodigo, sigueme, suscribete, directo, merch, transicion, nota, momentazo];

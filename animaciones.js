@@ -67,9 +67,11 @@ async function prepararImagen(file, max = 1400) {
 function formulario(pl) {
   return pl.campos.map(c => {
     const si = c.si ? ' data-si="' + c.si + '"' : '';
-    if (c.tipo === 'texto') { const dl = c.sugerencias ? 'sug-' + pl.id + '-' + c.k : '';
-      return '<label class="f"' + si + '><span>' + c.label + '</span><input type="text" name="' + c.k + '" maxlength="' + (c.max || 40) + '"' + (dl ? ' list="' + dl + '" autocomplete="off"' : '') + '>' +
-        (dl ? '<datalist id="' + dl + '">' + c.sugerencias.map(v => '<option value="' + esc(v) + '">').join('') + '</datalist>' : '') + '</label>'; }
+    if (c.tipo === 'texto') return '<label class="f"' + si + '><span>' + c.label + '</span><input type="text" name="' + c.k + '" maxlength="' + (c.max || 40) + '"></label>';
+    // elegir: desplegable con opciones fijas + "Otro" que abre un campo de texto (el valor vive en el campo de texto)
+    if (c.tipo === 'elegir') return '<div class="f"' + si + '><span>' + c.label + '</span><select data-elegir="' + c.k + '" aria-label="' + esc(c.label) + '"><option value="">Ninguno</option>' +
+      c.opciones.map(v => '<option value="' + esc(v) + '">' + esc(v) + '</option>').join('') + '<option value="__otro">✏️ Otro (escribir)</option></select>' +
+      '<input type="text" name="' + c.k + '" maxlength="' + (c.max || 40) + '" placeholder="Escribe el que quieras" aria-label="' + esc(c.label) + ' (texto)" hidden></div>';
     if (c.tipo === 'numero') return '<label class="f"' + si + '><span>' + c.label + '</span><input type="number" name="' + c.k + '" min="' + c.min + '" max="' + c.max + '" step="' + c.paso + '"></label>';
     if (c.tipo === 'imagen') return '<div class="f"' + si + '><span>' + c.label + '</span><div class="imgpick"><label class="btn"><input type="file" accept="image/*" data-img="' + c.k + '" hidden>📁 Elegir imagen</label><button class="btn" type="button" data-quitar="' + c.k + '" hidden>✕ Quitar</button><small data-imgnom="' + c.k + '">Sin imagen</small></div></div>';
     if (c.tipo === 'media') return '<div class="f"' + si + '><span>' + c.label + '</span><div class="imgpick"><label class="btn"><input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" data-img="' + c.k + '" data-media hidden>📁 Elegir imagen o vídeo</label><button class="btn" type="button" data-quitar="' + c.k + '" hidden>✕ Quitar</button><small data-imgnom="' + c.k + '">Sin archivo</small></div></div>';
@@ -90,12 +92,19 @@ function leerForm(card, pl) {
   if (pl.galeria) Object.defineProperty(o, 'iconos', { value: (g, n) => (card._galeria || {})[g + ':' + normIcono(n)] || null, enumerable: false });
   return o;
 }
+// Pone el desplegable según el texto: opción de la lista, "Ninguno" u "Otro" (con el campo de texto visible)
+function sincElegir(card, c) {
+  const sel = $('select[data-elegir="' + c.k + '"]', card), inp = $('input[name="' + c.k + '"]', card); if (!sel || !inp) return;
+  const v = inp.value.trim(), otro = !!v && !c.opciones.includes(v);
+  sel.value = otro ? '__otro' : v; inp.hidden = !otro;
+}
 function ponerForm(card, pl, o) {
   pl.campos.forEach(c => {
     if (ES_IMG(c)) return;
     if (c.tipo === 'chips') $$('input[name="' + c.k + '"]', card).forEach(i => i.checked = i.value === String(o[c.k]));
     else if (c.tipo === 'lista') { const i = $('select[name="' + c.k + '"]', card); if (i) { i.dataset.quiero = o[c.k] ?? ''; i.value = o[c.k] ?? ''; } }
     else { const i = $('[name="' + c.k + '"]', card); if (i) i.value = o[c.k]; }
+    if (c.tipo === 'elegir') sincElegir(card, c);
   });
 }
 
@@ -220,6 +229,13 @@ function tarjeta(pl) {
     '<label class="momento"><span>🖼 Momento de la imagen</span><input type="range" data-momento min="0" max="100" step="1"><output></output></label>' +
     '<div class="progreso" hidden><i></i></div><p class="nota ptxt" aria-live="polite"></p></div></div>';
   const clave = 'kyo_anim_' + pl.id;
+  pl.campos.filter(c => c.tipo === 'elegir').forEach(c => {
+    const sel = $('select[data-elegir="' + c.k + '"]', card), inp = $('input[name="' + c.k + '"]', card);
+    sel.addEventListener('change', () => {
+      if (sel.value === '__otro') { inp.hidden = false; if (c.opciones.includes(inp.value.trim())) inp.value = ''; inp.focus(); }
+      else { inp.hidden = true; inp.value = sel.value; }
+    });
+  });
   ponerForm(card, pl, Object.assign(defecto(pl), leer(clave) || {}));
   const cv = $('canvas', card), ctx = cv.getContext('2d');
   let t0 = performance.now(), o = leerForm(card, pl);
