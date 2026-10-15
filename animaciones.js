@@ -358,7 +358,7 @@ function montarGaleria(pl, card, refrescar) {
     const o = leerForm(card, pl), vistos = new Set(), out = [];
     pl.galeria.grupos.forEach(g => g.campos.forEach(k => {
       const n = String(o[k] || '').trim(), id = g.id + ':' + normIcono(n);
-      if (n && !vistos.has(id)) { vistos.add(id); out.push({ g, n, id }); }
+      if (n && !vistos.has(id)) { vistos.add(id); out.push({ g, n, id, et: g.etiqueta ? g.etiqueta(n) : n }); }
     }));
     return out;
   };
@@ -374,9 +374,9 @@ function montarGaleria(pl, card, refrescar) {
       const de = ns.filter(x => x.g === g); if (!de.length) return '';
       return '<div class="galgrupo"><small>' + esc(g.label) + '</small>' + de.map(x => {
         const tiene = !!card._galeria[x.id];
-        return '<div class="galfila" data-id="' + esc(x.id) + '"><canvas width="88" height="88" aria-hidden="true"></canvas><span>' + esc(x.n) + '<small>' + (tiene ? 'Icono tuyo' : g.id === 'set' ? 'Sin icono (se ve un disco)' : 'Icono dibujado') + '</small></span>' +
-          '<label class="btn" title="Subir icono para ' + esc(x.n) + '"><input type="file" accept="image/*" hidden>📁 ' + (tiene ? 'Cambiar' : 'Subir') + '</label>' +
-          (tiene ? '<button class="btn" type="button" data-galquitar aria-label="Quitar el icono de ' + esc(x.n) + '">✕</button>' : '') + '</div>';
+        return '<div class="galfila" data-id="' + esc(x.id) + '"><canvas width="88" height="88" aria-hidden="true"></canvas><span>' + esc(x.et) + '<small>' + (tiene ? 'Icono tuyo' : g.id === 'set' ? 'Sin icono (se ve un disco)' : 'Icono dibujado') + '</small></span>' +
+          '<label class="btn" title="Subir icono para ' + esc(x.et) + '"><input type="file" accept="image/*" hidden>📁 ' + (tiene ? 'Cambiar' : 'Subir') + '</label>' +
+          (tiene ? '<button class="btn" type="button" data-galquitar aria-label="Quitar el icono de ' + esc(x.et) + '">✕</button>' : '') + '</div>';
       }).join('') + '</div>';
     }).join('');
     $$('.galfila', lista).forEach(fila => {
@@ -453,7 +453,20 @@ window.kyoAnim = {
   abrir() {
     if (abierto) return; abierto = true;
     const cont = $('#animLista'); cont.innerHTML = '';
-    PLANTILLAS.forEach(pl => cont.appendChild(tarjeta(pl)));
+    // pestañas: las plantillas con grupo 'zzz' van en su propia pestaña para no mezclarse con las generales
+    const PEST = [['general', '🎬 Generales'], ['zzz', '🎮 ZZZ']], barra = document.createElement('div');
+    barra.className = 'subtabs animpest'; barra.setAttribute('role', 'group'); barra.setAttribute('aria-label', 'Tipo de animaciones');
+    barra.innerHTML = '<div class="subbtns">' + PEST.map(([k, l]) => '<button type="button" data-pest="' + k + '" aria-pressed="false">' + l + '</button>').join('') + '</div>';
+    cont.before(barra);
+    const cards = PLANTILLAS.map(pl => { const c = tarjeta(pl); c.dataset.grupo = pl.grupo || 'general'; cont.appendChild(c); return c; });
+    const elegir = k => {
+      $$('[data-pest]', barra).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pest === k)));
+      cards.forEach(c => { c.hidden = c.dataset.grupo !== k; });
+      try { localStorage.setItem('kyo_anim_pestana', k); } catch (e) {}
+    };
+    barra.addEventListener('click', e => { const b = e.target.closest('[data-pest]'); if (b) elegir(b.dataset.pest); });
+    let ini = 'general'; try { ini = localStorage.getItem('kyo_anim_pestana') || 'general'; } catch (e) {}
+    elegir(PEST.some(p => p[0] === ini) ? ini : 'general');
   },
   abrirMusica,
   abrirAnuncios() {
