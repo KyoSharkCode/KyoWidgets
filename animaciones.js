@@ -4,7 +4,7 @@
 // Todo pasa en el navegador: cada fotograma se dibuja en un <canvas> y ffmpeg.wasm arma el video.
 
 import { FFmpeg } from './vendor/ffmpeg/index.js';
-import { PLANTILLAS, FORMATOS, ANUNCIOS, musicaFondo, renderSonido } from './animaciones/plantillas.js';
+import { PLANTILLAS, FORMATOS, ANUNCIOS, musicaFondo, renderSonido, normIcono } from './animaciones/plantillas.js';
 
 const CORE = window.KYO_FFMPEG_CORE || 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
 const $ = (s, r = document) => r.querySelector(s);
@@ -82,6 +82,8 @@ function leerForm(card, pl) {
     if (c.tipo === 'chips') { const i = $('input[name="' + c.k + '"]:checked', card); o[c.k] = i ? i.value : c.def; }
     else { const i = $('[name="' + c.k + '"]', card); o[c.k] = i ? i.value : c.def; }
   });
+  // iconos de la galería (no enumerable: no se guarda en localStorage ni en las versiones)
+  if (pl.galeria) Object.defineProperty(o, 'iconos', { value: (g, n) => (card._galeria || {})[g + ':' + normIcono(n)] || null, enumerable: false });
   return o;
 }
 function ponerForm(card, pl, o) {
@@ -142,14 +144,16 @@ async function hacerFuenteVideo(blob) {
 }
 
 // ---------- exportar ----------
-async function exportar(pl, card, fmtElegido, tipo) {
+// Nombre del archivo: incluye la variante (p. ej. el clip) si la plantilla tiene variantes
+const sufijo = (pl, o) => { const v = pl.variantes && pl.variantes.valores.find(([val]) => val === String(o[pl.variantes.k])); return v ? '-' + v[1] : ''; };
+async function exportar(pl, card, fmtElegido, tipo, extra) {
   if (ocupado) return;
   ocupado = true;
-  const o = leerForm(card, pl), fmt = fmtElegido || $('input[name="fmt-' + pl.id + '"]:checked', card).value, F = FORMATOS[fmt];
-  const barra = $('.progreso', card), txt = $('.ptxt', card), bi = $('.progreso i', card), btn = $$('[data-mov],[data-ambos],[data-webm]', card);
+  const o = Object.assign(leerForm(card, pl), extra || {}), fmt = fmtElegido || $('input[name="fmt-' + pl.id + '"]:checked', card).value, F = FORMATOS[fmt];
+  const barra = $('.progreso', card), txt = $('.ptxt', card), bi = $('.progreso i', card), btn = $$('[data-mov],[data-ambos],[data-webm],[data-variantes]', card);
   const aviso = (t, p) => { txt.textContent = t; if (p != null) bi.style.width = Math.round(p * 100) + '%'; };
   btn.forEach(b => b.disabled = true); barra.hidden = false;
-  const webm = tipo === 'webm', mp4 = !webm && esOpaco(pl, o), ext = webm ? '.webm' : mp4 ? '.mp4' : '.mov', nombre = pl.id + '-' + fmt + ext;
+  const webm = tipo === 'webm', mp4 = !webm && esOpaco(pl, o), ext = webm ? '.webm' : mp4 ? '.mp4' : '.mov', nombre = pl.id + sufijo(pl, o) + '-' + fmt + ext;
   try {
     await fuentesListas;
     const f = await conversor(aviso);
@@ -206,7 +210,7 @@ function tarjeta(pl) {
     '<div class="animgrid"><div class="animform opts">' + formulario(pl) + '</div>' +
     '<div class="animside"><div class="chips">' + FMTS(pl).map((k, i) => '<label><input type="radio" name="fmt-' + pl.id + '" value="' + k + '"' + ((pl.fmtDef ? k === pl.fmtDef : !i) ? ' checked' : '') + '>' + NOMBRE_FMT[k] + '</label>').join('') + '</div>' +
     '<div class="animprev"><canvas></canvas></div>' +
-    '<div class="acciones"><button class="btn pri" type="button" data-mov>⬇ Descargar</button><button class="btn" type="button" data-webm title="WebM con transparencia: para OBS (transiciones de escena, fuentes multimedia)">⬇ .webm para OBS</button>' + (FMTS(pl).length > 1 ? '<button class="btn" type="button" data-ambos>' + (FMTS(pl).length > 2 ? '⬇ Todos los formatos' : '⬇ Horizontal + vertical') + '</button>' : '') + '<button class="btn" type="button" data-png>🖼 Imagen PNG</button><button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
+    '<div class="acciones"><button class="btn pri" type="button" data-mov>⬇ Descargar</button><button class="btn" type="button" data-webm title="WebM con transparencia: para OBS (transiciones de escena, fuentes multimedia)">⬇ .webm para OBS</button>' + (FMTS(pl).length > 1 ? '<button class="btn" type="button" data-ambos>' + (FMTS(pl).length > 2 ? '⬇ Todos los formatos' : '⬇ Horizontal + vertical') + '</button>' : '') + (pl.variantes ? '<button class="btn" type="button" data-variantes>' + esc(pl.variantes.todos) + '</button>' : '') + '<button class="btn" type="button" data-png>🖼 Imagen PNG</button><button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
     '<label class="momento"><span>🖼 Momento de la imagen</span><input type="range" data-momento min="0" max="100" step="1"><output></output></label>' +
     '<div class="progreso" hidden><i></i></div><p class="nota ptxt" aria-live="polite"></p></div></div>';
   const clave = 'kyo_anim_' + pl.id;
@@ -217,6 +221,7 @@ function tarjeta(pl) {
     o = leerForm(card, pl); guardar(clave, Object.fromEntries(Object.entries(o).filter(([k]) => !(card._imgs && k in card._imgs) && !pl.campos.some(c => c.k === k && ES_IMG(c)))));
     $('[data-mov]', card).textContent = textoDescarga(pl, o);
     if (card._pintarMom) card._pintarMom();
+    if (card._galPintar) card._galPintar();
     $('[data-webm]', card).hidden = esOpaco(pl, o);
     $$('[data-si]', card).forEach(el => { const [k, v] = el.dataset.si.split('='); el.hidden = !v.split('|').includes(String(o[k])); });
     const fmt = $('input[name="fmt-' + pl.id + '"]:checked', card).value, F = FORMATOS[fmt];
@@ -242,12 +247,14 @@ function tarjeta(pl) {
     pl.dibujar(c.getContext('2d'), tp, o, fmt, F.w, F.h);
     sincronizarMedia(pl, o, 'seguir');
     const blob = await new Promise(r => c.toBlob(r, 'image/png')), url = URL.createObjectURL(blob), a = document.createElement('a');
-    a.href = url; a.download = pl.id + '-' + fmt + '.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+    a.href = url; a.download = pl.id + sufijo(pl, o) + '-' + fmt + '.png'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
     $('.ptxt', card).textContent = '🖼 Imagen descargada (' + F.w + '×' + F.h + ', segundo ' + (mom.value / 100 * L).toFixed(1) + ').';
   });
   $('[data-webm]', card).addEventListener('click', () => exportar(pl, card, null, 'webm'));
   const ambos = $('[data-ambos]', card);
   if (ambos) ambos.addEventListener('click', async () => { if (ocupado) return; for (const f of FMTS(pl)) await exportar(pl, card, f); });
+  const variantes = $('[data-variantes]', card);
+  if (variantes) variantes.addEventListener('click', async () => { if (ocupado) return; for (const [v] of pl.variantes.valores) await exportar(pl, card, null, null, { [pl.variantes.k]: v }); });
   // versiones guardadas (textos y opciones; las imágenes se quedan como estén)
   const claveV = 'kyo_versiones_' + pl.id, sel = $('[data-ver]', card), nom = $('[data-vernom]', card), borrar = $('[data-verborrar]', card);
   const pintarV = elegida => {
@@ -300,6 +307,7 @@ function tarjeta(pl) {
     });
     $('[data-quitar="' + k + '"]', card).addEventListener('click', async () => { await imgBorrar(idb); ponerImg(k, null); });
   });
+  if (pl.galeria) montarGaleria(pl, card, refrescar);
   refrescar();
   // vista previa en bucle (con una pausa corta entre repeticiones)
   const bucle = now => {
@@ -318,6 +326,66 @@ function tarjeta(pl) {
   if ('IntersectionObserver' in window) new IntersectionObserver(es => es.forEach(e => { card._visible = e.isIntersecting; })).observe(cv);
   fuentesListas.then(() => requestAnimationFrame(bucle));
   return card;
+}
+
+// ---------- galería de iconos (sets y atributos) ----------
+// Cada icono se guarda con su nombre normalizado ("icono:atributo:dano critico") y aparece solo
+// cada vez que ese nombre se escribe en cualquier campo de la galería, en cualquier personaje.
+function montarGaleria(pl, card, refrescar) {
+  card._galeria = {};
+  const caja = document.createElement('div'); caja.className = 'galeria';
+  caja.innerHTML = '<span class="galtit">🎨 Iconos</span><p class="nota">Sube el icono de cada set o atributo una sola vez: se guarda con su nombre y aparece solo cada vez que lo escribas. Los atributos sin icono propio usan uno dibujado.</p><div data-gallista></div>';
+  $('.animform', card).appendChild(caja);
+  const lista = $('[data-gallista]', caja), leidos = new Set();
+  const clave = id => 'icono:' + id;
+  const nombres = () => {
+    const o = leerForm(card, pl), vistos = new Set(), out = [];
+    pl.galeria.grupos.forEach(g => g.campos.forEach(k => {
+      const n = String(o[k] || '').trim(), id = g.id + ':' + normIcono(n);
+      if (n && !vistos.has(id)) { vistos.add(id); out.push({ g, n, id }); }
+    }));
+    return out;
+  };
+  const pintar = () => {
+    const ns = nombres();
+    ns.forEach(x => {
+      if (leidos.has(x.id)) return; leidos.add(x.id);
+      imgLeer(clave(x.id)).then(async v => { if (!v || !v.blob) return; try { card._galeria[x.id] = await createImageBitmap(v.blob); lista._firma = null; refrescar(); } catch (e) {} });
+    });
+    const firma = ns.map(x => x.id + (card._galeria[x.id] ? '*' : '') + '=' + x.n).join('|');
+    if (firma === lista._firma) return; lista._firma = firma;
+    lista.innerHTML = pl.galeria.grupos.map(g => {
+      const de = ns.filter(x => x.g === g); if (!de.length) return '';
+      return '<div class="galgrupo"><small>' + esc(g.label) + '</small>' + de.map(x => {
+        const tiene = !!card._galeria[x.id];
+        return '<div class="galfila" data-id="' + esc(x.id) + '"><canvas width="88" height="88" aria-hidden="true"></canvas><span>' + esc(x.n) + '<small>' + (tiene ? 'Icono tuyo' : g.id === 'set' ? 'Sin icono (se ve un disco)' : 'Icono dibujado') + '</small></span>' +
+          '<label class="btn" title="Subir icono para ' + esc(x.n) + '"><input type="file" accept="image/*" hidden>📁 ' + (tiene ? 'Cambiar' : 'Subir') + '</label>' +
+          (tiene ? '<button class="btn" type="button" data-galquitar aria-label="Quitar el icono de ' + esc(x.n) + '">✕</button>' : '') + '</div>';
+      }).join('') + '</div>';
+    }).join('');
+    $$('.galfila', lista).forEach(fila => {
+      const x = ns.find(n => n.id === fila.dataset.id); if (!x) return;
+      pl.galeria.pintar($('canvas', fila).getContext('2d'), x.g.id, x.n, card._galeria[x.id] || null, 88);
+    });
+  };
+  let espera = null;
+  card._galPintar = () => { clearTimeout(espera); espera = setTimeout(pintar, 200); };
+  lista.addEventListener('change', async e => {
+    const inp = e.target.closest('input[type=file]'); if (!inp) return; e.stopPropagation();
+    const id = inp.closest('.galfila').dataset.id, file = inp.files && inp.files[0]; if (!file) return;
+    try {
+      const blob = await prepararImagen(file, 400);
+      await imgGuardar(clave(id), { blob, nombre: file.name });
+      card._galeria[id] = await createImageBitmap(blob);
+    } catch (err) { $('.ptxt', card).textContent = 'No se pudo abrir esa imagen.'; }
+    lista._firma = null; refrescar();
+  });
+  lista.addEventListener('click', async e => {
+    const b = e.target.closest('[data-galquitar]'); if (!b) return;
+    const id = b.closest('.galfila').dataset.id;
+    await imgBorrar(clave(id)); delete card._galeria[id]; lista._firma = null; refrescar();
+  });
+  pintar();
 }
 
 // ---------- pestaña Mis músicas: música propia en MP3 ----------

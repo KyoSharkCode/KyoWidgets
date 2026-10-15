@@ -10,6 +10,7 @@ Widgets y animaciones propias para los directos y videos de **KyoSumiVT**, con e
 - **Contadores**: contadores personalizados (muertes, rage quits…) que se suman desde el Estudio o con un botón del Stream Deck, y se ven al momento en OBS.
 - **Meta de donaciones**: barra de meta que lee los tips de StreamElements y guarda el total en Supabase, así no se reinicia sola. Se ajusta a mano desde el Estudio.
 - **Animaciones**: plantillas editables (textos, colores, posición y duración) que se descargan como video con transparencia, listas para usar en el editor.
+- **Guía de discos (ZZZ)**: plantilla en tres clips (título y sets, discos 4-5-6 y substats) para poner encima del gameplay en shorts y guías. Los iconos de sets y atributos se suben una vez a su galería y aparecen solos cada vez que se escribe ese nombre; los atributos sin icono propio usan uno dibujado.
 
 Todo tiene versión normal y ediciones de temporada (Halloween y Navidad).
 
