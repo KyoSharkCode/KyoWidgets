@@ -5,6 +5,7 @@
 
 import { FFmpeg } from './vendor/ffmpeg/index.js';
 import { PLANTILLAS, FORMATOS, ANUNCIOS, musicaFondo, renderSonido, normIcono } from './animaciones/plantillas.js';
+import * as ZZZ from './animaciones/zzz.js';
 
 const CORE = window.KYO_FFMPEG_CORE || 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
 const $ = (s, r = document) => r.querySelector(s);
@@ -66,10 +67,12 @@ async function prepararImagen(file, max = 1400) {
 // ---------- formulario a partir de los campos de la plantilla ----------
 function formulario(pl) {
   return pl.campos.map(c => {
-    const si = c.si ? ' data-si="' + c.si + '"' : '';
-    if (c.tipo === 'texto') { const dl = c.sugerencias ? 'sug-' + pl.id + '-' + c.k : '';
-      return '<label class="f"' + si + '><span>' + c.label + '</span><input type="text" name="' + c.k + '" maxlength="' + (c.max || 40) + '"' + (dl ? ' list="' + dl + '" autocomplete="off"' : '') + '>' +
-        (dl ? '<datalist id="' + dl + '">' + c.sugerencias.map(v => '<option value="' + esc(v) + '">').join('') + '</datalist>' : '') + '</label>'; }
+    const si = (c.si ? ' data-si="' + c.si + '"' : '') + (c.guia ? ' data-guia hidden' : '');
+    if (c.tipo === 'texto') return '<label class="f"' + si + '><span>' + c.label + '</span><input type="text" name="' + c.k + '" maxlength="' + (c.max || 40) + '"></label>';
+    // elegir: desplegable con opciones fijas + "Otro" que abre un campo de texto (el valor vive en el campo de texto)
+    if (c.tipo === 'elegir') return '<div class="f"' + si + '><span>' + c.label + '</span><select data-elegir="' + c.k + '" aria-label="' + esc(c.label) + '"><option value="">Ninguno</option>' +
+      c.opciones.map(v => '<option value="' + esc(v) + '">' + esc(v) + '</option>').join('') + '<option value="__otro">✏️ Otro (escribir)</option></select>' +
+      '<input type="text" name="' + c.k + '" maxlength="' + (c.max || 40) + '" placeholder="Escribe el que quieras" aria-label="' + esc(c.label) + ' (texto)" hidden></div>';
     if (c.tipo === 'numero') return '<label class="f"' + si + '><span>' + c.label + '</span><input type="number" name="' + c.k + '" min="' + c.min + '" max="' + c.max + '" step="' + c.paso + '"></label>';
     if (c.tipo === 'imagen') return '<div class="f"' + si + '><span>' + c.label + '</span><div class="imgpick"><label class="btn"><input type="file" accept="image/*" data-img="' + c.k + '" hidden>📁 Elegir imagen</label><button class="btn" type="button" data-quitar="' + c.k + '" hidden>✕ Quitar</button><small data-imgnom="' + c.k + '">Sin imagen</small></div></div>';
     if (c.tipo === 'media') return '<div class="f"' + si + '><span>' + c.label + '</span><div class="imgpick"><label class="btn"><input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" data-img="' + c.k + '" data-media hidden>📁 Elegir imagen o vídeo</label><button class="btn" type="button" data-quitar="' + c.k + '" hidden>✕ Quitar</button><small data-imgnom="' + c.k + '">Sin archivo</small></div></div>';
@@ -90,12 +93,19 @@ function leerForm(card, pl) {
   if (pl.galeria) Object.defineProperty(o, 'iconos', { value: (g, n) => (card._galeria || {})[g + ':' + normIcono(n)] || null, enumerable: false });
   return o;
 }
+// Pone el desplegable según el texto: opción de la lista, "Ninguno" u "Otro" (con el campo de texto visible)
+function sincElegir(card, c) {
+  const sel = $('select[data-elegir="' + c.k + '"]', card), inp = $('input[name="' + c.k + '"]', card); if (!sel || !inp) return;
+  const v = inp.value.trim(), otro = !!v && !c.opciones.includes(v);
+  sel.value = otro ? '__otro' : v; inp.hidden = !otro;
+}
 function ponerForm(card, pl, o) {
   pl.campos.forEach(c => {
     if (ES_IMG(c)) return;
     if (c.tipo === 'chips') $$('input[name="' + c.k + '"]', card).forEach(i => i.checked = i.value === String(o[c.k]));
     else if (c.tipo === 'lista') { const i = $('select[name="' + c.k + '"]', card); if (i) { i.dataset.quiero = o[c.k] ?? ''; i.value = o[c.k] ?? ''; } }
     else { const i = $('[name="' + c.k + '"]', card); if (i) i.value = o[c.k]; }
+    if (c.tipo === 'elegir') sincElegir(card, c);
   });
 }
 
@@ -213,13 +223,20 @@ function tarjeta(pl) {
     '<button class="btn" type="button" data-reset>↺ Restablecer</button></div>' +
     '<div class="versiones"><span>⭐ Mis versiones</span><select data-ver aria-label="Versión guardada"><option value="">Elegir versión guardada…</option></select>' +
     '<input type="text" data-vernom maxlength="30" aria-label="Nombre de la versión" placeholder="Nombre (ej. Código Halloween)"><button class="btn" type="button" data-verguardar>💾 Guardar versión</button><button class="btn" type="button" data-verborrar hidden>🗑 Borrar</button></div>' +
-    '<div class="animgrid"><div class="animform opts">' + formulario(pl) + '</div>' +
+    '<div class="animgrid"><div class="animform opts">' + (pl.campos.some(c => c.guia) ? '<p class="nota guianota">🎯 El personaje y su retrato se eligen arriba, en la <b>Guía de mejora</b>.</p>' : '') + formulario(pl) + '</div>' +
     '<div class="animside"><div class="chips">' + FMTS(pl).map((k, i) => '<label><input type="radio" name="fmt-' + pl.id + '" value="' + k + '"' + ((pl.fmtDef ? k === pl.fmtDef : !i) ? ' checked' : '') + '>' + NOMBRE_FMT[k] + '</label>').join('') + '</div>' +
     '<div class="animprev"><canvas></canvas></div>' +
     '<div class="acciones"><button class="btn pri" type="button" data-mov>⬇ Descargar</button><button class="btn" type="button" data-webm title="WebM con transparencia: para OBS (transiciones de escena, fuentes multimedia)">⬇ .webm para OBS</button>' + (FMTS(pl).length > 1 ? '<button class="btn" type="button" data-ambos>' + (FMTS(pl).length > 2 ? '⬇ Todos los formatos' : '⬇ Horizontal + vertical') + '</button>' : '') + (pl.variantes ? '<button class="btn" type="button" data-variantes>' + esc(pl.variantes.todos) + '</button>' : '') + '<button class="btn" type="button" data-png>🖼 Imagen PNG</button><button class="btn" type="button" data-replay>↻ Repetir</button>' + (pl.sonido ? '<button class="btn" type="button" data-oir>🔊 Repetir con sonido</button>' : '') + '</div>' +
     '<label class="momento"><span>🖼 Momento de la imagen</span><input type="range" data-momento min="0" max="100" step="1"><output></output></label>' +
     '<div class="progreso" hidden><i></i></div><p class="nota ptxt" aria-live="polite"></p></div></div>';
   const clave = 'kyo_anim_' + pl.id;
+  pl.campos.filter(c => c.tipo === 'elegir').forEach(c => {
+    const sel = $('select[data-elegir="' + c.k + '"]', card), inp = $('input[name="' + c.k + '"]', card);
+    sel.addEventListener('change', () => {
+      if (sel.value === '__otro') { inp.hidden = false; if (c.opciones.includes(inp.value.trim())) inp.value = ''; inp.focus(); }
+      else { inp.hidden = true; inp.value = sel.value; }
+    });
+  });
   ponerForm(card, pl, Object.assign(defecto(pl), leer(clave) || {}));
   const cv = $('canvas', card), ctx = cv.getContext('2d');
   let t0 = performance.now(), o = leerForm(card, pl);
@@ -237,7 +254,9 @@ function tarjeta(pl) {
   card.addEventListener('input', refrescar);
   card.addEventListener('change', refrescar);
   $('[data-replay]', card).addEventListener('click', () => { t0 = performance.now(); });
-  $('[data-reset]', card).addEventListener('click', () => { ponerForm(card, pl, defecto(pl)); refrescar(); t0 = performance.now(); });
+  // los campos de la Guía de mejora no se tocan al restablecer ni al cargar una versión
+  const conGuia = o => { const act = leerForm(card, pl); pl.campos.forEach(c => { if (c.guia && !ES_IMG(c)) o[c.k] = act[c.k]; }); return o; };
+  $('[data-reset]', card).addEventListener('click', () => { ponerForm(card, pl, conGuia(defecto(pl))); refrescar(); t0 = performance.now(); });
   $('[data-mov]', card).addEventListener('click', () => exportar(pl, card));
   // imagen PNG de un momento concreto (el control muestra ese fotograma en la vista previa)
   const mom = $('[data-momento]', card), momOut = $('.momento output', card);
@@ -270,7 +289,7 @@ function tarjeta(pl) {
     borrar.hidden = !sel.value;
   };
   sel.addEventListener('change', e => { e.stopPropagation(); const v = leer(claveV) || {}; borrar.hidden = !sel.value; if (!sel.value || !v[sel.value]) return;
-    ponerForm(card, pl, Object.assign(defecto(pl), v[sel.value])); nom.value = sel.value; refrescar(); t0 = performance.now(); });
+    ponerForm(card, pl, conGuia(Object.assign(defecto(pl), v[sel.value]))); nom.value = sel.value; refrescar(); t0 = performance.now(); });
   $('[data-verguardar]', card).addEventListener('click', () => {
     const n = nom.value.trim(); if (!n) { nom.focus(); $('.ptxt', card).textContent = 'Escribe un nombre para la versión.'; return; }
     const v = leer(claveV) || {}; v[n] = Object.fromEntries(Object.entries(leerForm(card, pl)).filter(([k]) => !pl.campos.some(c => c.k === k && ES_IMG(c))));
@@ -297,7 +316,7 @@ function tarjeta(pl) {
   };
   $$('[data-img]', card).forEach(inp => {
     const k = inp.dataset.img, idb = pl.id + ':' + k;
-    imgLeer(idb).then(v => { if (v && v.blob) ponerImg(k, v.blob, v.nombre); });
+    if (!pl.campos.some(c => c.k === k && c.guia)) imgLeer(idb).then(v => { if (v && v.blob) ponerImg(k, v.blob, v.nombre); });
     inp.addEventListener('change', async () => {
       const file = inp.files && inp.files[0]; if (!file) return;
       try {
@@ -315,6 +334,13 @@ function tarjeta(pl) {
     $('[data-quitar="' + k + '"]', card).addEventListener('click', async () => { await imgBorrar(idb); ponerImg(k, null); });
   });
   if (pl.galeria) montarGaleria(pl, card, refrescar);
+  // para la Guía de mejora: leer y poner valores desde fuera, y poner la imagen compartida
+  card._api = {
+    pl,
+    leer: () => leerForm(card, pl),
+    poner: parcial => { ponerForm(card, pl, Object.assign(leerForm(card, pl), parcial)); refrescar(); },
+    imagen: (k, blob, nombre) => ponerImg(k, blob, nombre)
+  };
   pl.campos.filter(c => c.tipo === 'lista' && c.cargar).forEach(c => {
     const sel = $('select[name="' + c.k + '"]', card);
     sel.insertAdjacentHTML('beforeend', '<option disabled data-aviso>Cargando la lista…</option>');
@@ -448,6 +474,114 @@ function abrirMusica() {
   });
 }
 
+// ---------- Guía de mejora (pestaña ZZZ) ----------
+// Se elige el personaje una vez y todas las plantillas ZZZ lo usan (campos con guia: true).
+// "Guías guardadas" guarda, por personaje, la guía y los textos y opciones de todas las plantillas ZZZ.
+const CAMPOS_GUIA = ['personaje', 'agente', 'elemento', 'especialidad'];
+function montarGuia(cards) {
+  const caja = document.createElement('div');
+  caja.className = 'card guiazzz';
+  caja.innerHTML = '<div class="guiatop"><canvas width="128" height="128" aria-hidden="true"></canvas><div><h2>🎯 Guía de mejora</h2>' +
+    '<p class="nota">Elige aquí el personaje: la Guía de discos, Habilidades y Amplificadores lo usan a la vez. Guarda la guía con su nombre y recupérala entera (discos, habilidades, amplificadores y equipo) cuando vuelvas a ese personaje.</p></div></div>' +
+    '<form class="guiaform" onsubmit="return false">' +
+    '<label class="f"><span>Personaje</span><input type="text" name="personaje" maxlength="28"></label>' +
+    '<label class="f"><span>Retrato (del repo de assets)</span><select name="agente"><option value="">Sin retrato</option></select></label>' +
+    '<div class="f"><span>…o tu imagen (tiene prioridad)</span><div class="imgpick"><label class="btn"><input type="file" accept="image/*" hidden>📁 Elegir imagen</label><button class="btn" type="button" data-quitar hidden>✕ Quitar</button><small data-imgnom>Sin imagen</small></div></div>' +
+    '<label class="f"><span>Elemento</span><select name="elemento"><option value="">Ninguno</option></select></label>' +
+    '<label class="f"><span>Especialidad</span><select name="especialidad"><option value="">Ninguna</option></select></label>' +
+    '</form>' +
+    '<div class="versiones"><span>📚 Guías guardadas</span><select data-gsel aria-label="Guía guardada"></select><input type="text" data-gnom maxlength="30" aria-label="Nombre de la guía" placeholder="Nombre (ej. Roxy)">' +
+    '<button class="btn" type="button" data-gguardar>💾 Guardar guía</button><button class="btn" type="button" data-gborrar hidden>🗑 Borrar</button></div><p class="nota ptxt" aria-live="polite"></p>';
+  const form = $('.guiaform', caja), cv = $('canvas', caja), txt = $('.ptxt', caja), aviso = t => { txt.textContent = t; };
+  const IMG = 'guia:imagen', ESTADO = 'kyo_guia_zzz', GUIAS = 'kyo_guias_zzz';
+  let img = null, imgNom = '';
+  const leerG = () => Object.fromEntries(CAMPOS_GUIA.map(k => { const i = $('[name="' + k + '"]', form); return [k, i.tagName === 'SELECT' && !i.dataset.cargada ? (i.dataset.quiero || '') : i.value]; }));
+  const ponerG = g => CAMPOS_GUIA.forEach(k => { const i = $('[name="' + k + '"]', form), v = (g && g[k]) || ''; if (i.tagName === 'SELECT') i.dataset.quiero = v; i.value = v; });
+  // miniatura del retrato
+  const pintar = async () => {
+    const g = leerG(), c = cv.getContext('2d'); c.clearRect(0, 0, 128, 128);
+    const bmp = img || (g.agente ? await ZZZ.cargar('retrato', g.agente) : null);
+    c.save(); c.beginPath(); c.arc(64, 64, 60, 0, Math.PI * 2); c.fillStyle = '#6FE3F0'; c.fill(); c.clip();
+    if (bmp) { const k = Math.max(120 / bmp.width, 120 / bmp.height); c.drawImage(bmp, 64 - bmp.width * k / 2, 64 - bmp.height * k / 2, bmp.width * k, bmp.height * k); }
+    c.restore(); c.beginPath(); c.arc(64, 64, 60, 0, Math.PI * 2); c.lineWidth = 6; c.strokeStyle = '#ffffff'; c.stroke();
+  };
+  // reparte la guía a todas las plantillas ZZZ que tengan esos campos
+  const repartir = () => {
+    const g = leerG();
+    cards.forEach(card => {
+      const pl = card._api.pl, parcial = {};
+      CAMPOS_GUIA.forEach(k => { if (pl.campos.some(c => c.k === k && c.guia)) parcial[k] = g[k]; });
+      if (Object.keys(parcial).length) card._api.poner(parcial);
+      if (pl.campos.some(c => c.k === 'imagen' && c.guia)) card._api.imagen('imagen', imgBlob, imgNom);
+    });
+    try { localStorage.setItem(ESTADO, JSON.stringify(g)); } catch (e) {}
+    pintar();
+  };
+  let imgBlob = null;
+  const ponerImagen = async (blob, nombre) => {
+    imgBlob = blob || null; imgNom = nombre || '';
+    try { img = blob ? await createImageBitmap(blob) : null; } catch (e) { img = null; imgBlob = null; }
+    $('[data-imgnom]', caja).textContent = img ? (imgNom || 'Imagen guardada') : 'Sin imagen'; $('[data-quitar]', caja).hidden = !img;
+  };
+  // listas del repo
+  [['agente', 'retrato'], ['elemento', 'elemento'], ['especialidad', 'especialidad']].forEach(([k, tipo]) => {
+    const sel = $('[name="' + k + '"]', form);
+    sel.insertAdjacentHTML('beforeend', '<option disabled data-aviso>Cargando la lista…</option>');
+    ZZZ.lista(tipo).then(ops => {
+      $('[data-aviso]', sel).remove(); sel.insertAdjacentHTML('beforeend', ops.map(([v, l]) => '<option value="' + esc(v) + '">' + esc(l) + '</option>').join(''));
+      sel.dataset.cargada = '1'; sel.value = sel.dataset.quiero || ''; pintar();
+    }).catch(() => { $('[data-aviso]', sel).textContent = 'No se pudo cargar la lista: recarga la página o sube la imagen a mano'; });
+  });
+  form.addEventListener('input', repartir); form.addEventListener('change', e => { if (!e.target.matches('input[type=file]')) repartir(); });
+  $('input[type=file]', caja).addEventListener('change', async e => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    try { const blob = await prepararImagen(file, 1400); await imgGuardar(IMG, { blob, nombre: file.name }); await ponerImagen(blob, file.name); repartir(); }
+    catch (err) { aviso('No se pudo abrir esa imagen.'); }
+    e.target.value = '';
+  });
+  $('[data-quitar]', caja).addEventListener('click', async () => { await imgBorrar(IMG); await ponerImagen(null); repartir(); });
+  // guías guardadas
+  const leerGuias = () => leer(GUIAS) || {}, sel = $('[data-gsel]', caja), nom = $('[data-gnom]', caja), borrar = $('[data-gborrar]', caja);
+  const pintarGuias = elegida => {
+    const v = leerGuias();
+    sel.innerHTML = '<option value="">' + (Object.keys(v).length ? 'Elegir guía guardada…' : 'Aún no hay guías guardadas') + '</option>' + Object.keys(v).sort().map(n => '<option' + (n === elegida ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+    borrar.hidden = !sel.value;
+  };
+  const sinCompartidos = card => { const pl = card._api.pl, o = card._api.leer();
+    return Object.fromEntries(Object.entries(o).filter(([k]) => !pl.campos.some(c => c.k === k && (c.guia || c.tipo === 'imagen' || c.tipo === 'media')))); };
+  $('[data-gguardar]', caja).addEventListener('click', async () => {
+    const n = (nom.value.trim() || leerG().personaje.trim()); if (!n) { nom.focus(); aviso('Escribe un nombre para la guía.'); return; }
+    const v = leerGuias(); v[n] = { guia: leerG(), plantillas: Object.fromEntries(cards.map(c => [c._api.pl.id, sinCompartidos(c)])) };
+    guardar(GUIAS, v);
+    if (imgBlob) await imgGuardar('guia-img:' + n, { blob: imgBlob, nombre: imgNom }); else await imgBorrar('guia-img:' + n);
+    nom.value = n; pintarGuias(n); aviso('📚 Guía "' + n + '" guardada: personaje, discos, habilidades, amplificadores y equipo.');
+  });
+  sel.addEventListener('change', async () => {
+    borrar.hidden = !sel.value; const v = leerGuias()[sel.value]; if (!v) return;
+    ponerG(v.guia);
+    const im = await imgLeer('guia-img:' + sel.value); await ponerImagen(im && im.blob, im && im.nombre);
+    if (im && im.blob) await imgGuardar(IMG, im); else await imgBorrar(IMG);
+    cards.forEach(c => { const datos = v.plantillas && v.plantillas[c._api.pl.id]; if (datos) c._api.poner(datos); });
+    repartir(); nom.value = sel.value; aviso('📚 Guía "' + sel.value + '" cargada en todas las plantillas ZZZ.');
+  });
+  borrar.addEventListener('click', async () => {
+    const n = sel.value; if (!n) return; const v = leerGuias(); delete v[n]; guardar(GUIAS, v); await imgBorrar('guia-img:' + n);
+    nom.value = ''; pintarGuias(); aviso('Guía "' + n + '" borrada.');
+  });
+  nom.addEventListener('input', e => e.stopPropagation());
+  // estado inicial: la guía guardada o, la primera vez, lo que ya había en la Guía de discos
+  (async () => {
+    let g = leer(ESTADO);
+    if (!g) { const gd = cards.find(c => c._api.pl.id === 'guia-discos'); g = gd ? Object.fromEntries(CAMPOS_GUIA.map(k => [k, gd._api.leer()[k] || ''])) : {}; }
+    ponerG(g);
+    let im = await imgLeer(IMG);
+    if (!im) { const viejo = await imgLeer('guia-discos:imagen'); if (viejo && viejo.blob) { im = viejo; await imgGuardar(IMG, viejo); } }
+    await ponerImagen(im && im.blob, im && im.nombre);
+    pintarGuias(); repartir();
+  })();
+  return caja;
+}
+
 let anunciosAbierto = false;
 window.kyoAnim = {
   abrir() {
@@ -459,9 +593,12 @@ window.kyoAnim = {
     barra.innerHTML = '<div class="subbtns">' + PEST.map(([k, l]) => '<button type="button" data-pest="' + k + '" aria-pressed="false">' + l + '</button>').join('') + '</div>';
     cont.before(barra);
     const cards = PLANTILLAS.map(pl => { const c = tarjeta(pl); c.dataset.grupo = pl.grupo || 'general'; cont.appendChild(c); return c; });
+    const guia = montarGuia(cards.filter(c => c.dataset.grupo === 'zzz'));
+    cont.prepend(guia);
     const elegir = k => {
       $$('[data-pest]', barra).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pest === k)));
       cards.forEach(c => { c.hidden = c.dataset.grupo !== k; });
+      guia.hidden = k !== 'zzz';
       try { localStorage.setItem('kyo_anim_pestana', k); } catch (e) {}
     };
     barra.addEventListener('click', e => { const b = e.target.closest('[data-pest]'); if (b) elegir(b.dataset.pest); });
