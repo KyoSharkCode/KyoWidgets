@@ -317,10 +317,12 @@ function tarjeta(pl) {
   if (pl.galeria) montarGaleria(pl, card, refrescar);
   pl.campos.filter(c => c.tipo === 'lista' && c.cargar).forEach(c => {
     const sel = $('select[name="' + c.k + '"]', card);
+    sel.insertAdjacentHTML('beforeend', '<option disabled data-aviso>Cargando la lista…</option>');
     c.cargar().then(ops => {
+      $('[data-aviso]', sel).remove();
       sel.insertAdjacentHTML('beforeend', ops.map(([v, l]) => '<option value="' + esc(v) + '">' + esc(l) + '</option>').join(''));
       sel.dataset.cargada = '1'; sel.value = sel.dataset.quiero || ''; refrescar();
-    }).catch(() => { sel.insertAdjacentHTML('beforeend', '<option disabled>No se pudo cargar la lista (¿sin internet?)</option>'); });
+    }).catch(() => { $('[data-aviso]', sel).textContent = 'No se pudo cargar la lista: recarga la página o sube la imagen a mano'; });
   });
   refrescar();
   // vista previa en bucle (con una pausa corta entre repeticiones)

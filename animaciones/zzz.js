@@ -1,9 +1,12 @@
 // Kyo Estudio · Assets de Zenless Zone Zero desde el repo de la comunidad ZZZdle-Assets (github.com/Gaiiiaaa-GH/ZZZdle-Assets)
-// Se leen por jsDelivr fijados a un commit: si el repo cambia, el Estudio no se rompe. Para actualizar,
-// cambia VERSION por el commit nuevo del repo. No se copia nada a KyoWidgets.
+// Se leen directo de GitHub (raw.githubusercontent.com, permite leerlas desde el navegador) fijadas a un commit:
+// si el repo cambia, el Estudio no se rompe. Para actualizar, cambia VERSION por el commit nuevo del repo.
+// No se usa jsDelivr porque no sirve repos de GitHub de más de 50 MB (este pesa ~230 MB). No se copia nada a KyoWidgets.
 // El arte es de HoYoverse; el repo lo reúne para uso de fans no comercial.
 export const VERSION = 'a1700d2b9ea7a6c6f3922a12f2e83d1343d003c9';
-const BASE = 'https://cdn.jsdelivr.net/gh/Gaiiiaaa-GH/ZZZdle-Assets@' + VERSION + '/';
+const BASE = 'https://raw.githubusercontent.com/Gaiiiaaa-GH/ZZZdle-Assets/' + VERSION + '/';
+// Si GitHub no responde en 20 s se da por fallida la carga (la lista avisa en vez de quedarse vacía)
+const pedir = url => fetch(url, typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? { signal: AbortSignal.timeout(20000) } : {});
 // Tipos de asset → carpeta del repo (todas tienen manifest.json y archivos .webp)
 export const CARPETAS = {
   icono: 'icons', retrato: 'portraits', retratoAncho: 'portraits_horizontal', seleccion: 'select_art', splash: 'splash_art',
@@ -21,7 +24,7 @@ export const nombreDe = slug => NOMBRES[slug] || slug.split('-').map(p => p ? p[
 // Lista [[slug, nombre]] de un tipo, ordenada por nombre (se pide una sola vez)
 const listas = {};
 export function lista(tipo) {
-  if (!listas[tipo]) listas[tipo] = fetch(BASE + CARPETAS[tipo] + '/manifest.json')
+  if (!listas[tipo]) listas[tipo] = pedir(BASE + CARPETAS[tipo] + '/manifest.json')
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(m => m.images.map(i => i.file.replace(/\.\w+$/, '')).map(s => [s, nombreDe(s)]).sort((a, b) => a[1].localeCompare(b[1], 'es')))
     .catch(e => { delete listas[tipo]; throw e; });
@@ -36,7 +39,7 @@ export function cargar(tipo, slug) {
   const k = tipo + '/' + slug, e = imgs[k];
   if (e && (e.bmp || !e.fallo || Date.now() - e.fallo < 30000)) return e.p;
   const nueva = { bmp: null, fallo: 0 };
-  nueva.p = fetch(BASE + CARPETAS[tipo] + '/' + slug + '.webp')
+  nueva.p = pedir(BASE + CARPETAS[tipo] + '/' + slug + '.webp')
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
     .then(b => createImageBitmap(b)).then(b => (nueva.bmp = b))
     .catch(() => { nueva.fallo = Date.now(); return null; });
