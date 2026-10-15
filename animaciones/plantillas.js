@@ -3389,6 +3389,9 @@ const amplisZZZ = {
   }
 };
 
+// Campos que vienen de la Guía de mejora (se eligen una vez arriba de la pestaña ZZZ)
+[[guiaDiscos, ['personaje', 'agente', 'imagen', 'elemento', 'especialidad']], [habilidadesZZZ, ['personaje', 'agente', 'imagen']], [amplisZZZ, ['personaje', 'agente', 'imagen']]]
+  .forEach(([pl, ks]) => pl.campos.forEach(c => { if (ks.includes(c.k)) c.guia = true; }));
 // Desplegables de atributos: cada hueco muestra solo lo que puede salir en él (y siempre "✏️ Otro" para escribir)
 const PCT = ['Porcentaje de Ataque', 'Porcentaje de PV', 'Porcentaje de Defensa'];
 const BONOS = ['Bono de daño físico', 'Bono de daño de fuego', 'Bono de daño de hielo', 'Bono de daño eléctrico', 'Bono de daño etéreo'];

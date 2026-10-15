@@ -11,6 +11,7 @@ Widgets y animaciones propias para los directos y videos de **KyoSumiVT**, con e
 - **Meta de donaciones**: barra de meta que lee los tips de StreamElements y guarda el total en Supabase, así no se reinicia sola. Se ajusta a mano desde el Estudio.
 - **Animaciones**: plantillas editables (textos, colores, posición y duración) que se descargan como video con transparencia, listas para usar en el editor.
 - **Pestaña ZZZ** dentro de Animaciones, con las plantillas de Zenless Zone Zero aparte de las generales:
+  - **Guía de mejora**: arriba de la pestaña se elige el personaje (nombre, retrato, elemento y especialidad) y todas las plantillas ZZZ lo usan a la vez. Cada guía se guarda con su nombre y se recupera entera (discos, habilidades, amplificadores y equipo).
   - **Amplificadores (ZZZ)**: tres secciones de arriba abajo (su amplificador, rango S y rango A) con hasta 3 amplificadores cada una, del repo de assets o con imagen propia; cada sección entra en su turno para ir al ritmo de la voz.
   - **Habilidades (ZZZ)**: orden en el que subir las habilidades con su nivel, unidas con ›. Iconos dibujados con la paleta del estilo elegido, o propios desde la galería.
 - **Equipo (ZZZ)**: tres agentes y un bangboo en tarjetas que caen una a una, con su rol. Se eligen del repo de assets o con imagen propia, y el nombre se puede cambiar.
