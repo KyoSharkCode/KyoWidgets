@@ -2,6 +2,7 @@
 // Cada plantilla: { id, nombre, desc, fps, campos:[…], duracion(o), dibujar(ctx, t, o, fmt, W, H) }
 // Para añadir una animación nueva basta con añadir otra plantilla a la lista del final.
 import * as K from './kit-dibujado.js';
+import * as ZZZ from './zzz.js';
 
 // ---------- utilidades ----------
 const rad = d => d * Math.PI / 180;
@@ -2610,8 +2611,16 @@ function medirGuia(ctx, o, u) {
   const tit = { 1: limpio(o.titulo1).toUpperCase(), 2: limpio(o.titulo2).toUpperCase(), 3: limpio(o.titulo3).toUpperCase() };
   const chipW = {}; ['1', '2', '3'].forEach(k => { chipW[k] = tit[k] ? ancho(ctx, tit[k], f.chip, f.chipE) + 32 * u : 0; });
   const pjW = pj ? ancho(ctx, pj, f.pj) + 10 * u : 0, pjSW = pj ? ancho(ctx, pj, f.pjS) : 0;
-  const cab = k => ({ w: chipW[k] + (pj ? (chipW[k] ? 16 * u : 0) + pjSW : 0), h: (tit[k] || pj) ? 52 * u : 0 });
-  const head = { 1: { w: Math.max(chipW[1], pjW), h: (tit[1] ? 46 * u : 0) + (pj ? 76 * u : 0) }, 2: cab('2'), 3: cab('3') };
+  // avatar (imagen propia o retrato del repo) e insignias de elemento y especialidad
+  const conAv = !!o.imagen || !!limpio(o.agente), ins = [['elemento', limpio(o.elemento)], ['especialidad', limpio(o.especialidad)]].filter(i => i[1]);
+  const avD = 112 * u, avOff = conAv ? avD + 30 * u : 0, insD = 44 * u, insW = ins.length ? (pj ? 12 * u : 0) + ins.length * insD + (ins.length - 1) * 8 * u : 0;
+  const avS = 30 * u, insS = 34 * u, insSW = ins.length ? 10 * u + ins.length * insS + (ins.length - 1) * 6 * u : 0;
+  const cab = k => {
+    const resto = (conAv ? avS + 22 * u : 0) + (pj ? pjSW : 0) + insSW;
+    return { w: chipW[k] + (resto ? (chipW[k] ? 16 * u : 0) + resto : 0), h: (tit[k] || pj || conAv || ins.length) ? 52 * u : 0 };
+  };
+  const txtH1 = (tit[1] ? 46 * u : 0) + (pj || ins.length ? 76 * u : 0);
+  const head = { 1: { w: avOff + Math.max(chipW[1], (pj ? pjW : 0) + insW), h: Math.max(txtH1, conAv ? avD + 20 * u : 0), txtH: txtH1 }, 2: cab('2'), 3: cab('3') };
   // clip 1: sets
   const D = 80 * u, rowPad = 16 * u, rowH1 = 108 * u, gap1 = 26 * u, txtGap = 26 * u;
   const sets = L.sets.map(s => Object.assign({}, s, { w: rowPad + D + txtGap + Math.max(ancho(ctx, s.nombre, f.nom), s.sub ? ancho(ctx, s.sub, f.sub) : 0) + 26 * u }));
@@ -2638,7 +2647,7 @@ function medirGuia(ctx, o, u) {
   const c3 = { w: maxX, h: pills.length ? py + pillH : 0 };
   const w = Math.max(head[1].w, head[2].w, head[3].w, c1.w, c2.w, c3.w, 480 * u) + 2 * pad;
   const alto = (k, c) => pad + head[k].h + (c.h ? 14 * u : 0) + c.h + pad;
-  return { f, pad, pj, tit, chipW, head, D, rowPad, rowH1, gap1, txtGap, sets, numD, icD, rowH2, rowH2b, gap2, slashW, oW, filas, pillH, icP, chev, pills, w, h: { 1: alto('1', c1), 2: alto('2', c2), 3: alto('3', c3) } };
+  return { f, pad, pj, tit, chipW, pjW, pjSW, head, conAv, ins, avD, avOff, insD, avS, insS, D, rowPad, rowH1, gap1, txtGap, sets, numD, icD, rowH2, rowH2b, gap2, slashW, oW, filas, pillH, icP, chev, pills, w, h: { 1: alto('1', c1), 2: alto('2', c2), 3: alto('3', c3) } };
 }
 const guiaDiscos = {
   id: 'guia-discos',
@@ -2658,6 +2667,10 @@ const guiaDiscos = {
   campos: [
     { k: 'clip', label: 'Clip', tipo: 'chips', def: '1', opciones: [['1', '1 · Título y sets'], ['2', '2 · Discos'], ['3', '3 · Substats']] },
     { k: 'personaje', label: 'Personaje', tipo: 'texto', def: 'Personaje', max: 28 },
+    { k: 'agente', label: 'Retrato (del repo de assets ZZZdle)', tipo: 'lista', def: '', vacio: 'Sin retrato', cargar: () => ZZZ.lista('retrato') },
+    { k: 'imagen', label: '…o sube tu imagen (tiene prioridad sobre la del repo)', tipo: 'imagen' },
+    { k: 'elemento', label: 'Insignia de elemento', tipo: 'lista', def: '', vacio: 'Ninguna', cargar: () => ZZZ.lista('elemento') },
+    { k: 'especialidad', label: 'Insignia de especialidad', tipo: 'lista', def: '', vacio: 'Ninguna', cargar: () => ZZZ.lista('especialidad') },
     { k: 'titulo1', label: 'Título', tipo: 'texto', def: 'Pistas de disco', max: 30, si: 'clip=1' },
     { k: 'set4', label: 'Set de 4 piezas', tipo: 'texto', def: 'Monarca del Pináculo', max: 34, si: 'clip=1' },
     { k: 'set4sub', label: 'Debajo del set de 4 (opcional)', tipo: 'texto', def: 'Conjunto de 4 piezas', max: 30, si: 'clip=1' },
@@ -2681,6 +2694,8 @@ const guiaDiscos = {
     { k: 'dur2', label: 'Duración del clip 2 (segundos)', tipo: 'numero', def: 6, min: 3, max: 30, paso: 0.1, si: 'clip=2' },
     { k: 'dur3', label: 'Duración del clip 3 (segundos)', tipo: 'numero', def: 6, min: 3, max: 30, paso: 0.1, si: 'clip=3' }
   ],
+  // antes de exportar: espera a que lleguen las imágenes del repo de assets
+  preparar: o => Promise.all([['retrato', o.agente], ['elemento', o.elemento], ['especialidad', o.especialidad]].map(([t, s]) => ZZZ.cargar(t, limpio(s)))),
   duracion: o => Math.max(tiemposGuia(o).minimo, clamp(Number(o['dur' + clipDe(o)]) || 6, 3, 30)),
   dibujar(ctx, t, o, fmt, W, H) {
     const P = paleta(o), L = this.duracion(o), c = clipDe(o), T = tiemposGuia(o), quieto = o.salida === 'no';
@@ -2697,27 +2712,51 @@ const guiaDiscos = {
     const x0 = pos.x + pad, cw = w - 2 * pad;
     let y = pos.y + pad;
     // --- cabecera ---
-    const tit = m.tit[c], chipW = m.chipW[c];
-    if (tit) {
+    const tit = m.tit[c], chipW = m.chipW[c], hd = m.head[c];
+    const avImg = o.imagen || ZZZ.imagen('retrato', limpio(o.agente)); // la imagen subida tiene prioridad sobre la del repo
+    const chip = (x, yy) => {
+      if (!tit) return;
       const a = kf(tm, [[.3, { y: 14, a: 0 }], [.6, { y: 0, a: 1 }]]);
       ctx.save(); ctx.globalAlpha *= a.a;
-      rr(ctx, x0, y + a.y * u, chipW, 34 * u, 17 * u); ctx.fillStyle = P.a; ctx.fill();
-      fuente(ctx, f.chip, f.chipE); ctx.fillStyle = P.o; ctx.fillText(tit, x0 + 16 * u, y + 18 * u + a.y * u); ctx.restore();
-    }
+      rr(ctx, x, yy + a.y * u, chipW, 34 * u, 17 * u); ctx.fillStyle = P.a; ctx.fill();
+      fuente(ctx, f.chip, f.chipE); ctx.fillStyle = P.o; ctx.fillText(tit, x + 16 * u, yy + 18 * u + a.y * u); ctx.restore();
+    };
+    const avatarPop = (cx, cyy, D, t0) => {
+      const a = kf(tm, [[t0, { s: 0, r: -30 }], [t0 + .3, { s: 1.15, r: 8 }], [t0 + .5, { s: 1, r: 0 }]], EASE.back);
+      if (a.s <= .01) return;
+      ctx.save(); ctx.translate(cx, cyy); ctx.rotate(rad(a.r)); ctx.scale(a.s, a.s); ctx.translate(-cx, -cyy);
+      avatar(ctx, cx, cyy, D, P, avImg, ESTRELLA, D === m.avD ? u : u * .5); ctx.restore();
+    };
+    const insignias = (x, cyy, D, paso, t0) => m.ins.forEach(([tipo, slug], i) => {
+      const cx = x + D / 2 + i * paso;
+      const k = kf(tm, [[t0 + i * .12, { s: 0 }], [t0 + i * .12 + .3, { s: 1.15 }], [t0 + i * .12 + .45, { s: 1 }]], EASE.back);
+      if (k.s <= .01) return;
+      ctx.save(); ctx.translate(cx, cyy); ctx.scale(k.s, k.s); ctx.translate(-cx, -cyy);
+      badgeIcono(ctx, cx, cyy, D, P, ZZZ.imagen(tipo, slug), ICONOS_ATR.otro); ctx.restore();
+    });
     if (c === '1') {
-      if (tit) y += 46 * u;
+      if (m.conAv) avatarPop(x0 + m.avD / 2 + 6 * u, y + hd.h / 2, m.avD, .35);
+      const tx = x0 + m.avOff;
+      let ty = y + (hd.h - hd.txtH) / 2;
+      chip(tx, ty);
+      if (tit) ty += 46 * u;
       if (m.pj) {
         const a = kf(tm, [[.45, { s: .6, a: 0 }], [.8, { s: 1.08, a: 1 }], [.95, { s: 1, a: 1 }]], EASE.back);
-        ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(x0, y + 36 * u); ctx.scale(a.s, a.s); fuente(ctx, f.pj);
+        ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); ctx.translate(tx, ty + 36 * u); ctx.scale(a.s, a.s); fuente(ctx, f.pj);
         ctx.lineWidth = 9 * u; ctx.lineJoin = 'round'; ctx.strokeStyle = P.o; ctx.fillStyle = P.t; ctx.strokeText(m.pj, 0, 0); ctx.fillText(m.pj, 0, 0); ctx.restore();
-        y += 76 * u;
       }
-    } else if (m.head[c].h) {
+      if (m.ins.length) insignias(tx + (m.pj ? m.pjW + 12 * u : 0), ty + 36 * u, m.insD, m.insD + 8 * u, .75);
+      y += hd.h;
+    } else if (hd.h) {
+      chip(x0, y);
+      let x = x0 + (chipW ? chipW + 16 * u : 0);
+      if (m.conAv) { avatarPop(x + m.avS / 2 + 8 * u, y + 18 * u, m.avS, .4); x += m.avS + 22 * u; }
       if (m.pj) {
         const a = kf(tm, [[.45, { x: -16, a: 0 }], [.8, { x: 0, a: 1 }]], EASE.back);
         ctx.save(); ctx.globalAlpha *= clamp(a.a, 0, 1); fuente(ctx, f.pjS); ctx.fillStyle = P.s;
-        ctx.fillText(m.pj, x0 + (chipW ? chipW + 16 * u : 0) + a.x * u, y + 18 * u); ctx.restore();
+        ctx.fillText(m.pj, x + a.x * u, y + 18 * u); ctx.restore(); x += m.pjSW;
       }
+      if (m.ins.length) insignias(x + 10 * u, y + 18 * u, m.insS, m.insS + 6 * u, .6);
       y += 52 * u;
     }
     y += 14 * u;

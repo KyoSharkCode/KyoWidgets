@@ -71,6 +71,7 @@ function formulario(pl) {
     if (c.tipo === 'numero') return '<label class="f"' + si + '><span>' + c.label + '</span><input type="number" name="' + c.k + '" min="' + c.min + '" max="' + c.max + '" step="' + c.paso + '"></label>';
     if (c.tipo === 'imagen') return '<div class="f"' + si + '><span>' + c.label + '</span><div class="imgpick"><label class="btn"><input type="file" accept="image/*" data-img="' + c.k + '" hidden>📁 Elegir imagen</label><button class="btn" type="button" data-quitar="' + c.k + '" hidden>✕ Quitar</button><small data-imgnom="' + c.k + '">Sin imagen</small></div></div>';
     if (c.tipo === 'media') return '<div class="f"' + si + '><span>' + c.label + '</span><div class="imgpick"><label class="btn"><input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" data-img="' + c.k + '" data-media hidden>📁 Elegir imagen o vídeo</label><button class="btn" type="button" data-quitar="' + c.k + '" hidden>✕ Quitar</button><small data-imgnom="' + c.k + '">Sin archivo</small></div></div>';
+    if (c.tipo === 'lista') return '<label class="f"' + si + '><span>' + c.label + '</span><select name="' + c.k + '"><option value="">' + esc(c.vacio || 'Ninguno') + '</option>' + (c.opciones || []).map(([v, l]) => '<option value="' + esc(v) + '">' + esc(l) + '</option>').join('') + '</select></label>';
     if (c.tipo === 'color') return '<label class="f fcolor"' + si + '><span>' + c.label + '</span><input type="color" name="' + c.k + '"></label>';
     return '<div class="f"' + si + '><span>' + c.label + '</span><div class="chips">' + c.opciones.map(([v, l]) => '<label><input type="radio" name="' + c.k + '" value="' + v + '">' + l + '</label>').join('') + '</div></div>';
   }).join('');
@@ -80,6 +81,7 @@ function leerForm(card, pl) {
   pl.campos.forEach(c => {
     if (ES_IMG(c)) { o[c.k] = (card._imgs || {})[c.k] || null; return; }
     if (c.tipo === 'chips') { const i = $('input[name="' + c.k + '"]:checked', card); o[c.k] = i ? i.value : c.def; }
+    else if (c.tipo === 'lista') { const i = $('select[name="' + c.k + '"]', card); o[c.k] = !i ? c.def : (c.cargar && !i.dataset.cargada) ? (i.dataset.quiero ?? c.def) : i.value; }
     else { const i = $('[name="' + c.k + '"]', card); o[c.k] = i ? i.value : c.def; }
   });
   // iconos de la galería (no enumerable: no se guarda en localStorage ni en las versiones)
@@ -90,6 +92,7 @@ function ponerForm(card, pl, o) {
   pl.campos.forEach(c => {
     if (ES_IMG(c)) return;
     if (c.tipo === 'chips') $$('input[name="' + c.k + '"]', card).forEach(i => i.checked = i.value === String(o[c.k]));
+    else if (c.tipo === 'lista') { const i = $('select[name="' + c.k + '"]', card); if (i) { i.dataset.quiero = o[c.k] ?? ''; i.value = o[c.k] ?? ''; } }
     else { const i = $('[name="' + c.k + '"]', card); if (i) i.value = o[c.k]; }
   });
 }
@@ -157,6 +160,7 @@ async function exportar(pl, card, fmtElegido, tipo, extra) {
   try {
     await fuentesListas;
     const f = await conversor(aviso);
+    if (pl.preparar) { aviso('Cargando imágenes…', null); await pl.preparar(o); }
     const L = pl.duracion(o), n = Math.round(L * pl.fps);
     const cv = document.createElement('canvas'); cv.width = F.w; cv.height = F.h;
     const ctx = cv.getContext('2d');
@@ -244,6 +248,7 @@ function tarjeta(pl) {
     const fmt = $('input[name="fmt-' + pl.id + '"]:checked', card).value, F = FORMATOS[fmt], L = pl.duracion(o);
     const c = document.createElement('canvas'); c.width = F.w; c.height = F.h; const tp = Math.min(L - .001, mom.value / 100 * L);
     await sincronizarMedia(pl, o, 'pausa'); await sincronizarMedia(pl, o, tp);
+    if (pl.preparar) await pl.preparar(o);
     pl.dibujar(c.getContext('2d'), tp, o, fmt, F.w, F.h);
     sincronizarMedia(pl, o, 'seguir');
     const blob = await new Promise(r => c.toBlob(r, 'image/png')), url = URL.createObjectURL(blob), a = document.createElement('a');
@@ -308,6 +313,13 @@ function tarjeta(pl) {
     $('[data-quitar="' + k + '"]', card).addEventListener('click', async () => { await imgBorrar(idb); ponerImg(k, null); });
   });
   if (pl.galeria) montarGaleria(pl, card, refrescar);
+  pl.campos.filter(c => c.tipo === 'lista' && c.cargar).forEach(c => {
+    const sel = $('select[name="' + c.k + '"]', card);
+    c.cargar().then(ops => {
+      sel.insertAdjacentHTML('beforeend', ops.map(([v, l]) => '<option value="' + esc(v) + '">' + esc(l) + '</option>').join(''));
+      sel.dataset.cargada = '1'; sel.value = sel.dataset.quiero || ''; refrescar();
+    }).catch(() => { sel.insertAdjacentHTML('beforeend', '<option disabled>No se pudo cargar la lista (¿sin internet?)</option>'); });
+  });
   refrescar();
   // vista previa en bucle (con una pausa corta entre repeticiones)
   const bucle = now => {
