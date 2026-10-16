@@ -223,6 +223,7 @@ function tarjeta(pl) {
     '<button class="btn" type="button" data-reset>↺ Restablecer</button></div>' +
     '<div class="versiones"><span>⭐ Mis versiones</span><select data-ver aria-label="Versión guardada"><option value="">Elegir versión guardada…</option></select>' +
     '<input type="text" data-vernom maxlength="30" aria-label="Nombre de la versión" placeholder="Nombre (ej. Código Halloween)"><button class="btn" type="button" data-verguardar>💾 Guardar versión</button><button class="btn" type="button" data-verborrar hidden>🗑 Borrar</button></div>' +
+    (pl.plantillasCant ? '<div class="versiones" data-cant><span>' + esc(pl.plantillasCant.label) + '</span><select data-csel aria-label="Plantilla guardada"></select><input type="text" data-cnom maxlength="30" aria-label="Nombre de la plantilla" placeholder="' + esc(pl.plantillasCant.ejemplo || 'Nombre') + '"><button class="btn" type="button" data-cguardar>💾 Guardar cantidades</button><button class="btn" type="button" data-cborrar hidden>🗑 Borrar</button></div>' : '') +
     '<div class="animgrid"><div class="animform opts">' + (pl.campos.some(c => c.guia) ? '<p class="nota guianota">🎯 El personaje y su retrato se eligen arriba, en la <b>Guía de mejora</b>.</p>' : '') + formulario(pl) + '</div>' +
     '<div class="animside"><div class="chips">' + FMTS(pl).map((k, i) => '<label><input type="radio" name="fmt-' + pl.id + '" value="' + k + '"' + ((pl.fmtDef ? k === pl.fmtDef : !i) ? ' checked' : '') + '>' + NOMBRE_FMT[k] + '</label>').join('') + '</div>' +
     '<div class="animprev"><canvas></canvas></div>' +
@@ -334,6 +335,19 @@ function tarjeta(pl) {
     $('[data-quitar="' + k + '"]', card).addEventListener('click', async () => { await imgBorrar(idb); ponerImg(k, null); });
   });
   if (pl.galeria) montarGaleria(pl, card, refrescar);
+  // plantillas de cantidades: guardan y aplican solo esos campos (p. ej. los totales de un rango), sin tocar el resto
+  if (pl.plantillasCant) {
+    const claveC = 'kyo_cant_' + pl.id, csel = $('[data-csel]', card), cnom = $('[data-cnom]', card), cbor = $('[data-cborrar]', card), ks = pl.plantillasCant.campos;
+    const pintarC = el => { const v = leer(claveC) || {};
+      csel.innerHTML = '<option value="">' + (Object.keys(v).length ? 'Elegir plantilla…' : 'Aún no hay plantillas guardadas') + '</option>' + Object.keys(v).sort().map(n => '<option' + (n === el ? ' selected' : '') + '>' + esc(n) + '</option>').join(''); cbor.hidden = !csel.value; };
+    csel.addEventListener('change', e => { e.stopPropagation(); cbor.hidden = !csel.value; const v = (leer(claveC) || {})[csel.value]; if (!v) return;
+      card._api.poner(v); cnom.value = csel.value; $('.ptxt', card).textContent = '📦 Cantidades de "' + csel.value + '" aplicadas.'; });
+    $('[data-cguardar]', card).addEventListener('click', () => { const n = cnom.value.trim(); if (!n) { cnom.focus(); $('.ptxt', card).textContent = 'Escribe un nombre para la plantilla.'; return; }
+      const o = leerForm(card, pl), v = leer(claveC) || {}; v[n] = Object.fromEntries(ks.map(k => [k, o[k]])); guardar(claveC, v); pintarC(n); $('.ptxt', card).textContent = '📦 Plantilla "' + n + '" guardada (solo las cantidades y los deniques).'; });
+    cbor.addEventListener('click', () => { const n = csel.value; if (!n) return; const v = leer(claveC) || {}; delete v[n]; guardar(claveC, v); cnom.value = ''; pintarC(); $('.ptxt', card).textContent = 'Plantilla "' + n + '" borrada.'; });
+    cnom.addEventListener('input', e => e.stopPropagation());
+    pintarC();
+  }
   // para la Guía de mejora: leer y poner valores desde fuera, y poner la imagen compartida
   card._api = {
     pl,
