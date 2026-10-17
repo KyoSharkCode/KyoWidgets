@@ -900,7 +900,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       (W[id].sinDatos ? '' : '<div class="acciones"><div class="chips"><label><input type="radio" name="datos-' + id + '" value="demo" checked>Datos de ejemplo</label><label><input type="radio" name="datos-' + id + '" value="real">Mis datos reales</label></div></div>') +
       '<div class="acciones">' + W[id].pruebas.map(([a, l]) => '<button class="btn" type="button" data-test="' + a + '">' + l + '</button>').join('') + '</div>' +
       '<div class="url"><input readonly aria-label="Enlace para OBS"><button class="btn pri" type="button" data-copy>Copiar enlace</button></div>' +
-      '<ol class="pasos"><li>En OBS: <b>+ Fuente → Navegador</b>.</li><li>Pega el enlace. <b>Ancho <span data-w></span></b> · <b>Alto <span data-h></span></b>.</li><li>Colócalo donde quieras: el fondo ya es transparente.</li></ol></div>';
+      '<ol class="pasos"><li>En OBS: <b>+ Fuente → Navegador</b>.</li><li>Pega el enlace. <b>Ancho <span data-w></span></b> · <b>Alto <span data-h></span></b>.</li><li>Colócalo donde quieras: el fondo ya es transparente.</li><li>¿Lo usas dentro del <b>🧩 Overlay combinado</b>? Pulsa allí <b>💾 Guardar</b> y OBS se actualiza solo.</li></ol></div>';
   });
 
   function estadoForm(id) {
@@ -965,6 +965,9 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 
   window.kyoWidgetUrl = (id, extra) => { const u = new URL(url(id, false)); Object.entries(extra || {}).forEach(([k, v]) => v ? u.searchParams.set(k, v) : u.searchParams.delete(k)); return u.href; };
   window.kyoWidgetTam = (id, diseno) => { const t = W[id].tam && W[id].tam[diseno || estadoForm(id).diseno]; return t || [W[id].w, W[id].h]; };
+  window.kyoWidgetEstado = id => estadoForm(id);
+  // Ajustes bajados de Supabase (overlay combinado): se guardan y solo se repinta la pestaña si está abierta
+  window.kyoWidgetAplicar = (id, o) => { if (!W[id]) return; aplicarForm(id, o); guardar('kyo_estudio_' + id, JSON.stringify(estadoForm(id))); if (!$('[data-panel="' + id + '"]').hidden) actualizar(id); };
   window.kyoWidgetPruebas = id => (W[id] ? W[id].pruebas : []);
   window.kyoWidgetActualizar = id => { const f = $('#f' + id[0].toUpperCase() + id.slice(1)); if (f) f.dispatchEvent(new Event('change', { bubbles: true })); };
   const ultimo = {};

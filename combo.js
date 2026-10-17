@@ -4,12 +4,19 @@
 // Cada widget usa el estilo de su pestaña; aquí se elige cuáles salen, dónde y a qué tamaño.
 // Los huecos se colocan arrastrándolos en la vista previa o con X / Y.
 // Se pueden guardar varias versiones con nombre (una por escena de OBS), cada una con su enlace.
+// "Guardar (en vivo)" lo sube todo a Supabase (función "combo"): las versiones, el estilo de cada widget y lo que
+// OBS pinta en cada versión. El enlace de OBS es corto y fijo (?v=<versión>) y se actualiza solo; al abrir el
+// Estudio en otro navegador se baja lo guardado, así se ve igual en todas partes.
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const aviso = (t, ms = 3200) => { const el = $('#toast'); if (!el) return; el.textContent = t; el.classList.add('on'); clearTimeout(aviso.t); aviso.t = setTimeout(() => el.classList.remove('on'), ms); };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const GUARDADO = 'kyo_estudio_combo';
+const SYNC = 'kyo_combo_sync'; // {actualizado, firma} de lo último subido o bajado de Supabase en este navegador
+const K = window.KYO || {};
+const FN = (K.SUPABASE_URL || '') + '/functions/v1/combo';
+const HDR = { apikey: K.SUPABASE_ANON_KEY || '', Authorization: 'Bearer ' + (K.SUPABASE_ANON_KEY || '') };
 const LIENZO = { v: [1080, 1920], h: [1920, 1080] };
 // Orden = orden de capa (el último queda encima): los avisos grandes van al final
 const LISTA = [
@@ -124,15 +131,72 @@ function paramsWidget(id, demo) {
   return new URL(window.kyoWidgetUrl(id, extra)).search.slice(1);
 }
 const activos = () => LISTA.map(([id]) => id).filter(id => st[st.fmt][id].on);
+// Lo que pinta el overlay: {w:[ids en orden de capa], g:{id:[x,y,ancho,alto]}, p:{id:'parámetros del widget'}}
+function distribucion(demo) {
+  const d = { w: activos(), g: {}, p: {} };
+  d.w.forEach(id => { encajar(id); const it = st[st.fmt][id]; d.g[id] = [it.x, it.y, ...tam(id)]; d.p[id] = paramsWidget(id, demo); });
+  return d;
+}
+// Enlace completo (vista previa): toda la distribución va en el propio enlace
 function urlCombo(demo) {
-  const p = new URLSearchParams({ n: st.nombre, f: st.fmt, w: activos().join(',') });
-  activos().forEach(id => {
-    encajar(id);
-    const it = st[st.fmt][id], [w, h] = tam(id);
-    p.set(id, [it.x, it.y, w, h].join(','));
-    const wp = paramsWidget(id, demo); if (wp) p.set(id + '_', wp);
-  });
+  const d = distribucion(demo), p = new URLSearchParams({ n: st.nombre, f: st.fmt, w: d.w.join(',') });
+  d.w.forEach(id => { p.set(id, d.g[id].join(',')); if (d.p[id]) p.set(id + '_', d.p[id]); });
   return new URL('overlays/combo.html?' + p, location.href).href;
+}
+// Enlace de OBS: corto y fijo, lee la versión guardada en Supabase
+const urlVivo = () => new URL('overlays/combo.html?' + new URLSearchParams({ v: st.id, f: st.fmt, n: st.nombre }), location.href).href;
+
+// ---------- Guardar en Supabase ----------
+// Calcula una versión cualquiera en un formato cualquiera reutilizando las funciones de la versión abierta
+function conVersion(v, fmt, fn) {
+  const antes = st, fAntes = v.fmt;
+  st = v; v.fmt = fmt;
+  try { return fn(); } finally { v.fmt = fAntes; st = antes; }
+}
+function paquete() {
+  const estilos = {};
+  LISTA.forEach(([id]) => { if (id !== 'anuncios' && window.kyoWidgetEstado) estilos[id] = window.kyoWidgetEstado(id); });
+  const salida = {};
+  versiones.forEach(v => { salida[v.id] = { v: conVersion(v, 'v', () => distribucion(false)), h: conVersion(v, 'h', () => distribucion(false)) }; });
+  return { editor: { versiones: JSON.parse(JSON.stringify(versiones)) }, estilos, salida };
+}
+// Huella para saber si hay cambios sin guardar (sin lo que solo es de la vista previa)
+const firmaDe = d => JSON.stringify([d.editor.versiones.map(v => { const c = Object.assign({}, v); delete c.fmt; delete c.datos; delete c.tema; return c; }), d.estilos, d.salida]);
+let sync = { actualizado: null, firma: '' }, sinFuncion = false, comprobado = false;
+try { sync = Object.assign(sync, JSON.parse(localStorage.getItem(SYNC) || '{}')); } catch (e) {}
+const guardarSync = () => { try { localStorage.setItem(SYNC, JSON.stringify(sync)); } catch (e) {} };
+
+// Al abrir el Estudio: si en Supabase hay algo más nuevo que lo último que vio este navegador, se baja
+async function bajar() {
+  let r = null;
+  try { r = await (await fetch(FN + '?t=' + Date.now(), { headers: HDR })).json(); } catch (e) {}
+  comprobado = true;
+  if (!r || !r.ok) { sinFuncion = true; return pintarAbierto(); }
+  sinFuncion = false;
+  const d = r.datos;
+  if (d && Array.isArray(d.editor && d.editor.versiones) && d.editor.versiones.length && r.actualizado !== sync.actualizado) {
+    Object.entries(d.estilos || {}).forEach(([id, o]) => { if (window.kyoWidgetAplicar) window.kyoWidgetAplicar(id, o); });
+    let sel = null; try { sel = (JSON.parse(localStorage.getItem(GUARDADO) || 'null') || {}).sel; } catch (e) {}
+    try { localStorage.setItem(GUARDADO, JSON.stringify({ sel, versiones: d.editor.versiones })); } catch (e) {}
+    cargarEstado();
+    sync = { actualizado: r.actualizado, firma: firmaDe(paquete()) }; guardarSync();
+    if (abierto) { pintarFilas($('#comboApp')); aviso('Overlay combinado: cargado lo último que guardaste 🦈'); }
+  }
+  pintarAbierto();
+}
+const pintarAbierto = () => { if (abierto) pintar($('#comboApp')); };
+
+async function subir(app) {
+  const b = $('[data-cbguardar]', app); b.disabled = true; b.textContent = 'Guardando…';
+  const datos = paquete();
+  try {
+    const r = await fetch(FN, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, HDR), body: JSON.stringify({ clave: localStorage.getItem('kyo_codigo') || '', datos }) });
+    const d = await r.json().catch(() => ({}));
+    if (d.ok) { sinFuncion = false; sync = { actualizado: d.actualizado, firma: firmaDe(datos) }; guardarSync(); aviso('¡Guardado! OBS lo mostrará en unos 20 segundos 🦈', 4500); }
+    else aviso(d.error === 'clave' ? 'El código de acceso no coincide con KYO_SETUP_KEY.' : d.error === 'bloqueado' ? 'Demasiados intentos fallidos con el código. Espera ' + Math.ceil((d.espera || 60) / 60) + ' min.' : d.error === 'falta_intentos' ? 'Falta ejecutar 03_intentos.sql en Supabase.' : d.error === 'tabla' ? 'Falta la tabla: ejecuta 02_anuncios.sql en Supabase.' : 'No se pudo guardar (' + (d.error || r.status) + ').', 5000);
+  } catch (e) { sinFuncion = true; aviso('No encuentro la función "combo" en Supabase. Revisa que esté creada.', 5000); }
+  b.disabled = false; b.textContent = '💾 Guardar (en vivo)';
+  pintar(app);
 }
 
 function abrir() {
@@ -151,7 +215,7 @@ function construir(app) {
     '<div class="card cbversiones"><div class="f"><span>Versión</span><select name="cbver" aria-label="Versión que estás editando"></select></div>' +
       '<label class="f"><span>Nombre</span><input type="text" name="cbnombre" maxlength="40" placeholder="Just Chatting"></label>' +
       '<div class="acciones"><button class="btn" type="button" data-ver="nueva">＋ Nueva</button><button class="btn" type="button" data-ver="duplicar">⧉ Duplicar</button><button class="btn" type="button" data-ver="borrar">🗑 Borrar</button><button class="btn" type="button" data-ver="escenas" title="Juego, LoL, Pantalla, Just Chatting, Iniciando Stream, BRB y Despedida">✨ Añadir mis escenas</button></div>' +
-      '<p class="nota">Una versión por escena de OBS (o por grupo de escenas que se parezcan). Cada una tiene su colocación vertical y horizontal y su propio enlace: los enlaces que ya pegaste en OBS siguen funcionando aunque edites otra versión. Si editas una versión, vuelve a copiar su enlace.</p></div>' +
+      '<p class="nota">Una versión por escena de OBS (o por grupo de escenas que se parezcan). Cada una tiene su colocación vertical y horizontal y su propio enlace, que no cambia nunca: edita, pulsa <b>💾 Guardar</b> y OBS se actualiza solo.</p></div>' +
     '<div class="grid">' +
     '<form class="card opts" id="fCombo" onsubmit="return false">' +
       '<div class="grupo"><h3>Escena</h3>' +
@@ -166,7 +230,7 @@ function construir(app) {
         '<label class="f"><span>🔢 Qué contador se ve</span><select name="contador"><option value="">El elegido en la pestaña Contadores</option></select></label>' +
       '</div>' +
       '<div class="grupo"><h3>Recuerda</h3>' +
-        '<p class="nota">El enlace lleva el estilo de cada widget tal y como está ahora. Si luego cambias el diseño de alguno en su pestaña, vuelve aquí y copia el enlace otra vez. Lo que llega en vivo (predicción, sorteo, votos, contador, anuncios guardados) se actualiza solo.</p>' +
+        '<p class="nota">Si cambias el estilo de un widget en su pestaña (por ejemplo, la Música a Halloween), vuelve aquí y pulsa <b>💾 Guardar</b>: se aplica en todas las versiones que lo usan. Lo guardado se ve igual al abrir el Estudio en otro navegador. Lo que llega en vivo (predicción, sorteo, votos, contador, anuncios) no necesita guardar.</p>' +
       '</div>' +
     '</form>' +
     '<div class="prev"><div class="card" style="display:flex;flex-direction:column;gap:12px">' +
@@ -175,7 +239,9 @@ function construir(app) {
       '<div class="cbcentro"><div class="ovmarco cbmarco"><iframe class="cbfondo" title="Fondo de la vista previa" scrolling="no" tabindex="-1"></iframe><iframe class="cbvista" title="Vista previa del overlay combinado" scrolling="no" tabindex="-1"></iframe><div class="cbcapa" aria-label="Arrastra los recuadros para colocar los widgets"></div></div></div>' +
       '<div class="acciones"><div class="chips" data-cb="datos"><label><input type="radio" name="cbdatos" value="demo">Datos de ejemplo</label><label><input type="radio" name="cbdatos" value="real">Mis datos reales</label></div></div>' +
       '<div class="cbpruebas"></div>' +
-      '<div class="url"><input readonly aria-label="Enlace para OBS"><button class="btn pri" type="button" data-copy>Copiar enlace</button></div>' +
+      '<div class="ovestado" data-cbestado>Comprobando lo guardado…</div>' +
+      '<div class="acciones"><button class="btn pri" type="button" data-cbguardar>💾 Guardar (en vivo)</button></div>' +
+      '<div class="url"><input readonly aria-label="Enlace para OBS"><button class="btn" type="button" data-copy>Copiar enlace</button></div>' +
       '<ol class="pasos"><li>En OBS: <b>+ Fuente → Navegador</b>, encima de la escena.</li><li>Pega el enlace. <b>Ancho <span data-cbw></span></b> · <b>Alto <span data-cbh></span></b>, en la posición 0, 0.</li><li>Quita de esa escena las fuentes sueltas de estos widgets: ya van todos aquí dentro.</li></ol>' +
     '</div></div></div>';
 
@@ -235,6 +301,7 @@ function construir(app) {
   app.addEventListener('click', async e => {
     const t = e.target.closest('[data-test]');
     if (t) $('.cbvista', app).contentWindow.postMessage({ type: 'kyo-test', widget: t.dataset.w, accion: t.dataset.test }, '*');
+    if (e.target.closest('[data-cbguardar]')) subir(app);
     const c = e.target.closest('[data-copy]');
     if (c) {
       const inp = $('.url input', app);
@@ -287,7 +354,7 @@ function pintar(app) {
   });
   const [W, H] = LIENZO[st.fmt];
   $('[data-cbw]', app).textContent = W; $('[data-cbh]', app).textContent = H;
-  $('.url input', app).value = urlCombo(false);
+  pintarEstado(app);
   // Fondo: tu escena de OBS en el formato y la temporada elegidos, o liso (Navidad solo existe en horizontal)
   const tema = st.tema === 'navidad' && st.fmt === 'v' ? 'marea' : st.tema;
   $('[data-cbnav]', app).hidden = tema === st.tema;
@@ -304,6 +371,17 @@ function pintar(app) {
   $('.cbpruebas', app).innerHTML = activos().filter(id => pr(id).length).map(id =>
     '<div class="acciones"><span class="cbplbl">' + NOMBRE[id] + '</span>' + pr(id).map(([a, l]) => '<button class="btn" type="button" data-w="' + id + '" data-test="' + a + '">' + l + '</button>').join('') + '</div>').join('');
   escalar(app);
+}
+
+// En vivo / cambios sin guardar, y el enlace: el corto si la función "combo" existe, el completo si no
+function pintarEstado(app) {
+  const e = $('[data-cbestado]', app), n = versiones.length;
+  $('.url input', app).value = sinFuncion ? urlCombo(false) : urlVivo();
+  if (!comprobado) return;
+  if (sinFuncion) { e.className = 'ovestado mal'; e.innerHTML = '⚠️ No encuentro la función <b>combo</b> en Supabase. Mientras tanto el enlace lleva toda la distribución dentro (hay que volver a copiarlo si cambias algo).'; return; }
+  const pend = firmaDe(paquete()) !== sync.firma;
+  e.className = 'ovestado' + (pend ? ' pend' : ' ok');
+  e.textContent = pend ? '✏️ Cambios sin guardar · OBS sigue con lo anterior hasta que pulses Guardar' : '✅ En vivo · ' + n + (n === 1 ? ' versión guardada' : ' versiones guardadas');
 }
 
 let k = 1;
@@ -339,11 +417,13 @@ function arrastrar(app) {
     d.c.classList.remove('mueve'); d = null;
     // La vista ya tiene el widget en su sitio: se apunta el enlace nuevo sin recargarla
     guardarEstado();
-    $('.url input', app).value = urlCombo(false);
     ultimaVista = urlCombo(st.datos === 'demo');
+    pintarEstado(app);
   };
   capa.addEventListener('pointerup', soltar);
   capa.addEventListener('pointercancel', soltar);
 }
 
 window.kyoCombo = { abrir };
+// Espera a que el Estudio haya montado sus widgets (el script de index.html va antes que los módulos)
+if (window.kyoWidgetUrl) bajar(); else document.addEventListener('DOMContentLoaded', bajar, { once: true });

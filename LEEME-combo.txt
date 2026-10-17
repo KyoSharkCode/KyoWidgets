@@ -1,0 +1,34 @@
+KyoWidgets · 🧩 Overlay combinado en vivo — cómo activarlo (una sola vez)
+=========================================================================
+
+Qué hace: guarda en tu Supabase las versiones del overlay combinado y el estilo de cada widget.
+Cada versión tiene un enlace corto que NO cambia nunca: editas en el Estudio, pulsas
+"💾 Guardar (en vivo)" y OBS se actualiza solo en unos 20 segundos.
+Además, al abrir el Estudio en otro navegador se ve todo igual (se baja lo último guardado).
+
+No hace falta SQL nuevo: usa las tablas kyo_ajustes y kyo_intentos que ya tienes
+(las de 02_anuncios.sql y 03_intentos.sql).
+
+1) Supabase → Edge Functions → Deploy a new function → nombre: combo
+   Pega supabase/functions/combo/index.ts → Deploy.
+   "Verify JWT" puede quedarse activado (el Estudio y el overlay envían la anon key).
+   Usa el secreto KYO_SETUP_KEY que ya tienes (tu código de acceso del Estudio).
+
+2) GitHub Desktop → Commit + Push (o fusiona el PR). Espera 1–2 min y abre el Estudio con Ctrl+F5.
+
+3) Estudio → 🔴 En directo → 🧩 Overlay combinado:
+   - Revisa tus versiones y pulsa "💾 Guardar (en vivo)". Arriba debe salir "✅ En vivo".
+   - Copia el enlace de cada versión (ahora es corto: …/overlays/combo.html?v=…&f=h)
+     y pégalo UNA VEZ en la fuente de navegador de su escena de OBS, en lugar del enlace largo.
+     El formato (f=v vertical, f=h horizontal) es el que tengas elegido al copiar.
+
+Desde ahí, para cambiar algo:
+   - Mueves un widget, cambias un tamaño o la Música a Halloween en su pestaña…
+   - Vuelves a 🧩 Overlay combinado → "💾 Guardar (en vivo)".
+   - OBS lo cambia solo. Solo se recarga el widget que cambió.
+
+Notas:
+   - Mientras no pulses Guardar, OBS sigue con lo anterior (el panel avisa: "✏️ Cambios sin guardar").
+   - Si Supabase no responde un momento, el overlay sigue con lo último que recibió.
+   - Los enlaces largos antiguos siguen funcionando, pero no se actualizan solos.
+   - Si la función no está creada, el panel lo avisa y te da el enlace largo como antes.
