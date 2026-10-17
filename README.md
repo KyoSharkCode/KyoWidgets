@@ -8,8 +8,8 @@ Widgets y animaciones propias para los directos y videos de **KyoSumiVT**, con e
 - **Música**: muestra la canción que está sonando, con cuatro diseños para ir rotando (vinilo, polaroid, casete y entrada).
 - **Fortnite**: muestra las estadísticas de la partida con diseños tipo pegatina y celebra las victorias.
 - **Contadores**: contadores personalizados (muertes, rage quits…) que se suman desde el Estudio o con un botón del Stream Deck, y se ven al momento en OBS.
-- **Overlay combinado**: junta varios widgets (predicción, sorteo y encuesta, timer, contador, anuncios… y opcionalmente música, Fortnite, meta y chat) en una sola fuente de navegador de OBS, con una distribución para la escena vertical (1080×1920) y otra para la horizontal (1920×1080). Se colocan arrastrándolos en la vista previa del Estudio; cada widget mantiene el estilo de su pestaña.
-- **Anuncios sobre el juego**: los anuncios rotativos de "Ya regreso" y "Terminando" también como widget, con descanso configurable entre vueltas.
+- **Overlay combinado**: junta varios widgets (predicción, sorteo y encuesta, timer, contador, anuncios… y opcionalmente música, Fortnite, meta y chat) en una sola fuente de navegador de OBS, con una distribución para la escena vertical (1080×1920) y otra para la horizontal (1920×1080). Se colocan arrastrándolos en la vista previa del Estudio y se guardan como versiones con nombre (una por escena de OBS), cada una con su enlace; cada widget mantiene el estilo de su pestaña.
+- **Anuncios sobre el juego**: los anuncios rotativos de "Ya regreso" y "Terminando" también como widget, en tarjeta grande o cinta pequeña, con descanso configurable entre vueltas.
 - **Meta de donaciones**: barra de meta que lee los tips de StreamElements y guarda el total en Supabase, así no se reinicia sola. Se ajusta a mano desde el Estudio.
 - **Animaciones**: plantillas editables (textos, colores, posición y duración) que se descargan como video con transparencia, listas para usar en el editor.
 - **Pestaña ZZZ** dentro de Animaciones, con las plantillas de Zenless Zone Zero aparte de las generales:
