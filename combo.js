@@ -3,9 +3,11 @@
 // distribución propia para la escena vertical (1080×1920) y otra para la horizontal (1920×1080).
 // Cada widget usa el estilo de su pestaña; aquí se elige cuáles salen, dónde y a qué tamaño.
 // Los huecos se colocan arrastrándolos en la vista previa o con X / Y.
+// Se pueden guardar varias versiones con nombre (una por escena de OBS), cada una con su enlace.
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const aviso = (t, ms = 3200) => { const el = $('#toast'); if (!el) return; el.textContent = t; el.classList.add('on'); clearTimeout(aviso.t); aviso.t = setTimeout(() => el.classList.remove('on'), ms); };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const GUARDADO = 'kyo_estudio_combo';
 const LIENZO = { v: [1080, 1920], h: [1920, 1080] };
@@ -15,12 +17,13 @@ const LISTA = [
   ['meta', '💰 Meta de donaciones'], ['chat', '💬 Chat'], ['anuncios', '📣 Anuncios'], ['sorteo', '🎁 Sorteo y encuesta'], ['prediccion', '🔮 Predicción']
 ];
 const NOMBRE = Object.fromEntries(LISTA);
+const nuevoId = () => Math.random().toString(36).slice(2, 9);
 const ANUNCIOS_BASE = [960, 700];
 const TAMANOS = [['0.5', '50 %'], ['0.6', '60 %'], ['0.75', '75 %'], ['0.8', '80 %'], ['0.9', '90 %'], ['1', '100 %'], ['1.25', '125 %'], ['1.5', '150 %']];
 const CADA = [['0', 'Siempre en pantalla'], ['3', 'Cada 3 min'], ['5', 'Cada 5 min'], ['10', 'Cada 10 min'], ['15', 'Cada 15 min'], ['30', 'Cada 30 min']];
 // Distribución inicial: los cinco del directo encendidos, el resto apagados pero ya colocados
 const DEF = () => ({
-  fmt: 'v', datos: 'demo', fondo: 'screen', cada: '5', contador: '',
+  id: nuevoId(), nombre: 'Juego', fmt: 'v', datos: 'demo', fondo: 'screen', cada: '5', contador: '',
   v: {
     cuenta: { on: true, x: 196, y: 20, esc: '0.8' },
     prediccion: { on: true, x: 0, y: 260, esc: '0.9' },
@@ -45,16 +48,25 @@ const DEF = () => ({
   }
 });
 
-let abierto = false, st;
-function cargarEstado() {
+// st = la versión que se está editando; versiones = todas (se guardan juntas en este navegador)
+let abierto = false, st, versiones = [];
+function completar(g) {
   const d = DEF();
-  let g = null; try { g = JSON.parse(localStorage.getItem(GUARDADO) || 'null'); } catch (e) {}
-  if (!g) return d;
   ['v', 'h'].forEach(f => LISTA.forEach(([id]) => { d[f][id] = Object.assign(d[f][id], (g[f] || {})[id] || {}); }));
-  ['fmt', 'datos', 'fondo', 'cada', 'contador'].forEach(k => { if (g[k] !== undefined) d[k] = g[k]; });
+  ['id', 'nombre', 'fmt', 'datos', 'fondo', 'cada', 'contador'].forEach(k => { if (g[k] !== undefined) d[k] = g[k]; });
   return d;
 }
-const guardarEstado = () => { try { localStorage.setItem(GUARDADO, JSON.stringify(st)); } catch (e) {} };
+function cargarEstado() {
+  let g = null; try { g = JSON.parse(localStorage.getItem(GUARDADO) || 'null'); } catch (e) {}
+  // Antes de las versiones se guardaba una sola distribución: pasa a ser la versión "Juego"
+  const lista = !g ? [] : Array.isArray(g.versiones) ? g.versiones : [g];
+  versiones = lista.map(completar);
+  if (!versiones.length) versiones = [DEF()];
+  st = versiones.find(v => v.id === (g && g.sel)) || versiones[0];
+}
+const guardarEstado = () => { try { localStorage.setItem(GUARDADO, JSON.stringify({ sel: st.id, versiones })); } catch (e) {} };
+// Cambiar de versión mantiene cómo estás mirando la vista previa (formato, fondo y datos)
+function usarVersion(v) { ['fmt', 'fondo', 'datos'].forEach(k => { v[k] = st[k]; }); st = v; }
 
 // Tamaño del hueco: el del diseño elegido en la pestaña del widget × el tamaño de aquí
 function tam(id) {
@@ -86,7 +98,7 @@ function paramsWidget(id, demo) {
 }
 const activos = () => LISTA.map(([id]) => id).filter(id => st[st.fmt][id].on);
 function urlCombo(demo) {
-  const p = new URLSearchParams({ f: st.fmt, w: activos().join(',') });
+  const p = new URLSearchParams({ n: st.nombre, f: st.fmt, w: activos().join(',') });
   activos().forEach(id => {
     encajar(id);
     const it = st[st.fmt][id], [w, h] = tam(id);
@@ -99,7 +111,7 @@ function urlCombo(demo) {
 function abrir() {
   if (!window.kyoWidgetUrl || !window.kyoWidgetTam) return;
   const app = $('#comboApp');
-  if (!abierto) { abierto = true; st = cargarEstado(); construir(app); pintarFilas(app); }
+  if (!abierto) { abierto = true; cargarEstado(); construir(app); pintarFilas(app); }
   // La lista de contadores llega de Supabase (la misma de la pestaña Contadores)
   if (window.kyoContadores) Promise.resolve(window.kyoContadores.abrir()).then(() => pintarContadores(app)).catch(() => {});
   pintar(app);
@@ -109,6 +121,10 @@ function construir(app) {
   app.innerHTML =
     '<div class="card animhead"><h2>🧩 Overlay combinado</h2>' +
     '<p class="nota">Varios widgets en <b>una sola fuente de navegador</b> de OBS: menos fuentes que abrir, colocar y recargar. Cada widget usa el estilo de su pestaña; aquí eliges cuáles salen, dónde y a qué tamaño, con una distribución para la escena <b>vertical</b> y otra para la <b>horizontal</b>. Arrastra los recuadros en la vista previa para moverlos.</p></div>' +
+    '<div class="card cbversiones"><div class="f"><span>Versión</span><select name="cbver" aria-label="Versión que estás editando"></select></div>' +
+      '<label class="f"><span>Nombre</span><input type="text" name="cbnombre" maxlength="40" placeholder="Just Chatting"></label>' +
+      '<div class="acciones"><button class="btn" type="button" data-ver="nueva">＋ Nueva</button><button class="btn" type="button" data-ver="duplicar">⧉ Duplicar</button><button class="btn" type="button" data-ver="borrar">🗑 Borrar</button></div>' +
+      '<p class="nota">Una versión por escena de OBS (o por grupo de escenas que se parezcan). Cada una tiene su colocación vertical y horizontal y su propio enlace: los enlaces que ya pegaste en OBS siguen funcionando aunque edites otra versión. Si editas una versión, vuelve a copiar su enlace.</p></div>' +
     '<div class="grid">' +
     '<form class="card opts" id="fCombo" onsubmit="return false">' +
       '<div class="grupo"><h3>Escena</h3>' +
@@ -148,6 +164,33 @@ function construir(app) {
     }
     pintar(app);
   });
+  const ver = $('.cbversiones', app);
+  ver.addEventListener('change', e => {
+    if (e.target.name === 'cbver') { usarVersion(versiones.find(v => v.id === e.target.value)); pintarFilas(app); pintarContadores(app); pintar(app); }
+  });
+  ver.addEventListener('input', e => {
+    if (e.target.name !== 'cbnombre') return;
+    st.nombre = e.target.value.trim() || 'Sin nombre';
+    $('[name=cbver] option[value="' + st.id + '"]', ver).textContent = st.nombre;
+    clearTimeout(ver.t); ver.t = setTimeout(() => pintar(app), 400);
+  });
+  ver.addEventListener('click', e => {
+    const b = e.target.closest('[data-ver]'); if (!b) return;
+    const accion = b.dataset.ver;
+    if (accion === 'borrar') {
+      if (versiones.length < 2) return aviso('Necesitas al menos una versión.');
+      if (!confirm('¿Borrar la versión "' + st.nombre + '"? Su enlace en OBS seguirá funcionando, pero ya no podrás editarla aquí.')) return;
+      const i = versiones.indexOf(st); versiones.splice(i, 1);
+      usarVersion(versiones[Math.max(0, i - 1)]);
+    } else {
+      if (versiones.length >= 20) return aviso('Máximo 20 versiones.');
+      const v = accion === 'duplicar' ? JSON.parse(JSON.stringify(st)) : DEF();
+      v.id = nuevoId(); v.nombre = accion === 'duplicar' ? st.nombre + ' (copia)' : 'Versión ' + (versiones.length + 1);
+      versiones.splice(versiones.indexOf(st) + 1, 0, v); usarVersion(v);
+      setTimeout(() => { const n = $('[name=cbnombre]', ver); n.focus(); n.select(); });
+    }
+    pintarFilas(app); pintarContadores(app); pintar(app);
+  });
   app.addEventListener('change', e => {
     if (e.target.name === 'cbfondo') { st.fondo = e.target.value; pintar(app); }
     else if (e.target.name === 'cbdatos') { st.datos = e.target.value; pintar(app); }
@@ -180,7 +223,7 @@ function pintarFilas(app) {
 function pintarContadores(app) {
   const s = $('#fCombo [name=contador]', app), lista = window.kyoContadores && window.kyoContadores.lista ? window.kyoContadores.lista() : [];
   s.innerHTML = '<option value="">El elegido en la pestaña Contadores</option>' + lista.map(c => '<option value="' + esc(c.id) + '">' + esc(c.nombre) + '</option>').join('');
-  if (st.contador && !lista.some(c => c.id === st.contador)) st.contador = '';
+  if (lista.length && st.contador && !lista.some(c => c.id === st.contador)) st.contador = '';
   s.value = st.contador;
   if (lista.length) pintar(app);
 }
@@ -189,6 +232,9 @@ let ultimaVista = '', ultimoFondo = '';
 function pintar(app) {
   activos().forEach(encajar);
   guardarEstado();
+  const sv = $('[name=cbver]', app);
+  sv.innerHTML = versiones.map(v => '<option value="' + v.id + '">' + esc(v.nombre) + '</option>').join(''); sv.value = st.id;
+  const nom = $('[name=cbnombre]', app); if (document.activeElement !== nom) nom.value = st.nombre;
   const f = $('#fCombo', app);
   $$('input[name=fmt]', f).forEach(r => r.checked = r.value === st.fmt);
   f.cada.value = st.cada; f.contador.value = st.contador;

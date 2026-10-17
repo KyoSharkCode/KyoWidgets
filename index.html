@@ -263,6 +263,10 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 .cbnom{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;min-width:0}
 .cbnom input{accent-color:var(--acc);margin:0}
 .cbnum{display:flex;align-items:center;gap:4px;font:700 11px "Chakra Petch",monospace;color:var(--faint)}
+.cbversiones{display:grid;grid-template-columns:minmax(160px,240px) minmax(160px,280px) auto;gap:10px 14px;align-items:end;margin-bottom:18px}
+.cbversiones .nota{grid-column:1/-1}
+.cbversiones select{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color-scheme:dark}
+@media (max-width:760px){.cbversiones{grid-template-columns:1fr}}
 .cbcentro{display:flex;justify-content:center;min-width:0}
 .cbmarco{flex:none;max-width:100%}
 .cbmarco iframe{width:1080px;height:1920px}
