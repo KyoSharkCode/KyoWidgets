@@ -18,12 +18,14 @@ const LISTA = [
 ];
 const NOMBRE = Object.fromEntries(LISTA);
 const nuevoId = () => Math.random().toString(36).slice(2, 9);
-const ANUNCIOS_BASE = [960, 700];
+const ANUNCIOS_BASE = { tarjeta: [960, 700], cinta: [900, 240] };
+const FONDOS = [['comenzando', 'Iniciando'], ['just-chatting', 'Just Chatting'], ['screen', 'Pantalla'], ['ya-regreso', 'BRB'], ['terminando', 'Despedida'], ['oscuro', 'Oscuro']];
+const TEMAS = [['marea', '🌊 Normal'], ['octubre', '🎃 Halloween'], ['navidad', '🎄 Navidad']];
 const TAMANOS = [['0.5', '50 %'], ['0.6', '60 %'], ['0.75', '75 %'], ['0.8', '80 %'], ['0.9', '90 %'], ['1', '100 %'], ['1.25', '125 %'], ['1.5', '150 %']];
 const CADA = [['0', 'Siempre en pantalla'], ['3', 'Cada 3 min'], ['5', 'Cada 5 min'], ['10', 'Cada 10 min'], ['15', 'Cada 15 min'], ['30', 'Cada 30 min']];
 // Distribución inicial: los cinco del directo encendidos, el resto apagados pero ya colocados
 const DEF = () => ({
-  id: nuevoId(), nombre: 'Juego', fmt: 'v', datos: 'demo', fondo: 'screen', cada: '5', contador: '',
+  id: nuevoId(), nombre: 'Juego', fmt: 'v', datos: 'demo', fondo: 'screen', tema: 'marea', cada: '5', contador: '', anuncioDis: 'tarjeta',
   v: {
     cuenta: { on: true, x: 196, y: 20, esc: '0.8' },
     prediccion: { on: true, x: 0, y: 260, esc: '0.9' },
@@ -48,12 +50,36 @@ const DEF = () => ({
   }
 });
 
+// Versiones listas para las escenas de OBS de Kyo. Parten de "todo apagado" y encienden lo que va en cada una
+// (en BRB y Despedida la escena ya enseña los anuncios en grande, así que ahí solo va la música)
+function plantilla(nombre, fondo, extra, h, v) {
+  const d = DEF(); d.nombre = nombre; d.fondo = fondo; Object.assign(d, extra);
+  ['v', 'h'].forEach(f => LISTA.forEach(([id]) => { d[f][id].on = false; }));
+  [['h', h], ['v', v]].forEach(([f, m]) => Object.entries(m).forEach(([id, it]) => Object.assign(d[f][id], { on: true }, it)));
+  return d;
+}
+const MIS_ESCENAS = () => [
+  Object.assign(DEF(), { nombre: 'Juego' }),
+  plantilla('LoL', 'screen', { anuncioDis: 'cinta' },
+    { cuenta: { x: 616, y: 10, esc: '0.8' }, prediccion: { x: 0, y: 100, esc: '0.9' }, anuncios: { x: 20, y: 530, esc: '0.6' }, contador: { x: 20, y: 690, esc: '0.75' }, sorteo: { x: 1272, y: 200, esc: '0.9' } },
+    { cuenta: { x: 196, y: 20, esc: '0.8' }, prediccion: { x: 0, y: 260, esc: '0.9' }, anuncios: { x: 135, y: 700, esc: '0.9' }, sorteo: { x: 216, y: 1190, esc: '0.9' }, contador: { x: 20, y: 1740, esc: '0.8' } }),
+  Object.assign(DEF(), { nombre: 'Pantalla' }),
+  plantilla('Just Chatting', 'just-chatting', { anuncioDis: 'cinta' },
+    { spotify: { x: 1140, y: 30, esc: '0.9' }, anuncios: { x: 1060, y: 840, esc: '0.9' } },
+    { spotify: { x: 252, y: 40, esc: '0.8' }, anuncios: { x: 135, y: 600, esc: '0.9' } }),
+  plantilla('Iniciando Stream', 'comenzando', { anuncioDis: 'cinta' },
+    { spotify: { x: 60, y: 40, esc: '0.8' }, anuncios: { x: 60, y: 880, esc: '0.75' } },
+    { spotify: { x: 252, y: 20, esc: '0.8' }, anuncios: { x: 90, y: 1670, esc: '1' } }),
+  plantilla('BRB', 'ya-regreso', {}, { spotify: { x: 60, y: 40, esc: '0.8' } }, { spotify: { x: 252, y: 20, esc: '0.8' } }),
+  plantilla('Despedida', 'terminando', {}, { spotify: { x: 60, y: 60, esc: '0.8' } }, { spotify: { x: 252, y: 40, esc: '0.8' } })
+];
+
 // st = la versión que se está editando; versiones = todas (se guardan juntas en este navegador)
 let abierto = false, st, versiones = [];
 function completar(g) {
   const d = DEF();
   ['v', 'h'].forEach(f => LISTA.forEach(([id]) => { d[f][id] = Object.assign(d[f][id], (g[f] || {})[id] || {}); }));
-  ['id', 'nombre', 'fmt', 'datos', 'fondo', 'cada', 'contador'].forEach(k => { if (g[k] !== undefined) d[k] = g[k]; });
+  ['id', 'nombre', 'fmt', 'datos', 'fondo', 'tema', 'cada', 'contador', 'anuncioDis'].forEach(k => { if (g[k] !== undefined) d[k] = g[k]; });
   return d;
 }
 function cargarEstado() {
@@ -65,13 +91,13 @@ function cargarEstado() {
   st = versiones.find(v => v.id === (g && g.sel)) || versiones[0];
 }
 const guardarEstado = () => { try { localStorage.setItem(GUARDADO, JSON.stringify({ sel: st.id, versiones })); } catch (e) {} };
-// Cambiar de versión mantiene cómo estás mirando la vista previa (formato, fondo y datos)
-function usarVersion(v) { ['fmt', 'fondo', 'datos'].forEach(k => { v[k] = st[k]; }); st = v; }
+// Cambiar de versión mantiene cómo estás mirando la vista previa (formato, temporada y datos); el fondo es de cada versión
+function usarVersion(v) { ['fmt', 'tema', 'datos'].forEach(k => { v[k] = st[k]; }); st = v; }
 
 // Tamaño del hueco: el del diseño elegido en la pestaña del widget × el tamaño de aquí
 function tam(id) {
   const it = st[st.fmt][id], k = Number(it.esc) || 1;
-  const base = id === 'anuncios' ? ANUNCIOS_BASE : id === 'chat' ? window.kyoWidgetTam('chat', st.fmt === 'v' ? 'vertical' : 'horizontal') : window.kyoWidgetTam(id);
+  const base = id === 'anuncios' ? ANUNCIOS_BASE[st.anuncioDis] || ANUNCIOS_BASE.tarjeta : id === 'chat' ? window.kyoWidgetTam('chat', st.fmt === 'v' ? 'vertical' : 'horizontal') : window.kyoWidgetTam(id);
   return [Math.ceil(base[0] * k), Math.ceil(base[1] * k)];
 }
 function encajar(id) {
@@ -86,6 +112,7 @@ function paramsWidget(id, demo) {
     const p = new URLSearchParams();
     const tema = (document.querySelector('#fSorteo input[name=tema]:checked') || {}).value;
     if (tema && tema !== 'marea') p.set('tema', tema);
+    if (st.anuncioDis === 'cinta') p.set('diseno', 'cinta');
     if (k) p.set('escala', k);
     if (st.cada !== '0') p.set('cada', st.cada);
     if (demo) p.set('demo', '1');
@@ -123,7 +150,7 @@ function construir(app) {
     '<p class="nota">Varios widgets en <b>una sola fuente de navegador</b> de OBS: menos fuentes que abrir, colocar y recargar. Cada widget usa el estilo de su pestaña; aquí eliges cuáles salen, dónde y a qué tamaño, con una distribución para la escena <b>vertical</b> y otra para la <b>horizontal</b>. Arrastra los recuadros en la vista previa para moverlos.</p></div>' +
     '<div class="card cbversiones"><div class="f"><span>Versión</span><select name="cbver" aria-label="Versión que estás editando"></select></div>' +
       '<label class="f"><span>Nombre</span><input type="text" name="cbnombre" maxlength="40" placeholder="Just Chatting"></label>' +
-      '<div class="acciones"><button class="btn" type="button" data-ver="nueva">＋ Nueva</button><button class="btn" type="button" data-ver="duplicar">⧉ Duplicar</button><button class="btn" type="button" data-ver="borrar">🗑 Borrar</button></div>' +
+      '<div class="acciones"><button class="btn" type="button" data-ver="nueva">＋ Nueva</button><button class="btn" type="button" data-ver="duplicar">⧉ Duplicar</button><button class="btn" type="button" data-ver="borrar">🗑 Borrar</button><button class="btn" type="button" data-ver="escenas" title="Juego, LoL, Pantalla, Just Chatting, Iniciando Stream, BRB y Despedida">✨ Añadir mis escenas</button></div>' +
       '<p class="nota">Una versión por escena de OBS (o por grupo de escenas que se parezcan). Cada una tiene su colocación vertical y horizontal y su propio enlace: los enlaces que ya pegaste en OBS siguen funcionando aunque edites otra versión. Si editas una versión, vuelve a copiar su enlace.</p></div>' +
     '<div class="grid">' +
     '<form class="card opts" id="fCombo" onsubmit="return false">' +
@@ -133,6 +160,7 @@ function construir(app) {
       '</div>' +
       '<div class="grupo"><h3>Widgets</h3><div class="cbfilas"></div></div>' +
       '<div class="grupo"><h3>Ajustes de los widgets</h3>' +
+        '<div class="f"><span>📣 Anuncios: diseño</span><div class="chips"><label><input type="radio" name="anuncioDis" value="tarjeta">Tarjeta grande</label><label><input type="radio" name="anuncioDis" value="cinta">Cinta pequeña</label></div></div>' +
         '<label class="f"><span>📣 Anuncios: cuándo salen</span><select name="cada">' + CADA.map(([v, l]) => '<option value="' + v + '">' + l + '</option>').join('') + '</select></label>' +
         '<p class="nota">Pasan todos tus anuncios activos (se editan en <b>📺 Overlays → 📣 Anuncios</b>) y luego descansan ese tiempo. Usan la temporada de <b>🎁 Sorteo y encuesta</b>.</p>' +
         '<label class="f"><span>🔢 Qué contador se ve</span><select name="contador"><option value="">El elegido en la pestaña Contadores</option></select></label>' +
@@ -142,7 +170,8 @@ function construir(app) {
       '</div>' +
     '</form>' +
     '<div class="prev"><div class="card" style="display:flex;flex-direction:column;gap:12px">' +
-      '<div class="acciones"><div class="chips" data-cb="fondo"><label><input type="radio" name="cbfondo" value="screen">Escena Pantalla</label><label><input type="radio" name="cbfondo" value="just-chatting">Just Chatting</label><label><input type="radio" name="cbfondo" value="oscuro">Oscuro</label></div></div>' +
+      '<div class="acciones"><div class="chips" data-cb="fondo">' + FONDOS.map(([v, l]) => '<label><input type="radio" name="cbfondo" value="' + v + '">' + l + '</label>').join('') + '</div></div>' +
+      '<div class="acciones"><div class="chips" data-cb="tema">' + TEMAS.map(([v, l]) => '<label><input type="radio" name="cbtema" value="' + v + '">' + l + '</label>').join('') + '</div><span class="nota" data-cbnav hidden>Navidad no tiene escenas verticales: se ve la normal.</span></div>' +
       '<div class="cbcentro"><div class="ovmarco cbmarco"><iframe class="cbfondo" title="Fondo de la vista previa" scrolling="no" tabindex="-1"></iframe><iframe class="cbvista" title="Vista previa del overlay combinado" scrolling="no" tabindex="-1"></iframe><div class="cbcapa" aria-label="Arrastra los recuadros para colocar los widgets"></div></div></div>' +
       '<div class="acciones"><div class="chips" data-cb="datos"><label><input type="radio" name="cbdatos" value="demo">Datos de ejemplo</label><label><input type="radio" name="cbdatos" value="real">Mis datos reales</label></div></div>' +
       '<div class="cbpruebas"></div>' +
@@ -155,6 +184,7 @@ function construir(app) {
     const t = e.target, fila = t.closest('[data-id]');
     if (t.name === 'fmt') { st.fmt = t.value; pintarFilas(app); }
     else if (t.name === 'cada') st.cada = t.value;
+    else if (t.name === 'anuncioDis') st.anuncioDis = t.value;
     else if (t.name === 'contador') st.contador = t.value;
     else if (fila) {
       const it = st[st.fmt][fila.dataset.id];
@@ -177,7 +207,13 @@ function construir(app) {
   ver.addEventListener('click', e => {
     const b = e.target.closest('[data-ver]'); if (!b) return;
     const accion = b.dataset.ver;
-    if (accion === 'borrar') {
+    if (accion === 'escenas') {
+      const hay = new Set(versiones.map(v => v.nombre.trim().toLowerCase()));
+      const nuevas = MIS_ESCENAS().filter(v => !hay.has(v.nombre.toLowerCase()));
+      if (!nuevas.length) return aviso('Ya tienes todas las versiones de tus escenas.');
+      versiones.push(...nuevas); usarVersion(nuevas[0]);
+      aviso('Añadidas: ' + nuevas.map(v => v.nombre).join(', ') + '. Revisa cada una y copia su enlace 🦈', 5000);
+    } else if (accion === 'borrar') {
       if (versiones.length < 2) return aviso('Necesitas al menos una versión.');
       if (!confirm('¿Borrar la versión "' + st.nombre + '"? Su enlace en OBS seguirá funcionando, pero ya no podrás editarla aquí.')) return;
       const i = versiones.indexOf(st); versiones.splice(i, 1);
@@ -193,6 +229,7 @@ function construir(app) {
   });
   app.addEventListener('change', e => {
     if (e.target.name === 'cbfondo') { st.fondo = e.target.value; pintar(app); }
+    else if (e.target.name === 'cbtema') { st.tema = e.target.value; pintar(app); }
     else if (e.target.name === 'cbdatos') { st.datos = e.target.value; pintar(app); }
   });
   app.addEventListener('click', async e => {
@@ -238,6 +275,8 @@ function pintar(app) {
   const f = $('#fCombo', app);
   $$('input[name=fmt]', f).forEach(r => r.checked = r.value === st.fmt);
   f.cada.value = st.cada; f.contador.value = st.contador;
+  $$('input[name=anuncioDis]', f).forEach(r => r.checked = r.value === st.anuncioDis);
+  $$('input[name=cbtema]', app).forEach(r => r.checked = r.value === st.tema);
   $$('input[name=cbfondo]', app).forEach(r => r.checked = r.value === st.fondo);
   $$('input[name=cbdatos]', app).forEach(r => r.checked = r.value === st.datos);
   $$('.cbfila', app).forEach(fila => {
@@ -249,8 +288,10 @@ function pintar(app) {
   const [W, H] = LIENZO[st.fmt];
   $('[data-cbw]', app).textContent = W; $('[data-cbh]', app).textContent = H;
   $('.url input', app).value = urlCombo(false);
-  // Fondo: la escena de Marea Nocturna en el formato elegido, o liso
-  const fondo = $('.cbfondo', app), srcF = st.fondo === 'oscuro' ? 'about:blank' : 'overlays/escenas/marea/' + st.fondo + (st.fmt === 'v' ? '-vertical' : '') + '.html?preview=1';
+  // Fondo: tu escena de OBS en el formato y la temporada elegidos, o liso (Navidad solo existe en horizontal)
+  const tema = st.tema === 'navidad' && st.fmt === 'v' ? 'marea' : st.tema;
+  $('[data-cbnav]', app).hidden = tema === st.tema;
+  const fondo = $('.cbfondo', app), srcF = st.fondo === 'oscuro' ? 'about:blank' : 'overlays/escenas/' + tema + '/' + st.fondo + (st.fmt === 'v' ? '-vertical' : '') + '.html?preview=1';
   if (srcF !== ultimoFondo) { ultimoFondo = srcF; fondo.src = srcF; }
   const vista = $('.cbvista', app), srcV = urlCombo(st.datos === 'demo');
   if (srcV !== ultimaVista) { ultimaVista = srcV; vista.src = srcV; }

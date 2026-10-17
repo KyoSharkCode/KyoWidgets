@@ -4,15 +4,15 @@
  * Lee los anuncios de Supabase (función "anuncios") cada 30 s: lo que guardes en el Estudio aparece solo en OBS.
  * Con ?preview=1 no lee Supabase: espera los anuncios por postMessage (vista previa del Estudio).
  * Modo widget (overlays/anuncios.html, data-escena="widget"): sale sobre el juego, con todos los anuncios activos;
- * data-cx / data-cy / data-w dan el centro y el ancho de la tarjeta, ?cada=N deja N minutos de descanso
- * entre cada vuelta y ?demo=1 enseña anuncios de ejemplo.
+ * ?diseno=cinta la hace pequeña y alargada (900x240) en vez de la tarjeta (960x700), ?cada=N deja N minutos
+ * de descanso entre cada vuelta y ?demo=1 enseña anuncios de ejemplo.
  */
 (function () {
   var yo = document.currentScript, ESC = yo.dataset.escena || 'ya-regreso', TEMA = yo.dataset.tema || 'marea';
   var sc = document.querySelector('.scene'); if (!sc) return;
   var VERT = sc.classList.contains('v'), ART = sc.querySelector('.art');
   var q = new URLSearchParams(location.search), PREVIEW = q.get('preview') === '1';
-  var WIDGET = ESC === 'widget', DEMO = WIDGET && q.get('demo') === '1';
+  var WIDGET = ESC === 'widget', CINTA = WIDGET && q.get('diseno') === 'cinta', DEMO = WIDGET && q.get('demo') === '1';
   var PAUSA = WIDGET ? Math.max(0, Math.min(120, Number(q.get('cada')) || 0)) * (DEMO ? 1000 : 60000) : 0;
   if (WIDGET && q.get('tema')) TEMA = q.get('tema');
   var T = {
@@ -34,7 +34,7 @@
     campana: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><circle cx="12" cy="20.5" r="2"/>'
   };
   // Zona que ocupa la imagen de Kyo (centro y ancho máximo de la tarjeta)
-  var Z = WIDGET ? { cx: +yo.dataset.cx, cy: +yo.dataset.cy, w: +yo.dataset.w } : VERT ? { cx: 540, cy: 1330, w: 880 } : { cx: 1475, cy: 530, w: 760 };
+  var Z = CINTA ? { cx: 450, cy: 124, w: 840 } : WIDGET ? { cx: 480, cy: 350, w: 880 } : VERT ? { cx: 540, cy: 1330, w: 880 } : { cx: 1475, cy: 530, w: 760 };
   var css = '' +
     '.art{transition:opacity .7s ease,filter .7s ease}.art.kad-fuera{opacity:0!important;filter:blur(6px)}' +
     '.kad{position:absolute;z-index:6;left:' + Z.cx + 'px;top:' + Z.cy + 'px;width:' + Z.w + 'px;transform:translate(-50%,-50%);font-family:"Fredoka","M PLUS Rounded 1c",system-ui,sans-serif;pointer-events:none;display:flex;justify-content:center}' +
@@ -56,10 +56,19 @@
     '.kad-main.fecha{font-family:"Fredoka",sans-serif;font-weight:700;font-size:80px;-webkit-text-stroke:0;color:' + T.acc + ';text-shadow:0 0 24px ' + T.glow + ';filter:none}' +
     '.kad-sub{font-family:"Chakra Petch",ui-monospace,monospace;font-weight:600;font-size:38px;letter-spacing:.05em;color:#fff;background:rgba(255,255,255,.08);border:3px solid ' + T.ring + ';padding:6px 28px;border-radius:999px;white-space:nowrap;margin-top:6px}' +
     '.kad-bar{position:absolute;left:60px;right:60px;bottom:18px;height:7px;border-radius:999px;background:rgba(201,230,242,.12);overflow:hidden}.kad-bar span{display:block;height:100%;width:0;border-radius:999px;background:' + T.bar + '}';
+  // Cinta: icono a la izquierda y los textos en columna, todo en una franja baja
+  if (CINTA) css += '' +
+    '.kad-in{flex-direction:row;text-align:left;gap:26px;padding:22px 40px 26px 24px;border-radius:999px 40px 40px 999px;min-width:0;width:100%;box-sizing:border-box}' +
+    '.kad-txt{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}' +
+    '.kad-ic{flex:none;width:128px;height:128px}.kad-ic svg{width:70px;height:70px}' +
+    '.kad-img{flex:none;max-width:150px;max-height:150px;padding:6px;border-radius:22px}.kad-img img{max-width:138px;max-height:138px;border-radius:16px}' +
+    '.kad-lbl{font-size:22px;margin:0}.kad-main{font-size:62px;-webkit-text-stroke:11px #0A1030}.kad-main.num{font-size:64px}.kad-main.fecha{font-size:46px}' +
+    '.kad-sub{font-size:24px;padding:3px 18px;border-width:2px;margin-top:2px}.kad-bar{left:170px;right:50px;bottom:9px;height:5px}';
   var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
 
   var box = document.createElement('div'); box.className = 'kad'; box.hidden = true;
-  box.innerHTML = '<div class="kad-flota"><div class="kad-in"><div class="kad-ic"><svg viewBox="0 0 24 24"></svg></div><div class="kad-img"><img alt=""></div><div class="kad-lbl"></div><div class="kad-main"></div><div class="kad-sub"></div><div class="kad-bar"><span></span></div></div></div>';
+  var txt = '<div class="kad-lbl"></div><div class="kad-main"></div><div class="kad-sub"></div>';
+  box.innerHTML = '<div class="kad-flota"' + (CINTA ? ' style="width:100%"' : '') + '><div class="kad-in"><div class="kad-ic"><svg viewBox="0 0 24 24"></svg></div><div class="kad-img"><img alt=""></div>' + (CINTA ? '<div class="kad-txt">' + txt + '</div>' : txt) + '<div class="kad-bar"><span></span></div></div></div>';
   sc.appendChild(box);
   var inn = box.querySelector('.kad-in'), ic = box.querySelector('svg'), img = box.querySelector('.kad-img img'), lbl = box.querySelector('.kad-lbl'), main = box.querySelector('.kad-main'), sub = box.querySelector('.kad-sub'), bar = box.querySelector('.kad-bar'), barS = bar.querySelector('span');
 
@@ -89,8 +98,8 @@
     if (main.textContent !== r.t) main.textContent = r.t;
     main.className = 'kad-main' + (r.cls ? ' ' + r.cls : '');
     main.style.fontSize = '';
-    var maxW = Z.w - 110, w = main.scrollWidth;
-    if (w > maxW) main.style.fontSize = Math.max(44, parseFloat(getComputedStyle(main).fontSize) * maxW / w) + 'px';
+    var maxW = Z.w - (CINTA ? 240 : 110), w = main.scrollWidth;
+    if (w > maxW) main.style.fontSize = Math.max(CINTA ? 30 : 44, parseFloat(getComputedStyle(main).fontSize) * maxW / w) + 'px';
   }
 
   // Rotación
