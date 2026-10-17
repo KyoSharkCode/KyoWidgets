@@ -225,6 +225,6 @@ function enlazar() {
 
 function abrir() {
   if (!abierto) { abierto = true; app = $('#ctApp'); pintar(); enlazar(); tiempoReal(); }
-  cargar();
+  return cargar();
 }
-window.kyoContadores = { abrir };
+window.kyoContadores = { abrir, lista: () => st.lista };

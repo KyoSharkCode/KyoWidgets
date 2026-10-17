@@ -254,6 +254,24 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 .ovmarco{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#070b24}
 .ovmarco iframe{position:absolute;left:0;top:0;width:1920px;height:1080px;border:0;transform-origin:0 0;pointer-events:none}
 .ovprev .chips{margin-bottom:6px}
+.cbfila{display:grid;grid-template-columns:minmax(0,1fr) 74px 74px 82px;gap:6px;align-items:center;padding:4px 0}
+.cbfila.apagado .cbnom{color:var(--faint)}
+.cbfila input[type=number]{padding:6px 6px}
+.cbfila select,#fCombo label.f select{font:500 13px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:6px 4px;color-scheme:dark}
+.cbfila :disabled{opacity:.4}
+#fCombo label.f select{width:100%;font-size:14px;padding:8px 10px}
+.cbnom{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;min-width:0}
+.cbnom input{accent-color:var(--acc);margin:0}
+.cbnum{display:flex;align-items:center;gap:4px;font:700 11px "Chakra Petch",monospace;color:var(--faint)}
+.cbcentro{display:flex;justify-content:center;min-width:0}
+.cbmarco{flex:none;max-width:100%}
+.cbmarco iframe{width:1080px;height:1920px}
+.cbcapa{position:absolute;left:0;top:0;transform-origin:0 0}
+.cbcaja{position:absolute;box-sizing:border-box;border:4px dashed rgba(111,227,240,.55);border-radius:18px;cursor:grab;touch-action:none;transition:background-color .15s,border-color .15s}
+.cbcaja:hover,.cbcaja.mueve{border-color:var(--acc);background:rgba(255,138,43,.1)}
+.cbcaja.mueve{cursor:grabbing}
+.cbcaja span{position:absolute;left:10px;top:10px;font:700 26px "Fredoka",sans-serif;color:#fff;background:rgba(10,16,48,.8);padding:4px 14px;border-radius:999px;white-space:nowrap;pointer-events:none}
+.cbplbl{font-size:12.5px;color:var(--faint);min-width:120px}
 .imgfiltros{display:flex;flex-wrap:wrap;gap:12px 28px;margin:12px 0 16px}
 .imggal{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
 .imggen{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
@@ -385,6 +403,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
         <button type="button" data-sub="chat" aria-pressed="false">💬 Chat</button>
         <button type="button" data-sub="sorteo" aria-pressed="false">🎁 Sorteo y encuesta</button>
         <button type="button" data-sub="prediccion" aria-pressed="false">🔮 Predicción</button>
+        <button type="button" data-sub="combo" aria-pressed="false">🧩 Overlay combinado</button>
       </div></div>
       <div class="subfila"><span class="sublbl">Escenas y chat</span><div class="subbtns">
         <button type="button" data-sub="overlays" aria-pressed="false">📺 Overlays</button>
@@ -724,6 +743,11 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   </section>
 
   <!-- ===================== OVERLAYS ===================== -->
+  <!-- ===================== OVERLAY COMBINADO ===================== -->
+  <section data-panel="combo" hidden>
+    <div id="comboApp"><div class="card"><p class="nota">Cargando…</p></div></div>
+  </section>
+
   <section data-panel="overlays" hidden>
     <div id="overlaysApp"><div class="card"><p class="nota">Cargando…</p></div></div>
   </section>
@@ -936,6 +960,8 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   }
 
   window.kyoWidgetUrl = (id, extra) => { const u = new URL(url(id, false)); Object.entries(extra || {}).forEach(([k, v]) => v ? u.searchParams.set(k, v) : u.searchParams.delete(k)); return u.href; };
+  window.kyoWidgetTam = (id, diseno) => { const t = W[id].tam && W[id].tam[diseno || estadoForm(id).diseno]; return t || [W[id].w, W[id].h]; };
+  window.kyoWidgetPruebas = id => (W[id] ? W[id].pruebas : []);
   window.kyoWidgetActualizar = id => { const f = $('#f' + id[0].toUpperCase() + id.slice(1)); if (f) f.dispatchEvent(new Event('change', { bubbles: true })); };
   const ultimo = {};
   function actualizar(id) {
@@ -986,7 +1012,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 
   // ---------- Pestañas: 4 grupos y sus apartados ----------
   const GRUPOS = {
-    directo: ['spotify', 'fortnite', 'cuenta', 'contador', 'meta', 'chat', 'sorteo', 'prediccion', 'overlays', 'aletabot'],
+    directo: ['spotify', 'fortnite', 'cuenta', 'contador', 'meta', 'chat', 'sorteo', 'prediccion', 'combo', 'overlays', 'aletabot'],
     crear: ['animaciones', 'anuncios', 'imagenes', 'musica'],
     canal: ['paneles', 'prensa'],
     ajustes: ['conexiones']
@@ -1014,7 +1040,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     });
     if (n === 'contador' && window.kyoContadores) window.kyoContadores.abrir();
     if (n === 'meta' && window.kyoMeta) window.kyoMeta.abrir();
-    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else if (n === 'aletabot') { if (window.kyoBot) window.kyoBot.abrir(); } else if (n === 'prensa') { if (window.kyoPrensa) window.kyoPrensa.abrir(); } else { comprobarSpotify(); comprobarBot(); }
+    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'combo') { if (window.kyoCombo) window.kyoCombo.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else if (n === 'aletabot') { if (window.kyoBot) window.kyoBot.abrir(); } else if (n === 'prensa') { if (window.kyoPrensa) window.kyoPrensa.abrir(); } else { comprobarSpotify(); comprobarBot(); }
   }
   $$('nav.tabs [data-grupo]').forEach(b => b.addEventListener('click', () => tab(b.dataset.grupo)));
   $$('#subtabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.sub)));
@@ -1024,7 +1050,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     const dlg = $('#ir'), txt = $('#irTexto'), lista = $('#irLista');
     if (!dlg || typeof dlg.showModal !== 'function') { $('#btnIr').hidden = true; return; }
     const NOMG = { directo: 'En directo', crear: 'Crear', canal: 'Mi canal', ajustes: 'Ajustes' };
-    const EXTRA = { conexiones: 'spotify fortnite aletabot twitch canal copia seguridad backup restaurar acceso codigo', meta: 'donaciones tips streamelements', contador: 'muertes rage quits stream deck', spotify: 'cancion canción now playing', chat: 'mensajes', sorteo: 'encuesta votacion', overlays: 'escenas obs pantalla', aletabot: 'bot comandos', prensa: 'press kit marcas colaboraciones', paneles: 'acerca de twitch', musica: 'mp3 audio', imagenes: 'fondos png jpg', anuncios: 'tiktok reels shorts mp4', animaciones: 'premiere mov video zzz zenless discos equipo habilidades' };
+    const EXTRA = { conexiones: 'spotify fortnite aletabot twitch canal copia seguridad backup restaurar acceso codigo', meta: 'donaciones tips streamelements', contador: 'muertes rage quits stream deck', spotify: 'cancion canción now playing', chat: 'mensajes', sorteo: 'encuesta votacion', overlays: 'escenas obs pantalla', combo: 'combinado agrupar juntar una sola fuente vertical horizontal timer contador anuncios', aletabot: 'bot comandos', prensa: 'press kit marcas colaboraciones', paneles: 'acerca de twitch', musica: 'mp3 audio', imagenes: 'fondos png jpg', anuncios: 'tiktok reels shorts mp4', animaciones: 'premiere mov video zzz zenless discos equipo habilidades' };
     const DESTINOS = $$('#subtabs button').map(b => ({ id: b.dataset.sub, nom: b.textContent.trim(), g: grupoDe(b.dataset.sub) }))
       .concat([{ id: 'conexiones', nom: '🔌 Conexiones, copia de seguridad y acceso', g: 'ajustes' }]);
     const plano = (t) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -1284,6 +1310,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 <script type="module" src="paneles.js"></script>
 <script type="module" src="imagenes.js"></script>
 <script type="module" src="overlays.js"></script>
+<script type="module" src="combo.js"></script>
 <script type="module" src="bot.js"></script>
 <script src="overlays/iconos-contador.js"></script>
 <script type="module" src="contadores.js"></script>

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Kyo · Anuncios</title>
+<!--
+  Anuncios rotativos sobre el juego: los mismos que se editan en Estudio → Overlays → 📣 Anuncios.
+  Tamaño base 960x700 (multiplícalo por "escala"). Se lee de Supabase cada 30 s.
+  Parámetros:
+    tema    marea | octubre | navidad          escala  0.5 … 2
+    cada    minutos de descanso entre vuelta y vuelta (0 = siempre en pantalla)
+    demo=1  anuncios de ejemplo
+-->
+<link rel="stylesheet" href="../fonts/escenas.css">
+<style>
+html,body{margin:0;background:transparent!important;overflow:hidden}
+.scene{position:relative;width:960px;height:700px;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="scene"></div>
+<script>
+  const esc = Math.min(2, Math.max(0.5, Number(new URLSearchParams(location.search).get('escala')) || 1)); if (esc !== 1) document.documentElement.style.zoom = esc;
+</script>
+<script src="../config.js"></script>
+<script src="escenas/anuncios.js" data-escena="widget" data-cx="480" data-cy="350" data-w="880"></script>
+</body>
+</html>

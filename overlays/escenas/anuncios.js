@@ -3,12 +3,18 @@
  * Mientras haya anuncios activos, ocupan el sitio de la imagen de Kyo (que vuelve sola si no hay ninguno).
  * Lee los anuncios de Supabase (función "anuncios") cada 30 s: lo que guardes en el Estudio aparece solo en OBS.
  * Con ?preview=1 no lee Supabase: espera los anuncios por postMessage (vista previa del Estudio).
+ * Modo widget (overlays/anuncios.html, data-escena="widget"): sale sobre el juego, con todos los anuncios activos;
+ * data-cx / data-cy / data-w dan el centro y el ancho de la tarjeta, ?cada=N deja N minutos de descanso
+ * entre cada vuelta y ?demo=1 enseña anuncios de ejemplo.
  */
 (function () {
   var yo = document.currentScript, ESC = yo.dataset.escena || 'ya-regreso', TEMA = yo.dataset.tema || 'marea';
   var sc = document.querySelector('.scene'); if (!sc) return;
   var VERT = sc.classList.contains('v'), ART = sc.querySelector('.art');
   var q = new URLSearchParams(location.search), PREVIEW = q.get('preview') === '1';
+  var WIDGET = ESC === 'widget', DEMO = WIDGET && q.get('demo') === '1';
+  var PAUSA = WIDGET ? Math.max(0, Math.min(120, Number(q.get('cada')) || 0)) * (DEMO ? 1000 : 60000) : 0;
+  if (WIDGET && q.get('tema')) TEMA = q.get('tema');
   var T = {
     marea: { acc: '#6FE3F0', glow: 'rgba(111,227,240,.6)', ring: 'rgba(111,227,240,.6)', halo: 'rgba(111,227,240,.28)', ins: 'rgba(58,123,213,.28)', bg: 'rgba(10,16,48,.78)', bar: 'linear-gradient(90deg,#3A7BD5,#6FE3F0 70%,#ADF63C)' },
     octubre: { acc: '#FF8A2B', glow: 'rgba(255,138,43,.6)', ring: 'rgba(155,107,255,.75)', halo: 'rgba(155,107,255,.32)', ins: 'rgba(155,107,255,.2)', bg: 'rgba(14,10,36,.82)', bar: 'linear-gradient(90deg,#9B6BFF,#FF8A2B)' },
@@ -28,7 +34,7 @@
     campana: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><circle cx="12" cy="20.5" r="2"/>'
   };
   // Zona que ocupa la imagen de Kyo (centro y ancho máximo de la tarjeta)
-  var Z = VERT ? { cx: 540, cy: 1330, w: 880 } : { cx: 1475, cy: 530, w: 760 };
+  var Z = WIDGET ? { cx: +yo.dataset.cx, cy: +yo.dataset.cy, w: +yo.dataset.w } : VERT ? { cx: 540, cy: 1330, w: 880 } : { cx: 1475, cy: 530, w: 760 };
   var css = '' +
     '.art{transition:opacity .7s ease,filter .7s ease}.art.kad-fuera{opacity:0!important;filter:blur(6px)}' +
     '.kad{position:absolute;z-index:6;left:' + Z.cx + 'px;top:' + Z.cy + 'px;width:' + Z.w + 'px;transform:translate(-50%,-50%);font-family:"Fredoka","M PLUS Rounded 1c",system-ui,sans-serif;pointer-events:none;display:flex;justify-content:center}' +
@@ -88,9 +94,15 @@
   }
 
   // Rotación
-  var lista = [], idx = -1, tRot = null, firma = '';
+  var lista = [], idx = -1, tRot = null, tFuera = null, firma = '';
+  // Descanso del modo widget: la tarjeta se va y vuelve a los PAUSA ms con el primer anuncio
+  function descansar() {
+    inn.classList.remove('entra'); inn.classList.add('sale');
+    tFuera = setTimeout(function () { box.hidden = true; }, 420);
+    tRot = setTimeout(function () { mostrar(0); }, PAUSA);
+  }
   function mostrar(i) {
-    clearTimeout(tRot);
+    clearTimeout(tRot); clearTimeout(tFuera);
     if (!lista.length) { box.hidden = true; if (ART) ART.classList.remove('kad-fuera'); return; }
     if (ART) ART.classList.add('kad-fuera');
     var a = lista[i % lista.length], dur = Math.max(4, Math.min(120, +a.seg || 10)) * 1000;
@@ -103,11 +115,11 @@
     else if (lista.length === 1 && idx === i) cambiar();
     else { inn.classList.remove('entra'); inn.classList.add('sale'); setTimeout(cambiar, 420); }
     idx = i;
-    tRot = setTimeout(function () { mostrar((idx + 1) % lista.length); }, dur);
+    tRot = setTimeout(function () { var sig = (idx + 1) % lista.length; if (PAUSA && sig === 0) descansar(); else mostrar(sig); }, dur);
   }
   function usar(datos) {
     var todos = (datos && Array.isArray(datos.anuncios)) ? datos.anuncios : [];
-    var nuevos = todos.filter(function (a) { return a && a.activo !== false && (!a.donde || a.donde === 'ambos' || a.donde === ESC); });
+    var nuevos = todos.filter(function (a) { return a && a.activo !== false && (WIDGET || !a.donde || a.donde === 'ambos' || a.donde === ESC); });
     var f = JSON.stringify(nuevos); if (f === firma) return; firma = f;
     lista = nuevos; idx = -1; mostrar(0);
   }
@@ -115,7 +127,12 @@
 
   // Datos: Supabase (OBS) o postMessage (vista previa del Estudio)
   var CACHE = 'kyo_anuncios_cache';
-  if (PREVIEW) {
+  if (DEMO) {
+    usar({ anuncios: [
+      { tipo: 'merch', icono: 'bolsa', etiqueta: '¡Nueva merch!', texto: 'Ya disponible', enlace: 'kyomerch.shop', seg: 6 },
+      { tipo: 'codigo', icono: 'aleta', etiqueta: 'Código de creador', texto: 'KYOSUMI', enlace: 'Tienda de Fortnite', seg: 6 }
+    ] });
+  } else if (PREVIEW) {
     window.addEventListener('message', function (e) { if (e.data && e.data.tipo === 'kyo-anuncios') usar(e.data.datos); });
   } else {
     try { var c = JSON.parse(localStorage.getItem(CACHE) || 'null'); if (c) usar(c); } catch (e) {}
