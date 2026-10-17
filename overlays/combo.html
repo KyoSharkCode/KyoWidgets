@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Kyo · Overlay combinado</title>
+<!--
+  Varios widgets en una sola fuente de navegador de OBS. Cada widget va en su hueco, con su propio estilo.
+  El enlace lo arma el Estudio (En directo → 🧩 Overlay combinado). Parámetros:
+    f       v (vertical 1080x1920) | h (horizontal 1920x1080)
+    w       widgets que se ven, separados por comas (en orden de capa: el último queda encima)
+    <id>    x,y,ancho,alto del hueco de ese widget
+    <id>_   los parámetros propios del widget (los mismos de su enlace suelto)
+-->
+<style>
+html,body{margin:0;background:transparent!important;overflow:hidden}
+body{position:relative;width:1080px;height:1920px}
+body.h{width:1920px;height:1080px}
+iframe{position:absolute;border:0;background:transparent;overflow:hidden;pointer-events:none}
+</style>
+</head>
+<body>
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get('f') === 'h') document.body.className = 'h';
+  const WIDGETS = ['spotify', 'fortnite', 'cuenta', 'contador', 'meta', 'chat', 'sorteo', 'prediccion', 'anuncios'];
+  const marcos = {};
+  const colocar = (f, x, y, w, h) => Object.assign(f.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+  (q.get('w') || '').split(',').filter((id, i, a) => WIDGETS.includes(id) && a.indexOf(id) === i).forEach(id => {
+    const n = (q.get(id) || '').split(',').map(Number);
+    if (n.length !== 4 || !n.every(Number.isFinite)) return;
+    const f = document.createElement('iframe');
+    f.title = id; f.scrolling = 'no'; f.setAttribute('allowtransparency', 'true');
+    colocar(f, ...n);
+    f.src = id + '.html' + (q.get(id + '_') ? '?' + q.get(id + '_') : '');
+    document.body.appendChild(f);
+    marcos[id] = f;
+  });
+  // Vista previa del Estudio: mover un hueco mientras se arrastra y reenviar las pruebas a su widget
+  window.addEventListener('message', e => {
+    const d = e.data || {}, f = marcos[d.widget];
+    if (!f) return;
+    if (d.type === 'kyo-combo-mover') colocar(f, d.x, d.y, d.w, d.h);
+    else if (d.type === 'kyo-test') f.contentWindow.postMessage({ type: 'kyo-test', accion: d.accion }, '*');
+  });
+</script>
+</body>
+</html>
