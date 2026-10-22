@@ -4,7 +4,7 @@
 // Todo pasa en el navegador: cada fotograma se dibuja en un <canvas> y ffmpeg.wasm arma el video.
 
 import { FFmpeg } from './vendor/ffmpeg/index.js';
-import { PLANTILLAS, FORMATOS, ANUNCIOS, musicaFondo, renderSonido, normIcono } from './animaciones/plantillas.js';
+import { PLANTILLAS, FORMATOS, ANUNCIOS, musicaFondo, renderSonido, normIcono, hojaBuild } from './animaciones/plantillas.js';
 import * as ZZZ from './animaciones/zzz.js';
 
 const CORE = window.KYO_FFMPEG_CORE || 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
@@ -553,14 +553,16 @@ async function exportarGuia(tipo, formato, cards, g, imgPropia, firma, aviso) {
   const C = id => de(id), T = (id, extra, fmt) => C(id) ? tarjetaQuieta(C(id), extra, fmt) : null;
   const laminas = [];
   if (tipo === 'build') {
-    const [d1, d2, d3, d4, hab, amp, eqV, eqH] = await Promise.all([T('guia-discos', { clip: '1' }), T('guia-discos', { clip: '2' }), T('guia-discos', { clip: '3' }), T('guia-discos', { clip: '4' }),
-      T('habilidades-zzz'), T('amplificadores-zzz'), T('equipo-zzz'), T('equipo-zzz', null, 'horizontal')]);
+    // layout propio (paneles grandes) con las opciones de cada plantilla ZZZ
+    const datos = {};
+    await Promise.all([['discos', 'guia-discos'], ['amplis', 'amplificadores-zzz'], ['hab', 'habilidades-zzz'], ['equipo', 'equipo-zzz']].map(async ([k, id]) => {
+      const c = C(id); if (!c) return; const o = c._api.leer(); if (c._api.pl.preparar) await c._api.pl.preparar(o); datos[k] = o; }));
     if (formato === '45') {
       laminas.push(['portada', ctx => portada(ctx, 0, 0, W, H - 90, true)]);
-      [['Pistas de disco', [d1, d2]], ['Atributos', [d3, d4]], ['Habilidades', [hab]], ['Amplificadores', [amp]], ['Equipo', [eqV]]].forEach(([s, ps]) => {
-        if (ps.some(Boolean)) laminas.push([s, ctx => { cabecera(ctx, s); apilar(ctx, ps, 60, 200, W - 120, H - 320); }]); });
-    } else laminas.push(['resumen', ctx => { portada(ctx, 0, 0, 640, H - 70, false);
-      apilar(ctx, [d1, d2, d3, d4], 670, 40, 590, H - 120, 18); apilar(ctx, [amp, hab, eqH], 1290, 40, 600, H - 120, 18); }]);
+      [['Discos y atributos', [['discos', 'atributos']]], ['Amplificadores', [['amplis']]], ['Habilidades y equipo', [['habilidades', 'equipo']]]].forEach(([s, cols]) =>
+        laminas.push([s, ctx => { cabecera(ctx, s); hojaBuild(ctx, { x: 56, y: 196, w: W - 112, h: H - 318 }, datos, cols, { uMax: 1.6 }); }]));
+    } else laminas.push(['resumen', ctx => { portada(ctx, 0, 0, 600, H - 70, false);
+      hojaBuild(ctx, { x: 630, y: 36, w: W - 666, h: H - 126 }, datos, [['discos', 'atributos'], ['amplis', 'habilidades', 'equipo']], { uMax: 1.2, gapPanel: 18 }); }]);
   } else {
     const fr = await Promise.all(['1', '2', '3', '4'].map(c => T('guia-frameo', { clip: c })));
     if (formato === '45') {
