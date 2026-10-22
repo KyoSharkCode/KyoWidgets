@@ -8,3 +8,7 @@ supabase/.temp/
 animaciones/codigo-kyosumi/
 animaciones/barra-codigo/
 animaciones/lista.json
+
+# Herramientas de comprobación (pruebas/): dependencias y foto local
+node_modules/
+pruebas/foto-guardada.json
