@@ -1,0 +1,12 @@
+{
+  "name": "kyowidgets",
+  "private": true,
+  "description": "Herramientas de comprobación del Estudio (la web no necesita instalar nada)",
+  "scripts": {
+    "foto:guardar": "node pruebas/foto-plantillas.mjs --guardar",
+    "foto": "node pruebas/foto-plantillas.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

@@ -1,0 +1,34 @@
+KyoWidgets · 📸 Foto de las plantillas — red de seguridad antes de un cambio grande
+==================================================================================
+
+Qué hace: dibuja TODAS las animaciones, anuncios, fondos y la hoja de build, fotograma a fotograma,
+en todos sus formatos, con acabado limpio y dibujado y con cada estilo de color; también sintetiza
+sus sonidos y la música. De cada resultado guarda una huella. Después de un cambio, vuelve a dibujarlo
+todo y te dice si algo ha cambiado aunque sea un solo píxel (y en qué plantilla, formato y segundo).
+Si alguna plantilla da error al dibujarse, también lo avisa.
+
+La web NO la usa: es solo una herramienta para ti. No hace falta para que el Estudio funcione.
+
+Preparación (una sola vez)
+1) Instala Node.js (versión LTS) desde https://nodejs.org
+2) Abre una terminal en la carpeta del repo (GitHub Desktop → Repository → Open in Terminal) y escribe:
+     npm install
+     npx playwright install chromium
+
+Uso
+1) ANTES del cambio (con el código que funciona bien):
+     npm run foto:guardar
+   → "📸 Foto guardada: … huellas"   (se guarda en pruebas/foto-guardada.json, que no se sube a GitHub)
+2) Haz el cambio.
+3) DESPUÉS:
+     npm run foto
+   → "✅ Todo idéntico"                 nada ha cambiado sin querer
+   → "❌ N de … huellas han cambiado"   lista de lo que cambió (plantilla/formato/acabado/segundo)
+
+Notas
+- Tarda un par de minutos.
+- La foto depende del ordenador (fuentes, tarjeta gráfica): haz el «antes» y el «después» en el mismo PC.
+- Si el cambio ES visual a propósito (p. ej. retocas una animación), lo normal es que salga ❌ solo
+  en esa plantilla: así compruebas que no has tocado ninguna otra. Luego vuelve a guardar la foto.
+- Funciona sin internet: las imágenes del repo de assets de ZZZ no se cargan durante la foto,
+  para que el resultado no dependa de lo que tarden en llegar.

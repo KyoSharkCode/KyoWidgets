@@ -27,6 +27,8 @@ Todo tiene versión normal y ediciones de temporada (Halloween y Navidad).
 
 HTML, CSS y JavaScript sin frameworks, Supabase para los datos y ffmpeg.wasm para crear los videos directamente en el navegador.
 
+Las animaciones están en `animaciones/`, una por archivo: `generales/`, `zzz/` y `anuncios/` (con las piezas compartidas en `base/`), y `animaciones/plantillas.js` las junta. Antes de un cambio grande, la *foto de las plantillas* comprueba que no se rompe nada sin querer (ver `LEEME-pruebas.txt`).
+
 ---
 
 Proyecto personal. Los diseños, personajes y logotipos son de KyoSumiVT.
