@@ -488,6 +488,95 @@ function abrirMusica() {
   });
 }
 
+// ---------- Exportar guías como imagen (carrusel 4:5 o 16:9) ----------
+// Reutiliza las tarjetas de las plantillas ZZZ en su último fotograma y las coloca sobre el fondo Marea Nocturna.
+const fuente = (ctx, f, esp = 0) => { ctx.font = f; ctx.letterSpacing = esp + 'px'; };
+const rr = (ctx, x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, Math.max(0, Math.min(r, h / 2, w / 2))); };
+const cargarImg = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+// Dibuja una plantilla quieta (sin salida) y la recorta a lo que ocupa
+async function tarjetaQuieta(card, extra, fmt = 'vertical') {
+  const pl = card._api.pl, o = Object.assign(card._api.leer(), { salida: 'no', tam: '1', posv: 'centro', posh: 'centro' }, extra || {});
+  if (pl.preparar) await pl.preparar(o);
+  const F = FORMATOS[fmt], cv = document.createElement('canvas'); cv.width = F.w; cv.height = F.h;
+  const ctx = cv.getContext('2d'); pl.dibujar(ctx, pl.duracion(o) - .01, o, fmt, F.w, F.h);
+  const d = ctx.getImageData(0, 0, F.w, F.h).data; let x0 = F.w, y0 = F.h, x1 = -1, y1 = -1;
+  for (let y = 0; y < F.h; y += 2) for (let x = 0; x < F.w; x += 2) if (d[(y * F.w + x) * 4 + 3] > 8) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return null;
+  x0 = Math.max(0, x0 - 4); y0 = Math.max(0, y0 - 4); x1 = Math.min(F.w, x1 + 6); y1 = Math.min(F.h, y1 + 6);
+  const out = document.createElement('canvas'); out.width = x1 - x0; out.height = y1 - y0; out.getContext('2d').drawImage(cv, -x0, -y0);
+  return out;
+}
+// Coloca tarjetas una debajo de otra dentro de una caja, a la misma escala y centradas
+function apilar(ctx, piezas, x, y, w, h, gap = 26) {
+  piezas = piezas.filter(Boolean); if (!piezas.length) return;
+  const sumH = piezas.reduce((a, p) => a + p.height, 0), maxW = Math.max(...piezas.map(p => p.width));
+  const s = Math.min(1, w / maxW, (h - gap * (piezas.length - 1)) / sumH);
+  let yy = y + (h - (sumH * s + gap * (piezas.length - 1))) / 2;
+  piezas.forEach(p => { ctx.drawImage(p, x + (w - p.width * s) / 2, yy, p.width * s, p.height * s); yy += p.height * s + gap; });
+}
+function cubrirImg(ctx, img, x, y, w, h) { const k = Math.max(w / img.width, h / img.height); ctx.drawImage(img, x + (w - img.width * k) / 2, y + (h - img.height * k) / 2, img.width * k, img.height * k); }
+const textoBorde = (ctx, t, x, y, grosor, borde, relleno) => { ctx.lineJoin = 'round'; ctx.lineWidth = grosor; ctx.strokeStyle = borde; ctx.strokeText(t, x, y); ctx.fillStyle = relleno; ctx.fillText(t, x, y); };
+async function exportarGuia(tipo, formato, cards, g, imgPropia, firma, aviso) {
+  await fuentesListas;
+  const vert = formato === '45', W = vert ? 1080 : 1920, H = vert ? 1350 : 1080;
+  const fondo = await cargarImg('fondos/escenas/marea-screen-' + (vert ? 'vertical' : 'horizontal') + '.jpg'), logo = await cargarImg('logo/Logo KyoSumi Black and Withe.png');
+  const splash = imgPropia || (g.agente ? (await ZZZ.cargar('splash', g.agente)) || (await ZZZ.cargar('retrato', g.agente)) : null);
+  const ins = await Promise.all([['elemento', g.elemento], ['especialidad', g.especialidad]].filter(x => x[1]).map(([t, s]) => ZZZ.cargar(t, s)));
+  const de = id => cards.find(c => c._api.pl.id === id), nom = (g.personaje || '').trim(), titulo = tipo === 'build' ? 'Guía de build' : 'Guía de frameo';
+  const lienzo = () => { const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const ctx = cv.getContext('2d');
+    if (fondo) cubrirImg(ctx, fondo, 0, 0, W, H); else { ctx.fillStyle = '#0A1030'; ctx.fillRect(0, 0, W, H); }
+    const v = ctx.createLinearGradient(0, 0, 0, H); v.addColorStop(0, 'rgba(10,16,48,.15)'); v.addColorStop(1, 'rgba(10,16,48,.55)'); ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+    ctx.textBaseline = 'middle'; return { cv, ctx }; };
+  // pie: logo + firma
+  const pie = (ctx, x, y, alin = 'center') => { const t = firma || '', lw = logo ? 92 : 0, lh = logo ? lw * logo.height / logo.width : 0;
+    fuente(ctx, '700 30px "Fredoka"'); const tw = t ? ctx.measureText(t).width : 0, tot = lw + (t ? 14 + tw : 0), x0 = alin === 'center' ? x - tot / 2 : x;
+    if (logo) { ctx.save(); ctx.filter = 'invert(1)'; ctx.globalAlpha = .9; ctx.drawImage(logo, x0, y - lh / 2, lw, lh); ctx.restore(); }
+    if (t) { ctx.textAlign = 'left'; ctx.fillStyle = '#C9E6F2'; ctx.fillText(t, x0 + lw + (lw ? 14 : 0), y + 1); } };
+  // cabecera de cada lámina: sección + personaje
+  const cabecera = (ctx, seccion) => { ctx.textAlign = 'center'; fuente(ctx, '400 64px "Cherry Bomb One"'); textoBorde(ctx, seccion, W / 2, 92, 14, '#0A1030', '#F5F3FB');
+    if (nom) { fuente(ctx, '700 32px "Fredoka"', 2); ctx.fillStyle = '#6FE3F0'; ctx.fillText(nom.toUpperCase() + ' · ' + titulo.toUpperCase(), W / 2, 152); } };
+  // portada: splash art grande, nombre, insignias y tipo de guía
+  const portada = (ctx, x, y, w, h, centrado) => {
+    if (splash) { ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip(); const k = Math.min(w * 1.05 / splash.width, h * .98 / splash.height); const sw = splash.width * k, sh = splash.height * k;
+      ctx.shadowColor = 'rgba(111,227,240,.45)'; ctx.shadowBlur = 60; ctx.drawImage(splash, x + (w - sw) / 2, y + h - sh, sw, sh); ctx.restore();
+      const gr = ctx.createLinearGradient(0, y + h * .55, 0, y + h); gr.addColorStop(0, 'rgba(10,16,48,0)'); gr.addColorStop(1, 'rgba(10,16,48,.92)'); ctx.fillStyle = gr; ctx.fillRect(x, y + h * .55, w, h * .45); }
+    const cx = x + w / 2, by = y + h - (centrado ? 170 : 150);
+    ctx.textAlign = 'center'; fuente(ctx, '700 28px "Chakra Petch"', 5); const chip = titulo.toUpperCase(), cw = ctx.measureText(chip).width + 44;
+    rr(ctx, cx - cw / 2, by - 112, cw, 46, 23); ctx.fillStyle = '#6FE3F0'; ctx.fill(); ctx.fillStyle = '#0A1030'; ctx.fillText(chip, cx, by - 88);
+    if (nom) { let tam = 112; fuente(ctx, `400 ${tam}px "Cherry Bomb One"`); while (ctx.measureText(nom).width > w - 60 && tam > 40) { tam -= 4; fuente(ctx, `400 ${tam}px "Cherry Bomb One"`); }
+      textoBorde(ctx, nom, cx, by, 18, '#0A1030', '#F5F3FB'); }
+    const D = 64, bx0 = cx - (ins.length * D + (ins.length - 1) * 16) / 2;
+    ins.forEach((b, i) => { if (!b) return; const bx = bx0 + i * (D + 16) + D / 2, byy = by + 92;
+      ctx.beginPath(); ctx.arc(bx, byy, D / 2 + 5, 0, Math.PI * 2); ctx.fillStyle = '#0A1030'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = '#6FE3F0'; ctx.stroke();
+      const k = D * .78; ctx.drawImage(b, bx - k / 2, byy - k / 2, k, k); }); };
+  aviso('Preparando las tarjetas…');
+  const C = id => de(id), T = (id, extra, fmt) => C(id) ? tarjetaQuieta(C(id), extra, fmt) : null;
+  const laminas = [];
+  if (tipo === 'build') {
+    const [d1, d2, d3, d4, hab, amp, eqV, eqH] = await Promise.all([T('guia-discos', { clip: '1' }), T('guia-discos', { clip: '2' }), T('guia-discos', { clip: '3' }), T('guia-discos', { clip: '4' }),
+      T('habilidades-zzz'), T('amplificadores-zzz'), T('equipo-zzz'), T('equipo-zzz', null, 'horizontal')]);
+    if (formato === '45') {
+      laminas.push(['portada', ctx => portada(ctx, 0, 0, W, H - 90, true)]);
+      [['Pistas de disco', [d1, d2]], ['Atributos', [d3, d4]], ['Habilidades', [hab]], ['Amplificadores', [amp]], ['Equipo', [eqV]]].forEach(([s, ps]) => {
+        if (ps.some(Boolean)) laminas.push([s, ctx => { cabecera(ctx, s); apilar(ctx, ps, 60, 200, W - 120, H - 320); }]); });
+    } else laminas.push(['resumen', ctx => { portada(ctx, 0, 0, 640, H - 70, false);
+      apilar(ctx, [d1, d2, d3, d4], 670, 40, 590, H - 120, 18); apilar(ctx, [amp, hab, eqH], 1290, 40, 600, H - 120, 18); }]);
+  } else {
+    const fr = await Promise.all(['1', '2', '3', '4'].map(c => T('guia-frameo', { clip: c })));
+    if (formato === '45') {
+      laminas.push(['portada', ctx => portada(ctx, 0, 0, W, H - 90, true)]);
+      [['Promoción de agente', 0], ['Habilidades', 1], ['Amplificador', 2], ['Resumen', 3]].forEach(([s, i]) => { if (fr[i]) laminas.push([s, ctx => { cabecera(ctx, s); apilar(ctx, [fr[i]], 60, 200, W - 120, H - 320); }]); });
+    } else laminas.push(['resumen', ctx => { portada(ctx, 0, 0, 640, H - 70, false);
+      apilar(ctx, [fr[0], fr[2]], 670, 40, 590, H - 120, 18); apilar(ctx, [fr[1], fr[3]], 1290, 40, 600, H - 120, 18); }]);
+  }
+  aviso('Dibujando las imágenes…');
+  const slug = (nom || 'guia').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'guia';
+  return Promise.all(laminas.map(async ([s, pintar], i) => { const { cv, ctx } = lienzo(); pintar(ctx); pie(ctx, W / 2, H - 46);
+    const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+    return { blob, nombre: slug + '-' + (tipo === 'build' ? 'build' : 'frameo') + '-' + (formato === '45' ? (String(i + 1).padStart(2, '0') + '-' + s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-')) : '16x9') + '.png' }; }));
+}
+const descargar = (blob, nombre) => { const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000); };
+
 // ---------- Guía de mejora (pestaña ZZZ) ----------
 // Se elige el personaje una vez y todas las plantillas ZZZ lo usan (campos con guia: true).
 // "Guías guardadas" guarda, por personaje, la guía y los textos y opciones de todas las plantillas ZZZ.
@@ -505,7 +594,10 @@ function montarGuia(cards) {
     '<label class="f"><span>Especialidad</span><select name="especialidad"><option value="">Ninguna</option></select></label>' +
     '</form>' +
     '<div class="versiones"><span>📚 Guías guardadas</span><select data-gsel aria-label="Guía guardada"></select><input type="text" data-gnom maxlength="30" aria-label="Nombre de la guía" placeholder="Nombre (ej. Roxy)">' +
-    '<button class="btn" type="button" data-gguardar>💾 Guardar guía</button><button class="btn" type="button" data-gborrar hidden>🗑 Borrar</button></div><p class="nota ptxt" aria-live="polite"></p>';
+    '<button class="btn" type="button" data-gguardar>💾 Guardar guía</button><button class="btn" type="button" data-gborrar hidden>🗑 Borrar</button></div>' +
+    '<div class="versiones guiaexpo"><span>🖼 Exportar imágenes</span><div class="chips"><label><input type="radio" name="gfmt" value="45" checked>📷 Carrusel 4:5</label><label><input type="radio" name="gfmt" value="169">🖥️ Horizontal 16:9</label></div>' +
+    '<input type="text" data-gfirma maxlength="30" aria-label="Firma del pie" placeholder="Firma (ej. @KyoSumiVT)"><button class="btn" type="button" data-gexpo="build">🧩 Guía de build</button><button class="btn" type="button" data-gexpo="frameo">📦 Guía de frameo</button></div>' +
+    '<div class="guiaimgs" data-gimgs hidden></div><p class="nota ptxt" aria-live="polite"></p>';
   const form = $('.guiaform', caja), cv = $('canvas', caja), txt = $('.ptxt', caja), aviso = t => { txt.textContent = t; };
   const IMG = 'guia:imagen', ESTADO = 'kyo_guia_zzz', GUIAS = 'kyo_guias_zzz';
   let img = null, imgNom = '';
@@ -583,6 +675,24 @@ function montarGuia(cards) {
     nom.value = ''; pintarGuias(); aviso('Guía "' + n + '" borrada.');
   });
   nom.addEventListener('input', e => e.stopPropagation());
+  // exportar imágenes: build (discos, atributos, habilidades, amplificadores, equipo) o frameo (materiales y resumen)
+  const firma = $('[data-gfirma]', caja), zona = $('[data-gimgs]', caja);
+  try { firma.value = localStorage.getItem('kyo_firma') ?? '@KyoSumiVT'; } catch (e) { firma.value = '@KyoSumiVT'; }
+  firma.addEventListener('input', e => { e.stopPropagation(); try { localStorage.setItem('kyo_firma', firma.value); } catch (err) {} });
+  $$('[data-gexpo]', caja).forEach(b => b.addEventListener('click', async () => {
+    const btns = $$('[data-gexpo]', caja); btns.forEach(x => x.disabled = true);
+    try {
+      const fmt = ($('input[name=gfmt]:checked', caja) || {}).value || '45';
+      const res = await exportarGuia(b.dataset.gexpo, fmt, cards, leerG(), img, firma.value.trim(), aviso);
+      zona.hidden = false;
+      zona.innerHTML = '<div class="guiaminis">' + res.map((r, i) => '<button type="button" class="guiamini" data-i="' + i + '" title="Descargar ' + esc(r.nombre) + '"><img alt="' + esc(r.nombre) + '"></button>').join('') + '</div>' +
+        '<button class="btn pri" type="button" data-todas>⬇ Descargar ' + (res.length > 1 ? 'las ' + res.length + ' imágenes' : 'la imagen') + '</button>';
+      $$('.guiamini', zona).forEach(el => { const r = res[el.dataset.i], u = URL.createObjectURL(r.blob); $('img', el).src = u; el.addEventListener('click', () => descargar(r.blob, r.nombre)); });
+      $('[data-todas]', zona).addEventListener('click', async () => { for (const r of res) { descargar(r.blob, r.nombre); await new Promise(z => setTimeout(z, 350)); } });
+      aviso('🖼 ' + (res.length > 1 ? res.length + ' imágenes listas' : 'Imagen lista') + ': pulsa una para descargarla o descárgalas todas.');
+    } catch (e) { console.error(e); aviso('No se pudieron crear las imágenes: ' + (e && e.message ? e.message : e)); }
+    finally { btns.forEach(x => x.disabled = false); }
+  }));
   // estado inicial: la guía guardada o, la primera vez, lo que ya había en la Guía de discos
   (async () => {
     let g = leer(ESTADO);
