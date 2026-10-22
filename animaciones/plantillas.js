@@ -2530,6 +2530,7 @@ const ICONOS_ATR = {
   fuego: { d: 'M12 2c.9 3.6 5.8 5.6 5.8 11.2a5.8 5.8 0 0 1-11.6 0c0-2.8 1.4-4.6 2.8-5.8.1 2.1 1 3.3 2.4 3.8C10.7 8.4 10.8 5 12 2Z' },
   hielo: { d: 'M12 2.5v19M3.8 7.25l16.4 9.5M3.8 16.75l16.4-9.5M9.4 3.9 12 6.3l2.6-2.4M9.4 20.1 12 17.7l2.6 2.4', trazo: true },
   fisico: { d: 'M12 2.3 20.4 7.1v9.8L12 21.7l-8.4-4.8V7.1Z M12 7.2 7.8 9.6v4.8l4.2 2.4 4.2-2.4V9.6Z', par: 'evenodd' },
+  aereo: { d: 'M3 9h11.5a3 3 0 1 0-3-3M3 15h14a3 3 0 1 1-3 3M3 12h8', trazo: true },
   etereo: { d: 'M12 2c.9 5.6 4.4 9.1 10 10-5.6.9-9.1 4.4-10 10-.9-5.6-4.4-9.1-10-10 5.6-.9 9.1-4.4 10-10Z' },
   maestria: { d: 'M12 12a1.5 1.5 0 0 1 3 0 3 3 0 0 1-6 0 4.5 4.5 0 0 1 9 0 6 6 0 0 1-12 0 7.5 7.5 0 0 1 15 0', trazo: true },
   competencia: { d: 'M12 2.5c3.6 4.6 6.6 8 6.6 11.6a6.6 6.6 0 0 1-13.2 0c0-3.6 3-7 6.6-11.6Z' },
@@ -2549,7 +2550,7 @@ function iconoAtributo(nombre) {
   const k = hay('crit') ? (hay('dano', 'dmg') ? 'critDmg' : 'critProb')
     : hay('perfor', 'pen') ? 'perforacion' : hay('energ') ? 'energia' : hay('maestr') ? 'maestria' : hay('compet', 'anomal') ? 'competencia'
     : hay('impact') ? 'impacto' : hay('fuego', 'igneo') ? 'fuego' : hay('hielo', 'escarcha') ? 'hielo' : hay('electr') ? 'electrico'
-    : hay('fisic') ? 'fisico' : hay('eter') ? 'etereo' : hay('vida', 'hp', 'pv') ? 'vida' : hay('defens', 'def') ? 'defensa'
+    : hay('fisic') ? 'fisico' : hay('aereo', 'viento') ? 'aereo' : hay('eter') ? 'etereo' : hay('vida', 'hp', 'pv') ? 'vida' : hay('defens', 'def') ? 'defensa'
     : hay('ataq', 'atq', 'atk') ? 'ataque' : hay('bono', 'dano', 'dmg') ? 'bono' : 'otro';
   return ICONOS_ATR[k];
 }
@@ -3625,7 +3626,7 @@ const guiaFrameo = {
   .forEach(([pl, ks]) => pl.campos.forEach(c => { if (ks.includes(c.k)) c.guia = true; }));
 // Desplegables de atributos: cada hueco muestra solo lo que puede salir en él (y siempre "✏️ Otro" para escribir)
 const PCT = ['Porcentaje de Ataque', 'Porcentaje de PV', 'Porcentaje de Defensa'];
-const BONOS = ['Bono de daño físico', 'Bono de daño ígneo', 'Bono de daño de hielo', 'Bono de daño eléctrico', 'Bono de daño etéreo'];
+const BONOS = ['Bono de daño físico', 'Bono de daño ígneo', 'Bono de daño de hielo', 'Bono de daño eléctrico', 'Bono de daño etéreo', 'Bono de daño aéreo'];
 const ATR_DISCO = {
   4: ['Probabilidad de Crítico', 'Daño Crítico', 'Maestría de Anomalía', ...PCT],
   5: ['Tasa de Perforación', ...BONOS, ...PCT],
