@@ -2547,8 +2547,8 @@ export const normIcono = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/
 function iconoAtributo(nombre) {
   const n = normIcono(nombre), hay = (...ps) => ps.some(p => n.includes(p));
   const k = hay('crit') ? (hay('dano', 'dmg') ? 'critDmg' : 'critProb')
-    : hay('perfor', 'pen') ? 'perforacion' : hay('energ') ? 'energia' : hay('maestr') ? 'maestria' : hay('compet') ? 'competencia'
-    : hay('impact') ? 'impacto' : hay('fuego') ? 'fuego' : hay('hielo', 'escarcha') ? 'hielo' : hay('electr') ? 'electrico'
+    : hay('perfor', 'pen') ? 'perforacion' : hay('energ') ? 'energia' : hay('maestr') ? 'maestria' : hay('compet', 'anomal') ? 'competencia'
+    : hay('impact') ? 'impacto' : hay('fuego', 'igneo') ? 'fuego' : hay('hielo', 'escarcha') ? 'hielo' : hay('electr') ? 'electrico'
     : hay('fisic') ? 'fisico' : hay('eter') ? 'etereo' : hay('vida', 'hp', 'pv') ? 'vida' : hay('defens', 'def') ? 'defensa'
     : hay('ataq', 'atq', 'atk') ? 'ataque' : hay('bono', 'dano', 'dmg') ? 'bono' : 'otro';
   return ICONOS_ATR[k];
@@ -3625,13 +3625,13 @@ const guiaFrameo = {
   .forEach(([pl, ks]) => pl.campos.forEach(c => { if (ks.includes(c.k)) c.guia = true; }));
 // Desplegables de atributos: cada hueco muestra solo lo que puede salir en él (y siempre "✏️ Otro" para escribir)
 const PCT = ['Porcentaje de Ataque', 'Porcentaje de PV', 'Porcentaje de Defensa'];
-const BONOS = ['Bono de daño físico', 'Bono de daño de fuego', 'Bono de daño de hielo', 'Bono de daño eléctrico', 'Bono de daño etéreo'];
+const BONOS = ['Bono de daño físico', 'Bono de daño ígneo', 'Bono de daño de hielo', 'Bono de daño eléctrico', 'Bono de daño etéreo'];
 const ATR_DISCO = {
-  4: ['Probabilidad de Crítico', 'Daño Crítico', 'Competencia de anomalía', ...PCT],
+  4: ['Probabilidad de Crítico', 'Daño Crítico', 'Maestría de Anomalía', ...PCT],
   5: ['Tasa de Perforación', ...BONOS, ...PCT],
-  6: ['Recuperación de Energía', 'Maestría de anomalía', 'Impacto', ...PCT]
+  6: ['Recuperación de Energía', 'Tasa de Anomalía', 'Impacto', ...PCT]
 };
-const ATR_SUBSTATS = ['Probabilidad de Crítico', 'Daño Crítico', 'Porcentaje de Ataque', 'Ataque', 'Perforación', 'Competencia de anomalía', 'Porcentaje de PV', 'PV', 'Porcentaje de Defensa', 'Defensa'];
+const ATR_SUBSTATS = ['Probabilidad de Crítico', 'Daño Crítico', 'Porcentaje de Ataque', 'Ataque', 'Perforación', 'Maestría de Anomalía', 'Porcentaje de PV', 'PV', 'Porcentaje de Defensa', 'Defensa'];
 const ATR_TODOS = [...new Set([...ATR_SUBSTATS, ...ATR_DISCO[4], ...ATR_DISCO[5], ...ATR_DISCO[6]])];
 const listaAtr = k => /^d[456]b?$/.test(k) ? ATR_DISCO[k[1]] : /^s\d$/.test(k) ? ATR_SUBSTATS : /^o\d$/.test(k) ? ATR_TODOS : null;
 guiaDiscos.campos.forEach(c => { const l = listaAtr(c.k); if (l) Object.assign(c, { tipo: 'elegir', opciones: l }); });
