@@ -29,6 +29,7 @@ import { guiaDiscos } from './zzz/guia-discos.js';
 import { equipoZZZ } from './zzz/equipo.js';
 import { habilidadesZZZ } from './zzz/habilidades.js';
 import { amplisZZZ } from './zzz/amplificadores.js';
+import { explicaAmpli } from './zzz/explicando-amplificador.js';
 import { guiaFrameo } from './zzz/guia-frameo.js';
 import { anuncioMerch } from './anuncios/merch.js';
 import { anuncioCuenta } from './anuncios/cuenta-atras.js';
@@ -39,8 +40,8 @@ import { anuncioHoy } from './anuncios/hoy-hay-directo.js';
 [[guiaDiscos, ['personaje', 'agente', 'imagen', 'elemento', 'especialidad']], [habilidadesZZZ, ['personaje', 'agente', 'imagen']], [amplisZZZ, ['personaje', 'agente', 'imagen']], [guiaFrameo, ['personaje', 'agente', 'imagen']]]
   .forEach(([pl, ks]) => pl.campos.forEach(c => { if (ks.includes(c.k)) c.guia = true; }));
 // todas las animaciones aceptan el acabado dibujado
-[intro, outro, presentacion, rotulo, guiaDiscos, equipoZZZ, habilidadesZZZ, amplisZZZ, guiaFrameo, pegatinaCodigo, barraCodigo, sigueme, suscribete, suscribeteBarra, directo, merch, transicion, nota, momentazo].forEach(conAcabado);
-export const PLANTILLAS = [intro, outro, presentacion, rotulo, guiaDiscos, equipoZZZ, habilidadesZZZ, amplisZZZ, guiaFrameo, pegatinaCodigo, barraCodigo, sigueme, suscribete, suscribeteBarra, directo, merch, transicion, nota, momentazo];
+[intro, outro, presentacion, rotulo, guiaDiscos, equipoZZZ, habilidadesZZZ, amplisZZZ, explicaAmpli, guiaFrameo, pegatinaCodigo, barraCodigo, sigueme, suscribete, suscribeteBarra, directo, merch, transicion, nota, momentazo].forEach(conAcabado);
+export const PLANTILLAS = [intro, outro, presentacion, rotulo, guiaDiscos, equipoZZZ, habilidadesZZZ, amplisZZZ, explicaAmpli, guiaFrameo, pegatinaCodigo, barraCodigo, sigueme, suscribete, suscribeteBarra, directo, merch, transicion, nota, momentazo];
 // Anuncios (pestaña propia)
 // todos los anuncios aceptan el acabado dibujado
 [anuncioHoy, anuncioMerch, anuncioCuenta, anuncioDirecto].forEach(conAcabado);
