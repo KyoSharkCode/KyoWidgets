@@ -28,8 +28,8 @@ body.b-barra{height:150px}body.b-texto{height:180px}
 #w.navidad{--a:#FF5A6E;--a2:#5BD99A;--c:#0e1a48;--s:#f3e7c4;--o:#060b22}
 #w.oculto{opacity:0;transform:scale(.6)}
 .pega{box-shadow:0 0 0 6px var(--p),0 0 0 11px var(--o),0 11px 0 11px var(--o)}
-.caja{position:relative;display:grid;gap:10px;padding:16px 26px 20px;border-radius:30px;background:var(--c);transform:rotate(-1deg);animation:boing 4.5s ease-in-out infinite}
-.fila{display:flex;align-items:baseline;justify-content:space-between;gap:14px}
+.caja{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:16px 26px 20px;border-radius:30px;background:var(--c);transform:rotate(-1deg);animation:boing 4.5s ease-in-out infinite}
+.fila{display:flex;align-items:baseline;justify-content:space-between;gap:14px;min-width:0}
 .tit{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 19px "Chakra Petch",monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--o);background:var(--a);padding:4px 16px;border-radius:999px}
 .cifras{font:400 40px/1 "Cherry Bomb One",sans-serif;color:var(--t);-webkit-text-stroke:7px var(--o);paint-order:stroke fill;white-space:nowrap;font-variant-numeric:tabular-nums}
 .cifras small{font-size:.55em;color:var(--s)}
@@ -109,8 +109,18 @@ body.b-barra{height:150px}body.b-texto{height:180px}
     $('pct').parentNode.setAttribute('aria-valuenow', Math.floor(pct));
     $('caja').classList.toggle('completa', d.total >= d.meta && d.meta > 0);
     $('ult').innerHTML = d.ultimo ? '💙 Última: <b>' + esc2(d.ultimo.donante) + '</b> · ' + dinero(d.ultimo.monto, d.ultimo.moneda) : '';
+    ajustar();
     if (animarCambio) celebrar(d.total - (actual ? actual.total : 0));
   }
+  // Si título + cifras no caben (p. ej. 1000 / 8000), encoge ambos hasta un 55 %; el título recorta con "…" como último recurso.
+  function ajustar() {
+    const fila = $('tit').parentNode, tit = $('tit'), cif = $('cif');
+    tit.style.fontSize = cif.style.fontSize = '';
+    const bt = parseFloat(getComputedStyle(tit).fontSize), bc = parseFloat(getComputedStyle(cif).fontSize);
+    const cabe = () => tit.scrollWidth <= tit.clientWidth + 1 && fila.scrollWidth <= fila.clientWidth + 1;
+    for (let k = 1; k >= 0.55 && !cabe(); k -= 0.03) { tit.style.fontSize = bt * k + 'px'; cif.style.fontSize = bc * k + 'px'; }
+  }
+  if (document.fonts) { document.fonts.ready.then(() => { if (actual) ajustar(); }); document.fonts.addEventListener('loadingdone', () => { if (actual) ajustar(); }); }
   const esc2 = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function mostrar(d) {
     const aviso = document.querySelector('.aviso'); if (aviso) aviso.remove();
