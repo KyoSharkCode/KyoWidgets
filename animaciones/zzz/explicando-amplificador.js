@@ -325,7 +325,9 @@ function efectoPantalla(ctx, t, tm, FIN, o, P, T, fmt, W, H) {
   });
   // --- condición y descripción con palabras de color que aparecen una a una ---
   const cols = { n: P.t, c: o.colClave || '#FF9A3C', v: o.colNum || '#7BE38F' };
-  const xT = M, wT = W - 2 * M, fondoTxt = vert ? H * .78 : H - M; // en vertical deja libre la zona de subtítulos
+  // en vertical se intenta dejar libre la zona de subtítulos (78 %); si la descripción es tan larga que la letra
+  // quedaría pequeña, se usa la pantalla hasta abajo antes de encogerla más
+  const xT = M, wT = W - 2 * M, fondos = vert ? [H * .78, H - M - 20 * u] : [H - M];
   let yT = top + Sf + (vert ? 60 : 44) * u;
   const espImg = ZZZ.imagen('especialidad', limpio(o.especialidad)), conIco = !!limpio(o.especialidad);
   const cond = palabrasRicas(o.condicion), desc = palabrasRicas(o.descripcion);
@@ -334,8 +336,12 @@ function efectoPantalla(ctx, t, tm, FIN, o, P, T, fmt, W, H) {
   const fsC = (vert ? 40 : 38) * u, fC = `600 ${fsC}px "Fredoka"`, lhC = fsC * 1.3, icoC = fsC * 1.15;
   const mc = maquetar(ctx, cond, fC, wT, lhC, icoC + 8 * u);
   const ySep = yT + mc.h + 26 * u, yD = ySep + 34 * u;
-  let fsD = (vert ? 64 : 58) * u, md;
-  do { md = maquetar(ctx, desc, `700 ${fsD}px "Fredoka"`, wT, fsD * 1.36); if (md.h <= fondoTxt - yD) break; fsD -= 1.5 * u; } while (fsD > 18 * u);
+  let fsD, md;
+  for (const [i, fondoTxt] of fondos.entries()) {
+    const minimo = (i < fondos.length - 1 ? 54 : 18) * u; fsD = (vert ? 64 : 58) * u;
+    do { md = maquetar(ctx, desc, `700 ${fsD}px "Fredoka"`, wT, fsD * 1.36); if (md.h <= fondoTxt - yD) break; fsD -= 1.5 * u; } while (fsD > minimo);
+    if (md.h <= fondoTxt - yD) break;
+  }
   const fD = `700 ${fsD}px "Fredoka"`, lhD = fsD * 1.36;
   const pintar = (lay, f, lh, y0, t0, paso, icoW) => {
     let idx = 0;
