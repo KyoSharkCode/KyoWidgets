@@ -110,7 +110,8 @@
 .vchat{left:60px;top:870px;width:960px;height:840px}
 @keyframes jellyf{0%,100%{transform:translate(0,0) scale(1,1)}25%{transform:translate(6px,-18px) scale(.94,1.06)}50%{transform:translate(0,-30px) scale(1,1)}75%{transform:translate(-6px,-14px) scale(1.05,.95)}}
 @keyframes swim{0%{transform:translateX(0) scaleX(1)}49%{transform:translateX(620px) scaleX(1)}50%{transform:translateX(620px) scaleX(-1)}99%{transform:translateX(0) scaleX(-1)}100%{transform:translateX(0) scaleX(1)}}
-</style></head><body><div class="scene" id="m2"><canvas class="sky" width="1920" height="1080"></canvas>
+</style><script src="../pausa-obs.js"></script>
+</head><body><div class="scene" id="m2"><canvas class="sky" width="1920" height="1080"></canvas>
 <div class="panel clip"><div class="moon" style="left:1090px;top:70px;width:400px;height:400px"></div><div class="sea" style="top:760px"></div><canvas class="glints" width="900" height="320" style="left:960px;top:760px;width:900px;height:320px"></canvas><div class="finw" style="left:1100px;top:820px;animation-delay:-6s"><svg viewBox="0 0 120 70"><path d="M8 66 C 30 60 44 30 70 4 C 72 30 84 52 112 66 Z" fill="#0c1a4c" stroke="#6FE3F0" stroke-opacity=".5" stroke-width="2"/><path d="M0 66 Q 30 58 60 66 T 120 66" fill="none" stroke="rgba(201,230,242,.55)" stroke-width="3"/></svg></div><div class="jelly" style="left:1780px;top:420px;width:90px;animation-delay:-1.5s"><svg viewBox="0 0 100 150"><path d="M10 56 C10 20 30 6 50 6 C70 6 90 20 90 56 C80 51 72 59 64 53 C58 61 42 61 36 53 C28 59 20 51 10 56Z" fill="rgba(189,176,230,.5)" stroke="#C9E6F2" stroke-width="3" stroke-linejoin="round"/><ellipse cx="36" cy="28" rx="9" ry="5" fill="rgba(255,255,255,.6)"/><g fill="none" stroke="#BDB0E6" stroke-width="3" stroke-linecap="round" opacity=".85"><path d="M26 60 q-7 16 2 30 t-2 30"/><path d="M42 62 q7 18 -2 34 t4 36"/><path d="M58 62 q-7 18 2 34 t-4 34"/><path d="M74 60 q7 16 -2 30 t2 26"/></g></svg></div></div>
 <svg class="wave" viewBox="0 0 260 1080" aria-hidden="true"><defs><linearGradient id="wg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C9E6F2"/><stop offset=".5" stop-color="#6FE3F0"/><stop offset="1" stop-color="#3A7BD5"/></linearGradient></defs>
 <path d="M150 -10 C 40 180, 250 330, 150 520 S 30 860, 120 1090" fill="none" stroke="#3A7BD5" stroke-width="46" opacity=".22"/><path d="M150 -10 C 40 180, 250 330, 150 520 S 30 860, 120 1090" fill="none" stroke="#6FE3F0" stroke-width="18" opacity=".25"/><path d="M150 -10 C 40 180, 250 330, 150 520 S 30 860, 120 1090" fill="none" stroke="url(#wg2)" stroke-width="5"/><path class="runner" d="M150 -10 C 40 180, 250 330, 150 520 S 30 860, 120 1090" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" pathLength="1000" stroke-dasharray="90 910"/></svg>
@@ -125,7 +126,7 @@
   for(var i=0;i<(o.stars||260);i++) stars.push({x:Math.random()*W,y:Math.random()*maxY,r:Math.random()*1.8+.4,p:Math.random()*6.28,s:.6+Math.random()*1.6});
   var g=sc.querySelector('.glints'),gx=g&&g.getContext('2d'),strips=[],gw=g?g.width:0,gh=g?g.height:0;
   if(g) for(var j=0;j<70;j++){var t=Math.random();strips.push({y:Math.pow(t,1.4)*(gh-10)+4,w:(40+Math.random()*160)*(1-t*.5),o:Math.random()*6.28,sp:.5+Math.random()});}
-  function draw(ts){var t=(ts||0)/1000;x.clearRect(0,0,W,H);
+  function draw(ts){if(document.documentElement.classList.contains('obs-oculta')){setTimeout(function(){requestAnimationFrame(draw);},300);return;}var t=(ts||0)/1000;x.clearRect(0,0,W,H);
     for(var i=0;i<stars.length;i++){var s=stars[i];x.globalAlpha=.35+.65*Math.abs(Math.sin(t*s.s+s.p));x.fillStyle=i%9===0?'#C9E6F2':'#fff';x.beginPath();x.arc(s.x,s.y,s.r,0,6.283);x.fill();}
     x.globalAlpha=1;
     if(g){gx.clearRect(0,0,gw,gh);for(var k=0;k<strips.length;k++){var st=strips[k],cx=gw/2+Math.sin(t*st.sp+st.o)*18*(1+st.y/120);gx.globalAlpha=(.25+.55*Math.abs(Math.sin(t*1.3*st.sp+st.o)))*(1-st.y/(gh*1.25));gx.fillStyle=k%4===0?'#6FE3F0':'#e9f4fb';var h=2+st.y/80;gx.beginPath();gx.ellipse(cx,st.y,st.w/2,h/2,0,0,6.283);gx.fill();}gx.globalAlpha=1;}
@@ -133,7 +134,7 @@
   draw(0);
   var fp=sc.querySelector('.foam path');if(fp){var d='M0 60 L0 34 ';for(var f=0;f<=2000;f+=40){d+='Q'+(f+20)+' '+(f%80?14:6)+' '+(f+40)+' 34 ';}fp.setAttribute('d',d+'L2040 60 Z');}
   var bb=sc.querySelector('.bubbles');
-  function bubble(){if(reduce||!bb)return;var b=document.createElement('span');b.className='bub';var sz=8+Math.random()*30;b.style.width=b.style.height=sz+'px';
+  function bubble(){if(reduce||!bb||document.documentElement.classList.contains('obs-oculta'))return;var b=document.createElement('span');b.className='bub';var sz=8+Math.random()*30;b.style.width=b.style.height=sz+'px';
     var r=o.bubbleZone||[0,W];b.style.left=(r[0]+Math.random()*(r[1]-r[0]))+'px';b.style.setProperty('--dx',(Math.random()*120-60)+'px');var dur=7+Math.random()*7;b.style.animationDuration=dur+'s';bb.appendChild(b);setTimeout(function(){b.remove();},dur*1000);}
   for(var n=0;n<8;n++)setTimeout(bubble,n*450);setInterval(bubble,o.bubbleEvery||700);
   var st=sc.querySelector('.stxt');

@@ -148,7 +148,8 @@
 @keyframes aur{0%{transform:translateX(-120px) scaleY(.8) skewX(-10deg)}100%{transform:translateX(160px) scaleY(1.25) skewX(12deg)}}
 @keyframes snowfall{0%{transform:translate(0,0)}100%{transform:translate(var(--sx),1120px)}}
 @media (prefers-reduced-motion:reduce){.snowfx{display:none}}
-</style></head><body><div class="scene xm" id="x3"><canvas class="sky" width="1920" height="1080"></canvas>
+</style><script src="../pausa-obs.js"></script>
+</head><body><div class="scene xm" id="x3"><canvas class="sky" width="1920" height="1080"></canvas>
 <div class="panel clip"><div class="aurora"><i></i><i></i><i></i></div><div class="moon" style="left:1060px;top:80px;width:340px;height:340px"></div><div class="sea" style="top:795px"></div><canvas class="glints" width="600" height="280" style="left:930px;top:795px;width:600px;height:280px"></canvas><div class="finw" style="left:1000px;top:820px;height:96px;animation-delay:-9s"><svg viewBox="0 0 120 96"><path d="M8 92 C 30 86 44 56 70 30 C 72 56 84 78 112 92 Z" fill="#0c1a4c" stroke="#6FE3F0" stroke-opacity=".5" stroke-width="2"/><path d="M56 40 C 58 22 72 10 90 14 C 84 22 80 30 80 42 Z" fill="#E23A52"/><rect x="52" y="36" width="34" height="10" rx="5" fill="#F5F3FB"/><circle cx="92" cy="14" r="7" fill="#F5F3FB"/><path d="M0 92 Q 30 84 60 92 T 120 92" fill="none" stroke="rgba(201,230,242,.55)" stroke-width="3"/></svg></div><svg class="ice" style="left:1500px;top:780px;width:220px" viewBox="0 0 200 60"><path d="M0 50 L30 20 L55 30 L80 6 L110 28 L140 14 L170 34 L200 50 Z" fill="#dff2fb"/><path d="M0 50 L30 20 L55 30 L80 6 L90 50 Z" fill="#fff" opacity=".6"/><path d="M0 50 H200 L185 60 H15 Z" fill="#9cc6e6" opacity=".6"/></svg></div>
 <svg class="wave cane" viewBox="0 0 260 1080" aria-hidden="true">
 <path d="M150 -10 C 40 180, 250 330, 150 520 S 30 860, 120 1090" fill="none" stroke="#F5F3FB" stroke-width="30" opacity=".12"/><path d="M150 -10 C 40 180, 250 330, 150 520 S 30 860, 120 1090" fill="none" stroke="#F5F3FB" stroke-width="12" stroke-linecap="round"/><path class="stripes" d="M150 -10 C 40 180, 250 330, 150 520 S 30 860, 120 1090" fill="none" stroke="#E23A52" stroke-width="12" stroke-dasharray="16 16"/><path class="runner" d="M150 -10 C 40 180, 250 330, 150 520 S 30 860, 120 1090" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" pathLength="1000" stroke-dasharray="60 940" opacity=".9"/></svg><div class="snowfx"></div>
@@ -164,7 +165,7 @@
   for(var i=0;i<(o.stars||260);i++) stars.push({x:Math.random()*W,y:Math.random()*maxY,r:Math.random()*1.8+.4,p:Math.random()*6.28,s:.6+Math.random()*1.6});
   var g=sc.querySelector('.glints'),gx=g&&g.getContext('2d'),strips=[],gw=g?g.width:0,gh=g?g.height:0;
   if(g) for(var j=0;j<70;j++){var t=Math.random();strips.push({y:Math.pow(t,1.4)*(gh-10)+4,w:(40+Math.random()*160)*(1-t*.5),o:Math.random()*6.28,sp:.5+Math.random()});}
-  function draw(ts){var t=(ts||0)/1000;x.clearRect(0,0,W,H);
+  function draw(ts){if(document.documentElement.classList.contains('obs-oculta')){setTimeout(function(){requestAnimationFrame(draw);},300);return;}var t=(ts||0)/1000;x.clearRect(0,0,W,H);
     for(var i=0;i<stars.length;i++){var s=stars[i];x.globalAlpha=.35+.65*Math.abs(Math.sin(t*s.s+s.p));x.fillStyle=i%9===0?'#C9E6F2':'#fff';x.beginPath();x.arc(s.x,s.y,s.r,0,6.283);x.fill();}
     x.globalAlpha=1;
     if(g){gx.clearRect(0,0,gw,gh);for(var k=0;k<strips.length;k++){var st=strips[k],cx=gw/2+Math.sin(t*st.sp+st.o)*18*(1+st.y/120);gx.globalAlpha=(.25+.55*Math.abs(Math.sin(t*1.3*st.sp+st.o)))*(1-st.y/(gh*1.25));gx.fillStyle=k%4===0?'#6FE3F0':'#e9f4fb';var h=2+st.y/80;gx.beginPath();gx.ellipse(cx,st.y,st.w/2,h/2,0,0,6.283);gx.fill();}gx.globalAlpha=1;}
@@ -172,7 +173,7 @@
   draw(0);
   var fp=sc.querySelector('.foam path');if(fp){var d='M0 60 L0 34 ';for(var f=0;f<=2000;f+=40){d+='Q'+(f+20)+' '+(f%80?14:6)+' '+(f+40)+' 34 ';}fp.setAttribute('d',d+'L2040 60 Z');}
   var bb=sc.querySelector('.bubbles');
-  function bubble(){if(reduce||!bb)return;var b=document.createElement('span');b.className='bub';var sz=8+Math.random()*30;b.style.width=b.style.height=sz+'px';
+  function bubble(){if(reduce||!bb||document.documentElement.classList.contains('obs-oculta'))return;var b=document.createElement('span');b.className='bub';var sz=8+Math.random()*30;b.style.width=b.style.height=sz+'px';
     var r=o.bubbleZone||[0,W];b.style.left=(r[0]+Math.random()*(r[1]-r[0]))+'px';b.style.setProperty('--dx',(Math.random()*120-60)+'px');var dur=7+Math.random()*7;b.style.animationDuration=dur+'s';bb.appendChild(b);setTimeout(function(){b.remove();},dur*1000);}
   for(var n=0;n<8;n++)setTimeout(bubble,n*450);setInterval(bubble,o.bubbleEvery||700);
   var st=sc.querySelector('.stxt');
