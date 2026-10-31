@@ -55,7 +55,7 @@
     '.kad-main.num{font-family:"Chakra Petch",ui-monospace,monospace;font-weight:600;font-size:118px;-webkit-text-stroke:0;color:' + T.acc + ';font-variant-numeric:tabular-nums;text-shadow:0 0 30px ' + T.glow + ';filter:none;letter-spacing:.02em}' +
     '.kad-main.fecha{font-family:"Fredoka",sans-serif;font-weight:700;font-size:80px;-webkit-text-stroke:0;color:' + T.acc + ';text-shadow:0 0 24px ' + T.glow + ';filter:none}' +
     '.kad-sub{font-family:"Chakra Petch",ui-monospace,monospace;font-weight:600;font-size:38px;letter-spacing:.05em;color:#fff;background:rgba(255,255,255,.08);border:3px solid ' + T.ring + ';padding:6px 28px;border-radius:999px;white-space:nowrap;margin-top:6px}' +
-    '.kad-bar{position:absolute;left:60px;right:60px;bottom:18px;height:7px;border-radius:999px;background:rgba(201,230,242,.12);overflow:hidden}.kad-bar span{display:block;height:100%;width:0;border-radius:999px;background:' + T.bar + '}';
+    '.kad-bar{position:absolute;left:60px;right:60px;bottom:18px;height:7px;border-radius:999px;background:rgba(201,230,242,.12);overflow:hidden}.kad-bar span{display:block;height:100%;width:100%;transform:translateX(-100%);border-radius:999px;background:' + T.bar + '}';
   // Cinta: icono a la izquierda y los textos en columna, todo en una franja baja
   if (CINTA) css += '' +
     '.kad-in{flex-direction:row;text-align:left;gap:26px;padding:22px 40px 26px 24px;border-radius:999px 40px 40px 999px;min-width:0;width:100%;box-sizing:border-box}' +
@@ -118,7 +118,7 @@
     var cambiar = function () {
       pintar(a); inn.classList.remove('sale'); void inn.offsetWidth; inn.classList.add('entra');
       bar.style.display = lista.length > 1 ? '' : 'none';
-      barS.style.transition = 'none'; barS.style.width = '0'; void barS.offsetWidth; barS.style.transition = 'width ' + dur + 'ms linear'; barS.style.width = '100%';
+      barS.style.transition = 'none'; barS.style.transform = 'translateX(-100%)'; void barS.offsetWidth; barS.style.transition = 'transform ' + dur + 'ms linear'; barS.style.transform = 'none';
     };
     if (box.hidden) { box.hidden = false; cambiar(); }
     else if (lista.length === 1 && idx === i) cambiar();
