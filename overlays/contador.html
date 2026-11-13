@@ -70,6 +70,7 @@ body.b-chip{width:480px;height:120px}body.b-texto{width:480px;height:200px}
 <body>
 <div id="w" class="oculto"><div class="caja pega" id="caja"><div class="ico" id="ico"></div><div class="info"><span class="chip" id="nom"></span><span class="num" id="num">0</span></div></div></div>
 <script src="../config.js"></script>
+<script src="sondeo.js"></script>
 <script src="iconos-contador.js"></script>
 <script>
 (function () {
@@ -157,8 +158,9 @@ body.b-chip{width:480px;height:120px}body.b-texto{width:480px;height:200px}
       } catch (e) {}
     }
     cargar();
-    // Respaldo: cada 3 s si el tiempo real no conecta, cada 30 s si sí
-    setInterval(() => { if (Date.now() - ultima >= (rt ? 30000 : 3000)) cargar(); }, 1000);
+    // Respaldo: cada 5 s si el tiempo real no conecta, cada 60 s si sí. Nada mientras OBS no lo muestra.
+    setInterval(() => { if (!KyoSondeo.oculta() && Date.now() - ultima >= (rt ? 60000 : 5000)) cargar(); }, 1000);
+    KyoSondeo.alVolver(cargar);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) cargar(); });
     // Tiempo real (Supabase Realtime)
     const s = document.createElement('script');

@@ -78,6 +78,7 @@ body.b-barra{height:150px}body.b-texto{height:180px}
   <div class="ult" id="ult"></div>
 </div></div>
 <script src="../config.js"></script>
+<script src="sondeo.js"></script>
 <script>
 (function () {
   const q = new URLSearchParams(location.search), $ = id => document.getElementById(id), w = $('w');
@@ -168,8 +169,10 @@ body.b-barra{height:150px}body.b-texto{height:180px}
     }
     function estudioAviso(t) { if (document.querySelector('.aviso')) return; const a = document.createElement('div'); a.className = 'aviso'; a.textContent = t; document.body.appendChild(a); }
     cargar();
-    // Consulta cada 10 s (así llegan los tips nuevos de StreamElements); el tiempo real solo acelera los cambios manuales
-    setInterval(() => { if (Date.now() - ultima >= 10000) cargar(); }, 1000);
+    // Consulta cada 15 s (así llegan los tips nuevos de StreamElements); el tiempo real solo acelera los cambios manuales.
+    // Mientras OBS no la muestra no consulta; al volver a verse, consulta al momento.
+    setInterval(() => { if (!KyoSondeo.oculta() && Date.now() - ultima >= 15000) cargar(); }, 1000);
+    KyoSondeo.alVolver(cargar);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) cargar(); });
     window.addEventListener('online', cargar);
     // Tiempo real (Supabase Realtime) con reconexión: si se corta, el sondeo de arriba sigue funcionando

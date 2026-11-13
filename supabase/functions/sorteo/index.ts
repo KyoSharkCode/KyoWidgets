@@ -10,7 +10,9 @@
 //
 // En el chat también se maneja con !sorteo <premio>, !sorteo cerrar, !sorteo cancelar y
 // !ganador (tú y tus mods), y la gente entra con !participar (eso lo hace twitch-bot-events).
-// "Verify JWT" puede quedarse ACTIVADO (el overlay y el Estudio envían la anon key).
+// "Verify JWT": mejor DESACTIVADO. Así los overlays consultan sin cabeceras y cada consulta cuenta como
+// 1 invocación en vez de 2 (con cabeceras el navegador manda antes un OPTIONS). Activado también funciona.
+// Lo que cambia algo sigue pidiendo tu código de acceso; la anon key es pública de todas formas.
 // Con 3 fallos seguidos del código se bloquea un rato (tabla kyo_intentos, sql/03_intentos.sql).
 // Secretos: TWITCH_CLIENT_SECRET, KYO_SETUP_KEY. Tablas: kyo_ajustes y kyo_sorteo (sql/05_sorteos.sql).
 
@@ -96,6 +98,7 @@ const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Max-Age": "86400", // el navegador recuerda el permiso CORS y no repite el OPTIONS (cada uno cuenta como invocación)
 };
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });

@@ -33,3 +33,16 @@ Las animaciones están en `animaciones/`, una por archivo: `generales/`, `zzz/` 
 ---
 
 Proyecto personal. Los diseños, personajes y logotipos son de KyoSumiVT.
+
+## Ahorro de invocaciones (plan gratis de Supabase: 500.000 al mes)
+
+Los overlays consultan Supabase con `overlays/sondeo.js`, que:
+
+- no consulta nada mientras OBS no muestra la fuente (ni con la pestaña oculta) y consulta al momento al volver a verse;
+- va rápido solo cuando hay algo en marcha (predicción, sorteo o encuesta: cada 3 s) y en reposo cada 15 s;
+- comparte la respuesta entre fuentes de OBS (varias escenas con anuncios = una sola consulta);
+- pide sin cabeceras para que el navegador no mande antes un `OPTIONS` (que también cuenta como invocación).
+
+Para aprovechar lo último, desactiva **"Verify JWT"** en `prediccion`, `encuesta`, `sorteo`,
+`spotify-now-playing`, `anuncios`, `combo` y `fortnite-stats` (Edge Functions → la función → Details).
+Si se queda activado sigue funcionando: los overlays lo detectan y mandan la anon key.

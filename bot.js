@@ -251,6 +251,17 @@ function abrir() {
 
   // ---------- Sorteo ----------
   const soEst = $('#soEstado', app);
+  let soVivo = false, enVivo = false, prVivo = false;
+  const leerGET = fn => window.KyoSondeo ? window.KyoSondeo.pedir(fn)
+    : fetch(FN(fn), { headers: HDR, cache: 'no-store' }).then(r => r.ok ? r.json() : null);
+  const panelVisible = () => document.visibilityState === 'visible' && !app.closest('[data-panel]').hidden;
+  function refrescarSolo(leer, enMarcha) {
+    let ultima = Date.now();
+    const ya = () => { if (panelVisible()) { ultima = Date.now(); leer(); } };
+    setInterval(() => { if (panelVisible() && Date.now() - ultima >= (enMarcha() ? 4000 : 20000)) ya(); }, 1000);
+    new MutationObserver(ya).observe(app.closest('[data-panel]'), { attributes: true, attributeFilter: ['hidden'] });
+    document.addEventListener('visibilitychange', ya);
+  }
   const TXT_EST = { inactivo: 'No hay ningún sorteo activo.', abierto: '🫧 Abierto: la gente puede entrar.', cerrado: '🔒 Entradas cerradas: elige ganador.', ganador: '🎉 Ganó:' };
   const ERR_SO = { vacio: 'Nadie ha participado todavía.', sin_mas: 'Ya no quedan participantes sin premio.', sin_sorteo: 'No hay ningún sorteo abierto.', ocupado: 'Ya hay un sorteo en marcha: elige ganador o quítalo antes de abrir otro.' };
   function pintarSorteo(d) {
@@ -262,7 +273,7 @@ function abrir() {
       (d.nombres && d.nombres.length ? '<span>' + d.nombres.slice(-12).reverse().map(esc).join(' · ') + (n > 12 ? ' …' : '') + '</span>' : '');
   }
   async function leerSorteo() {
-    try { const r = await fetch(FN('sorteo') + '?t=' + Date.now(), { headers: HDR, cache: 'no-store' }); pintarSorteo(await r.json()); }
+    try { const d = await leerGET('sorteo'); soVivo = !!(d && (d.estado === 'abierto' || d.estado === 'cerrado')); pintarSorteo(d); }
     catch (er) { pintarSorteo(null); }
   }
   $('#sorteoCard', app).addEventListener('click', async e => {
@@ -289,8 +300,9 @@ function abrir() {
   }
   pedirA('sorteo', { accion: 'ajustes' }).then(d => { if (d.ok) ponerOpciones(d.ajustes); }).catch(() => {});
   leerSorteo();
-  // Mientras la pestaña está a la vista, el estado del sorteo se refresca solo
-  setInterval(() => { if (document.visibilityState === 'visible' && !app.closest('[data-panel]').hidden) leerSorteo(); }, 3000);
+  // Mientras la pestaña está a la vista se refresca solo: cada 4 s si hay algo en marcha, cada 20 s si no.
+  // (Cada consulta es una invocación de Supabase: el plan gratis trae 500.000 al mes.)
+  refrescarSolo(leerSorteo, () => soVivo);
 
   // ---------- Encuesta ----------
   const enEst = $('#enEstado', app);
@@ -307,7 +319,7 @@ function abrir() {
     }).join('') + '<p class="nota">' + t + (t === 1 ? ' voto' : ' votos') + '</p>';
   }
   async function leerEncuesta() {
-    try { const r = await fetch(FN('encuesta') + '?t=' + Date.now(), { headers: HDR, cache: 'no-store' }); const d = await r.json(); pintarEncuesta(d && d.ok ? d.encuesta : null); }
+    try { const d = await leerGET('encuesta'); enVivo = !!(d && d.ok && d.encuesta && d.encuesta.estado === 'abierta'); pintarEncuesta(d && d.ok ? d.encuesta : null); }
     catch (er) { pintarEncuesta(null); }
   }
   $('#enMas', app).addEventListener('click', () => { const h = $('#enOps [data-op][hidden]', app); if (h) { h.hidden = false; h.focus(); } if (!$('#enOps [data-op][hidden]', app)) $('#enMas', app).hidden = true; });
@@ -336,7 +348,7 @@ function abrir() {
   });
   pedirA('encuesta', { accion: 'ajustes' }).then(d => { if (d.ok) $('#enMin', app).value = d.ajustes.minutos; }).catch(() => {});
   leerEncuesta();
-  setInterval(() => { if (document.visibilityState === 'visible' && !app.closest('[data-panel]').hidden) leerEncuesta(); }, 3000);
+  refrescarSolo(leerEncuesta, () => enVivo);
 
   // ---------- Predicción (de Twitch, con puntos del canal) ----------
   const prEst = $('#prEstado', app);
@@ -368,7 +380,7 @@ function abrir() {
     }).join('') + (p.opciones ? '<p class="nota">' + pts(t) + ' puntos · ' + (p.gente || 0) + ' personas</p>' : '');
   }
   async function leerPrediccion() {
-    try { const r = await fetch(FN('prediccion') + '?t=' + Date.now(), { headers: HDR, cache: 'no-store' }); pintarPrediccion(r.ok ? await r.json() : null); }
+    try { const d = await leerGET('prediccion'); const p = d && d.prediccion; prVivo = !!(p && (p.estado === 'active' || p.estado === 'locked')); pintarPrediccion(d); }
     catch (er) { pintarPrediccion(null); }
   }
   $('#prMas', app).addEventListener('click', () => { const h = $('#prOps [data-op][hidden]', app); if (h) { h.hidden = false; h.focus(); } if (!$('#prOps [data-op][hidden]', app)) $('#prMas', app).hidden = true; });
@@ -401,7 +413,7 @@ function abrir() {
   });
   pedirA('prediccion', { accion: 'ajustes' }).then(d => { if (d.ok) $('#prSeg', app).value = d.ajustes.segundos; }).catch(() => {});
   leerPrediccion();
-  setInterval(() => { if (document.visibilityState === 'visible' && !app.closest('[data-panel]').hidden) leerPrediccion(); }, 3000);
+  refrescarSolo(leerPrediccion, () => prVivo);
 
   // Carga: lo guardado en Supabase, salvo que haya un borrador sin guardar en este navegador
   (async () => {

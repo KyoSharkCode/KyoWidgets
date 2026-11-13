@@ -23,6 +23,7 @@
 -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Fredoka:wght@500;600;700&family=Chakra+Petch:wght@600;700&display=swap">
 <script src="../config.js"></script>
+<script src="sondeo.js"></script>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;background:transparent!important;overflow:hidden}
@@ -305,11 +306,8 @@ body.b-cinta{height:170px}
 
   async function consultar() {
     try {
-      const K = window.KYO || {};
-      const u = new URL(K.SUPABASE_URL + '/functions/v1/fortnite-stats');
-      u.search = new URLSearchParams({ nombre, cuenta, ventana }).toString();
-      const r = await fetch(u, { headers: { apikey: K.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + K.SUPABASE_ANON_KEY } });
-      const dd = await r.json();
+      const dd = await KyoSondeo.pedir('fortnite-stats', { nombre, cuenta, ventana }, cada * 800);
+      if (!dd) throw new Error('sin respuesta');
       if (volverT && dd && dd.ok) { ultimaReal = dd; return; } // hay una prueba en pantalla: se aplica al terminar
       pintar(dd);
     } catch (e) { console.warn('Kyo Fortnite: sin conexión', e); if (!prev) { mensaje('Sin conexión con Supabase.'); LISTA.forEach(k => put('[data-k="' + k + '"]', '–')); } }
@@ -342,7 +340,7 @@ body.b-cinta{height:170px}
     pintar(JSON.parse(JSON.stringify(D)));
     let n = 0;
     setInterval(() => { n++; D.total.matches++; D.total.kills += 1 + (n % 4); if (n % 3 === 0) { D.total.wins++; D.total.top10++; } recalc(); }, 8000);
-  } else { consultar(); setInterval(consultar, cada * 1000); }
+  } else KyoSondeo.bucle(consultar, () => cada * 1000);
 })();
 </script>
 </body>
