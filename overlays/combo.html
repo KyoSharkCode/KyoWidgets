@@ -25,6 +25,7 @@ iframe{position:absolute;border:0;background:transparent;overflow:hidden;pointer
 </head>
 <body>
 <script src="../config.js"></script>
+<script src="sondeo.js"></script>
 <script>
   const q = new URLSearchParams(location.search), FMT = q.get('f') === 'h' ? 'h' : 'v', VER = q.get('v');
   if (FMT === 'h') document.body.className = 'h';
@@ -54,14 +55,12 @@ iframe{position:absolute;border:0;background:transparent;overflow:hidden;pointer
     let firma = '';
     const usar = d => { const s = JSON.stringify(d); if (s === firma) return; firma = s; pintar(d); };
     try { const c = JSON.parse(localStorage.getItem(CACHE) || 'null'); if (c) usar(c); } catch (e) {}
-    const leer = () => {
-      if (!K.SUPABASE_URL) return;
-      fetch(K.SUPABASE_URL + '/functions/v1/combo?v=' + encodeURIComponent(VER) + '&t=' + Date.now(), { headers: { apikey: K.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + K.SUPABASE_ANON_KEY } })
-        .then(r => r.json())
-        .then(r => { const d = r && r.ok && r.salida && r.salida[FMT]; if (d) { usar(d); try { localStorage.setItem(CACHE, JSON.stringify(d)); } catch (e) {} } })
-        .catch(() => {});
-    };
-    leer(); setInterval(leer, 20000);
+    // La distribución solo cambia cuando la editas en el Estudio: basta con mirar cada minuto (y al volver a verse en OBS)
+    KyoSondeo.bucle(async () => {
+      const r = await KyoSondeo.pedir('combo', { v: VER }, 30000);
+      const d = r && r.ok && r.salida && r.salida[FMT];
+      if (d) { usar(d); try { localStorage.setItem(CACHE, JSON.stringify(d)); } catch (e) {} }
+    }, () => 60000);
   } else {
     const d = { w: (q.get('w') || '').split(','), g: {}, p: {} };
     d.w.forEach(id => { d.g[id] = (q.get(id) || '').split(',').map(Number); d.p[id] = q.get(id + '_') || ''; });

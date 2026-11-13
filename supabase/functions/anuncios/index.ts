@@ -6,7 +6,9 @@
 //
 // Con 3 fallos seguidos del código se bloquea un rato (tabla kyo_intentos, sql/03_intentos.sql).
 //
-// "Verify JWT" puede quedarse ACTIVADO (el Estudio y las escenas envían la anon key).
+// "Verify JWT": mejor DESACTIVADO. Así los overlays consultan sin cabeceras y cada consulta cuenta como
+// 1 invocación en vez de 2 (con cabeceras el navegador manda antes un OPTIONS). Activado también funciona.
+// Lo que cambia algo sigue pidiendo tu código de acceso; la anon key es pública de todas formas.
 // Secretos: KYO_SETUP_KEY (el mismo que ya tienes). Tablas: kyo_ajustes (sql/02_anuncios.sql) y kyo_intentos (sql/03_intentos.sql).
 
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
@@ -15,6 +17,7 @@ const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Max-Age": "86400", // el navegador recuerda el permiso CORS y no repite el OPTIONS (cada uno cuenta como invocación)
 };
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });

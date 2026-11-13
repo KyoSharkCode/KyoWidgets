@@ -145,15 +145,17 @@
     window.addEventListener('message', function (e) { if (e.data && e.data.tipo === 'kyo-anuncios') usar(e.data.datos); });
   } else {
     try { var c = JSON.parse(localStorage.getItem(CACHE) || 'null'); if (c) usar(c); } catch (e) {}
-    var K = window.KYO || {};
-    var leer = function () {
-      if (!K.SUPABASE_URL) return;
-      fetch(K.SUPABASE_URL + '/functions/v1/anuncios?t=' + Date.now(), { headers: { apikey: K.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + K.SUPABASE_ANON_KEY } })
-        .then(function (r) { return r.json(); })
-        .then(function (d) { if (d && d.ok && d.datos) { usar(d.datos); try { localStorage.setItem(CACHE, JSON.stringify(d.datos)); } catch (e) {} } })
-        .catch(function () {});
+    // Los anuncios solo cambian cuando los editas en el Estudio: cada 2 min basta (y al volver a verse en OBS).
+    // Todas las escenas comparten la respuesta, así que tener varias en OBS no multiplica las consultas.
+    var empezar = function () {
+      window.KyoSondeo.bucle(function () {
+        return window.KyoSondeo.pedir('anuncios', null, 90000).then(function (d) {
+          if (d && d.ok && d.datos) { usar(d.datos); try { localStorage.setItem(CACHE, JSON.stringify(d.datos)); } catch (e) {} }
+        });
+      }, function () { return 120000; });
     };
-    leer(); setInterval(leer, 30000);
+    if (window.KyoSondeo) empezar();
+    else { var ss = document.createElement('script'); ss.src = new URL('../sondeo.js', yo.src).href; ss.onload = empezar; document.head.appendChild(ss); }
   }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (lista[idx]) refrescar(lista[idx]); });
 })();

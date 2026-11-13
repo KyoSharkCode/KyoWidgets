@@ -19,6 +19,7 @@
     demo=1  ejemplo para la vista previa del Estudio
 -->
 <script src="../config.js"></script>
+<script src="sondeo.js"></script>
 <style>
 @font-face{font-family:"Cherry Bomb One";src:url(../fonts/cherry-bomb-one-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"Fredoka";font-weight:600;src:url(../fonts/fredoka-latin-600-normal.woff2) format("woff2")}
@@ -301,16 +302,13 @@ body{width:700px;height:460px;position:relative;font-family:"Fredoka",system-ui,
   }
   const K = window.KYO || {};
   if (!K.SUPABASE_URL || /TU-PROYECTO/.test(K.SUPABASE_URL)) return;
-  const HDR = { apikey: K.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + K.SUPABASE_ANON_KEY };
-  async function leer() {
-    try {
-      const r = await fetch(K.SUPABASE_URL + '/functions/v1/prediccion?t=' + Date.now(), { headers: HDR, cache: 'no-store' });
-      const d = r.ok ? await r.json() : null;
-      if (d) aplicar(d.prediccion, d.ahora);
-    } catch (e) { /* sin conexión: se reintenta */ }
-    setTimeout(leer, 2000);
-  }
-  leer();
+  // Rápido solo mientras hay una predicción abierta o bloqueada; en reposo basta con mirar de vez en cuando
+  const enMarcha = () => !!(P && (P.estado === 'active' || P.estado === 'locked'));
+  const cada = () => enMarcha() ? 3000 : 15000;
+  KyoSondeo.bucle(async () => {
+    const d = await KyoSondeo.pedir('prediccion', null, cada() * 0.8);
+    if (d) aplicar(d.prediccion, d.ahora);
+  }, cada);
 })();
 </script>
 </body>

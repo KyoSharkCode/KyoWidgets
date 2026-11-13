@@ -22,6 +22,7 @@
 -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Fredoka:wght@600;700&family=Chakra+Petch:wght@600;700&display=swap">
 <script src="../config.js"></script>
+<script src="sondeo.js"></script>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;background:transparent!important;overflow:hidden}
@@ -248,18 +249,17 @@ html,body{margin:0;background:transparent!important;overflow:hidden}
   let k = 0;
   const ejemplo = () => { const s = EJ[k++ % EJ.length]; recibir(Object.assign({ ok: true, playing: true, progress_ms: 30000 + Math.random() * 60000, cover: null }, s)); };
 
-  async function consultar() {
-    try {
-      const K = window.KYO || {};
-      const r = await fetch(K.SUPABASE_URL + '/functions/v1/spotify-now-playing', { headers: { apikey: K.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + K.SUPABASE_ANON_KEY } });
-      recibir(await r.json());
-    } catch (e) { console.warn('Kyo música: sin conexión', e); }
+  // Sonando: cada 10 s, o justo cuando debería acabar la canción si es antes. En pausa: cada 20 s.
+  function cada() {
+    if (!actual || !playing) return 20000;
+    const queda = (actual.duration_ms || 0) - (base + Date.now() - baseAt);
+    return Math.max(3000, Math.min(10000, queda + 1500));
   }
 
   window.addEventListener('message', e => { if (e.data && e.data.type === 'kyo-test' && e.data.accion === 'cancion') ejemplo(); });
 
   if (q.get('demo') === '1') { ejemplo(); setInterval(ejemplo, 15000); }
-  else { consultar(); setInterval(consultar, 5000); }
+  else KyoSondeo.bucle(async () => { const d = await KyoSondeo.pedir('spotify-now-playing', null, 4000); if (d) recibir(d); }, cada);
 })();
 </script>
 </body>

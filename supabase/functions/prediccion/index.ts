@@ -10,7 +10,9 @@
 //
 // Necesita tu canal conectado: Estudio → 🔌 Conexiones → "Conectar mi canal" (con TU cuenta KyoSumiVT).
 // Si ya hay una predicción en marcha, no abre otra (error "ocupada").
-// "Verify JWT" puede quedarse ACTIVADO (el overlay y el Estudio envían la anon key).
+// "Verify JWT": mejor DESACTIVADO. Así los overlays consultan sin cabeceras y cada consulta cuenta como
+// 1 invocación en vez de 2 (con cabeceras el navegador manda antes un OPTIONS). Activado también funciona.
+// Lo que cambia algo sigue pidiendo tu código de acceso; la anon key es pública de todas formas.
 // Secretos: TWITCH_CLIENT_SECRET, KYO_SETUP_KEY. Sin SQL nuevo (usa kyo_ajustes y private_tokens).
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -95,6 +97,7 @@ const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Max-Age": "86400", // el navegador recuerda el permiso CORS y no repite el OPTIONS (cada uno cuenta como invocación)
 };
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });

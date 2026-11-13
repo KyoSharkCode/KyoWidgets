@@ -17,6 +17,7 @@
     demo=1  ejemplo para la vista previa del Estudio
 -->
 <script src="../config.js"></script>
+<script src="sondeo.js"></script>
 <style>
 @font-face{font-family:"Cherry Bomb One";src:url(../fonts/cherry-bomb-one-latin-400-normal.woff2) format("woff2")}
 @font-face{font-family:"Fredoka";font-weight:600;src:url(../fonts/fredoka-latin-600-normal.woff2) format("woff2")}
@@ -458,18 +459,15 @@ body{width:720px;height:600px;display:grid;place-items:center;font-family:"Fredo
   }
   const K = window.KYO || {};
   if (!K.SUPABASE_URL || /TU-PROYECTO/.test(K.SUPABASE_URL)) return;
-  const HDR = { apikey: K.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + K.SUPABASE_ANON_KEY };
-  const pedir = n => fetch(K.SUPABASE_URL + '/functions/v1/' + n + '?t=' + Date.now(), { headers: HDR, cache: 'no-store' }).then(r => r.ok ? r.json() : null);
-  async function leer() {
-    try {
-      let d = await pedir('encuesta').catch(() => null);
-      if (d && d.ok) { aplicarSorteo(d.sorteo); aplicarEncuesta(d.encuesta); }
-      else { d = await pedir('sorteo'); if (d && d.ok) aplicarSorteo(d); }   // sin la función "encuesta" sigue funcionando el sorteo
-      decidir();
-    } catch (e) { /* sin conexión: se reintenta */ }
-    setTimeout(leer, 2000);
-  }
-  leer();
+  // Rápido solo mientras hay un sorteo o una encuesta en pantalla; en reposo basta con mirar de vez en cuando
+  const cada = () => (S.visible || E.visible) ? 3000 : 15000;
+  const pedir = n => KyoSondeo.pedir(n, null, cada() * 0.8);
+  KyoSondeo.bucle(async () => {
+    let d = await pedir('encuesta').catch(() => null);
+    if (d && d.ok) { aplicarSorteo(d.sorteo); aplicarEncuesta(d.encuesta); }
+    else { d = await pedir('sorteo'); if (d && d.ok) aplicarSorteo(d); }   // sin la función "encuesta" sigue funcionando el sorteo
+    decidir();
+  }, cada);
 })();
 </script>
 </body>
