@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cherry+Bomb+One&family=Fredoka:wght@500;600;700&family=Chakra+Petch:wght@600;700&display=swap">
 <script src="config.js"></script>
+<script src="acceso.js"></script>
 <script src="overlays/sondeo.js"></script>
 <style>
 :root{
@@ -356,7 +357,9 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 .toast.on{transform:translate(-50%,0);opacity:1;visibility:visible}
 /* Puerta de acceso */
 #puerta{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:18px;background:rgba(7,5,26,.96)}
-#puerta form{width:380px;max-width:100%;display:grid;gap:14px;text-align:center}
+#puertaCaja{width:380px;max-width:100%;display:grid;gap:14px;text-align:center}
+#puerta form{display:grid;gap:12px;margin-top:12px}
+#puertaCodigo summary{cursor:pointer;color:var(--dim);font-weight:600;font-size:14px}
 #puerta h2{margin:0;font-family:"Cherry Bomb One",sans-serif;font-weight:400;font-size:34px}
 #puerta p{margin:0;color:var(--dim)}
 #puerta .err{color:var(--bad);min-height:1.3em;font-weight:600}
@@ -416,13 +419,20 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 <body>
 
 <div id="puerta">
-  <form class="card" id="formPuerta">
+  <div class="card" id="puertaCaja">
     <h2>Kyo Estudio 🦈</h2>
-    <p>Escribe tu código de acceso<br><small style="color:var(--faint)">(es tu <b>KYO_SETUP_KEY</b> de Supabase)</small></p>
-    <input type="text" id="codigo" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Código de acceso" style="-webkit-text-security:disc;text-align:center">
-    <button class="btn pri" type="submit">Entrar</button>
+    <p id="puertaTexto">Comprobando…</p>
+    <button class="btn pri" type="button" id="btnGoogle" hidden>Entrar con Google</button>
     <div class="err" id="errPuerta" role="alert"></div>
-  </form>
+    <details id="puertaCodigo" hidden>
+      <summary>Entrar con el código de acceso</summary>
+      <form id="formPuerta">
+        <p><small style="color:var(--faint)">Es tu <b>KYO_SETUP_KEY</b> de Supabase</small></p>
+        <input type="text" id="codigo" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Código de acceso" style="-webkit-text-security:disc;text-align:center">
+        <button class="btn" type="submit">Entrar con el código</button>
+      </form>
+    </details>
+  </div>
 </div>
 
 <div class="w">
@@ -877,8 +887,9 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     </div>
     <div class="card">
       <h2>🔐 Acceso</h2>
-      <p class="nota">Este navegador recuerda tu código. Si usas otro ordenador te lo volverá a pedir.</p>
-      <div class="acciones"><button class="btn" type="button" id="btnSalir">Olvidar código en este navegador</button></div>
+      <p class="nota" id="accesoEstado">Comprobando…</p>
+      <p class="nota" id="accesoNota"></p>
+      <div class="acciones"><button class="btn pri" type="button" id="btnGoogle2" hidden>Entrar con Google</button><button class="btn" type="button" id="btnSalir">Cerrar sesión en este navegador</button></div>
     </div>
   </section>
 </div>
@@ -899,7 +910,10 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     : d.error === 'clave' ? 'Código incorrecto.' + (d.quedan ? ' Te quedan ' + d.quedan + (d.quedan === 1 ? ' intento.' : ' intentos.') : '')
     : d.error === 'falta_KYO_SETUP_KEY' ? 'Falta el secreto KYO_SETUP_KEY en Supabase.'
     : d.error === 'falta_intentos' ? 'Falta ejecutar el archivo 03_intentos.sql en el SQL Editor.'
-    : 'No se pudo comprobar el código (' + (d.error || 'sin respuesta') + ').';
+    : d.error === 'google' ? 'El código ya no sirve para entrar: usa tu cuenta de Google.'
+    : d.error === 'no_permitido' ? 'Esa cuenta de Google no tiene acceso al Estudio.'
+    : d.error === 'sesion' ? 'Tu sesión caducó. Vuelve a entrar con Google.'
+    : 'No se pudo comprobar el acceso (' + (d.error || 'sin respuesta') + ').';
   const pedir = (n, cuerpo) => fetch(FN(n), { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, HDR), body: JSON.stringify(cuerpo) }).then(r => r.json());
   function toast(t, ms = 3200) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), ms); }
 
@@ -1256,7 +1270,11 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   function comprobarTodo() { if (!$('#puerta').hidden) return; comprobarSpotify(); comprobarFortnite(false); comprobarBot(); }
   setInterval(() => { if (document.visibilityState === 'visible') comprobarTodo(); }, 5 * 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') comprobarTodo(); });
-  $('#btnSalir').addEventListener('click', () => { try { localStorage.removeItem('kyo_codigo'); } catch (e) {} location.reload(); });
+  $('#btnSalir').addEventListener('click', async () => {
+    try { localStorage.removeItem('kyo_codigo'); } catch (e) {}
+    await window.kyoAcceso.salir();
+    location.reload();
+  });
 
   // Vuelta de Spotify: #spotify=ok o #spotify=error-...
   const h = decodeURIComponent(location.hash || '');
@@ -1283,40 +1301,82 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
   }
 
   // ---------- Puerta de acceso ----------
+  // Se entra con Google (acceso.js). Mientras dure el cambio, el código de siempre también vale;
+  // cuando en Supabase está el secreto KYO_SOLO_GOOGLE, la puerta ya solo ofrece Google.
+  const A = window.kyoAcceso;
   async function verificar(c) {
-    if (!K.SUPABASE_URL || /TU-PROYECTO/.test(K.SUPABASE_URL)) return { ok: false, msg: 'Rellena config.js con tu Project URL y la anon key.' };
+    if (!K.SUPABASE_URL || /TU-PROYECTO/.test(K.SUPABASE_URL)) return { ok: false, d: {}, msg: 'Rellena config.js con tu Project URL y la anon key.' };
     try {
       const d = await pedir('spotify-auth', { accion: 'verificar', clave: c });
-      return { ok: !!d.ok, msg: d.ok ? '' : errCodigo(d), mal: d.error === 'clave' };
-    } catch (e) { return { ok: false, msg: 'No encuentro la función spotify-auth (¿creada y con "Verify JWT" desactivado?).' }; }
+      return { ok: !!d.ok, d, msg: d.ok ? '' : errCodigo(d), mal: d.error === 'clave' };
+    } catch (e) { return { ok: false, d: {}, msg: 'No encuentro la función spotify-auth (¿creada y con "Verify JWT" desactivado?).' }; }
   }
-  function entrar() {
-    $('#puerta').hidden = true; comprobarSpotify(); comprobarFortnite(false); comprobarBot();
+  // Qué ofrece la puerta: el botón de Google si está configurado, y el código mientras siga valiendo
+  function pintarPuerta(info, msg) {
+    const google = !!(info && info.googleListo), codigo = !(info && info.soloGoogle);
+    $('#btnGoogle').hidden = !google;
+    $('#puertaCodigo').hidden = !codigo;
+    $('#puertaCodigo').open = codigo && !google;
+    $('#puertaTexto').textContent = google ? 'Entra con tu cuenta de Google.' : codigo ? 'Escribe tu código de acceso.' : 'Falta configurar el acceso con Google en Supabase (mira LEEME-acceso.txt).';
+    $('#errPuerta').textContent = msg || '';
+  }
+  // La tarjeta "Acceso" de Conexiones: por dónde se entró y qué falta
+  function pintarAcceso(d) {
+    const google = d.via === 'google';
+    $('#accesoEstado').textContent = google ? 'Has entrado con Google' + (d.correo ? ' como ' + d.correo : '') + '.' : 'Has entrado con el código de acceso.';
+    $('#accesoNota').textContent = google
+      ? (d.soloGoogle ? 'El código de acceso ya no sirve para entrar: solo tu cuenta de Google.' : 'El código de acceso todavía funciona. Para cerrarlo, añade en Supabase (Edge Functions → Secrets) el secreto KYO_SOLO_GOOGLE con el valor: si')
+      : (d.googleListo ? 'Ya puedes entrar con Google, que es más seguro.' : 'Para entrar con tu cuenta de Google, sigue los pasos de LEEME-acceso.txt.');
+    $('#btnGoogle2').hidden = google || !d.googleListo;
+  }
+  function entrar(d) {
+    $('#puerta').hidden = true; pintarAcceso(d || {}); comprobarSpotify(); comprobarFortnite(false); comprobarBot();
     // Abre la última sección usada (espera a que carguen los módulos de animaciones, paneles…)
     let ult = 'spotify'; try { ult = localStorage.getItem(SECCION) || 'spotify'; } catch (e) {}
     const abrir = () => { if (actual === 'spotify') tab(grupoDe(ult) ? ult : 'spotify'); };
     if (modulosListos) abrir(); else document.addEventListener('DOMContentLoaded', abrir, { once: true });
   }
+  const aGoogle = async (b) => { b.disabled = true; try { await A.entrarConGoogle(); } catch (e) { b.disabled = false; $('#errPuerta').textContent = 'No se pudo abrir Google en este navegador.'; } };
+  $('#btnGoogle').addEventListener('click', e => aGoogle(e.currentTarget));
+  $('#btnGoogle2').addEventListener('click', e => aGoogle(e.currentTarget));
   $('#formPuerta').addEventListener('submit', async e => {
     e.preventDefault();
     const c = $('#codigo').value.trim(); if (!c) return;
     $('#errPuerta').textContent = 'Comprobando…';
     const r = await verificar(c);
-    if (r.ok) { guardar('kyo_codigo', c); $('#errPuerta').textContent = ''; entrar(); }
+    if (r.ok) { guardar('kyo_codigo', c); $('#errPuerta').textContent = ''; entrar(r.d); }
+    else if (r.d.error === 'google') pintarPuerta(r.d, r.msg);
     else $('#errPuerta').textContent = r.msg;
   });
-  const guardado = leer('kyo_codigo');
-  if (guardado) verificar(guardado).then(r => {
-    if (r.ok) return entrar();
-    // El código recordado ya no vale (p. ej. cambiaste KYO_SETUP_KEY): se olvida y se pide el nuevo
-    if (r.mal) { try { localStorage.removeItem('kyo_codigo'); } catch (e) {} $('#codigo').value = ''; $('#codigo').focus(); $('#errPuerta').textContent = 'Tu código guardado ya no vale. Escribe el nuevo.'; }
-    else $('#errPuerta').textContent = r.msg;
-  });
-  else $('#codigo').focus();
+  (async () => {
+    const ERR_VUELTA = { google: 'Google no completó el inicio de sesión. Inténtalo otra vez.', navegador: 'Empieza de nuevo: pulsa "Entrar con Google" en esta misma pestaña.', red: 'No se pudo conectar con Supabase. Inténtalo otra vez.' };
+    const vuelta = await A.alVolver();
+    let msg = vuelta.error ? ERR_VUELTA[vuelta.error] || 'No se pudo entrar con Google.' : '';
+    // 1) Con sesión de Google guardada (y vigente: se renueva sola si hace falta)
+    if (A.haySesion() && await A.token()) {
+      const r = await verificar('');
+      if (r.ok) return entrar(r.d);
+      if (r.d.error === 'no_permitido' || r.d.error === 'sesion') await A.salir();
+      return pintarPuerta(r.d, r.msg);
+    }
+    // 2) Con el código recordado en este navegador
+    const guardado = leer('kyo_codigo');
+    if (guardado) {
+      const r = await verificar(guardado);
+      if (r.ok) return entrar(r.d);
+      // El código recordado ya no vale (cambiaste KYO_SETUP_KEY, o ya solo se entra con Google): se olvida
+      if (r.mal || r.d.error === 'google') { try { localStorage.removeItem('kyo_codigo'); } catch (e) {} $('#codigo').value = ''; }
+      return pintarPuerta(r.d, msg || (r.mal ? 'Tu código guardado ya no vale.' : r.msg));
+    }
+    // 3) Sin nada: se pregunta qué puertas hay (lectura pública, no cuenta como intento)
+    let info = {};
+    try { info = await fetch(FN('spotify-auth') + '?acceso=1').then(r => r.json()); } catch (e) {}
+    pintarPuerta(info, msg);
+  })();
 
   // ---------- Copia de seguridad (ajustes de localStorage + imágenes de IndexedDB) ----------
   (() => {
-    const NO = ['kyo_codigo', 'kyo_ultima_copia'];
+    const NO = ['kyo_codigo', 'kyo_sesion', 'kyo_ultima_copia'];
     const abrirBD = () => new Promise(res => { try { const r = indexedDB.open('kyo_estudio', 1); r.onupgradeneeded = () => r.result.createObjectStore('imagenes'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); } catch (e) { res(null); } });
     const bdTodo = async () => { const db = await abrirBD(); if (!db) return {}; return new Promise(res => { const out = {}; try { const rq = db.transaction('imagenes').objectStore('imagenes').openCursor(); rq.onsuccess = () => { const c = rq.result; if (c) { out[c.key] = c.value; c.continue(); } else res(out); }; rq.onerror = () => res(out); } catch (e) { res(out); } }); };
     const bdPoner = async (k, v) => { const db = await abrirBD(); if (!db) return; await new Promise(res => { try { const tx = db.transaction('imagenes', 'readwrite'); tx.objectStore('imagenes').put(v, k); tx.oncomplete = res; tx.onerror = res; } catch (e) { res(); } }); };

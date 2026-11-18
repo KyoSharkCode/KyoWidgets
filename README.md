@@ -5,6 +5,7 @@ Widgets y animaciones propias para los directos y videos de **KyoSumiVT**, con e
 ## Qué incluye
 
 - **Kyo Estudio**: una web para personalizar cada widget con vista previa en vivo y copiar el enlace para OBS. Todo está ordenado en cuatro grupos (En directo, Crear, Mi canal y Ajustes) y con **Ctrl + K** (o `/`) saltas a cualquier sección escribiendo su nombre.
+- **Acceso con Google**: al Estudio se entra con tu cuenta de Google (Supabase Auth); cada función comprueba la sesión y que el correo sea el permitido, sin consultas extra (ver `LEEME-acceso.txt`).
 - **Música**: muestra la canción que está sonando, con cuatro diseños para ir rotando (vinilo, polaroid, casete y entrada).
 - **Fortnite**: muestra las estadísticas de la partida con diseños tipo pegatina y celebra las victorias.
 - **Contadores**: contadores personalizados (muertes, rage quits…) que se suman desde el Estudio o con un botón del Stream Deck, y se ven al momento en OBS.

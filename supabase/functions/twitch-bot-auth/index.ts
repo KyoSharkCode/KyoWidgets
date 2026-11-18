@@ -18,6 +18,7 @@
 // Secretos: TWITCH_CLIENT_SECRET, KYO_SETUP_KEY (los mismos de siempre).
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { comprobarClave } from "../_shared/acceso.ts";
 
 // ---------- Ayudantes de Twitch (iguales en las 4 funciones de AletaBot) ----------
 // El Client ID no es secreto. El Client Secret vive en Supabase Secrets (TWITCH_CLIENT_SECRET).
@@ -107,29 +108,7 @@ const cors = {
 const json = (b: unknown, s = 200) =>
   new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json; charset=utf-8" } });
 
-// ---------- Código de acceso con límite de intentos (igual que en spotify-auth y anuncios) ----------
-// Compara las huellas SHA-256 en tiempo constante (no da pistas de cuántas letras acertaste)
-async function igual(a: string, b: string) {
-  const h = async (t: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)));
-  const [x, y] = await Promise.all([h(a), h(b)]);
-  let d = 0;
-  for (let i = 0; i < x.length; i++) d |= x[i] ^ y[i];
-  return d === 0;
-}
-async function comprobarClave(db: any, req: Request, clave: unknown) {
-  const setupKey = Deno.env.get("KYO_SETUP_KEY") ?? "";
-  if (!setupKey) return { ok: false, error: "falta_KYO_SETUP_KEY" };
-  const ip = "ip:" + (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim().slice(0, 64);
-  const { data: r, error } = await db.rpc("kyo_intento", { p_ip: ip });
-  if (error || !r) return { ok: false, error: "falta_intentos" };
-  if (r.bloqueado) return { ok: false, error: "bloqueado", espera: r.espera };
-  if (!(await igual(String(clave ?? ""), setupKey))) {
-    return r.espera > 0 ? { ok: false, error: "bloqueado", espera: r.espera } : { ok: false, error: "clave", quedan: r.quedan };
-  }
-  await db.rpc("kyo_intento_ok", { p_ip: ip });
-  return { ok: true };
-}
-// -------------------------------------------------------------
+// El acceso (sesión de Google o código) se comprueba en ../_shared/acceso.ts
 
 // Vuelta al Estudio. Solo se usa la web que guardó el Estudio al pulsar "Conectar"
 const volverA = (v: string | undefined, estado: string, que = "bot") => {

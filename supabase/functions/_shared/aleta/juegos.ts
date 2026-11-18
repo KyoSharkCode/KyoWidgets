@@ -232,10 +232,12 @@ export async function comandoJuego(db: any, ev: any, texto: string, badges: stri
     return true;
   }
   if (activo && j.tipo === "historia") {
-    // un aporte del chat (uno por persona y tramo). Con bastantes aportes, AletaBot sigue sin esperar al reloj
+    // un aporte del chat (uno por persona y tramo). AletaBot sigue sin esperar al reloj si ya hay bastantes
+    // aportes, o si el tiempo del tramo ya pasó (este aporte hace entonces de despertador).
     if (!o.texto || j.resuelta) return true;
     const p = await paso(db, j.ronda, "aporte", userId, nombre, o.texto);
-    if (p.ok && (p.n || 0) >= APORTES_PARA_SEGUIR && (await paso(db, j.ronda, "tiempo")).ok) await continuarHistoria(db, ctx, j.partida, j.ronda, false, t0);
+    const toca = (p.n || 0) >= APORTES_PARA_SEGUIR || Date.now() > Date.parse(j.cierra);
+    if (p.ok && toca && (await paso(db, j.ronda, "tiempo")).ok) await continuarHistoria(db, ctx, j.partida, j.ronda, false, t0);
     return true;
   }
   if (!staff) return true;

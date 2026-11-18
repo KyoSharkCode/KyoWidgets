@@ -683,6 +683,20 @@ const chat = (db, ctx, txt, quien) => IA.atenderIA(db, mensaje(txt, quien), ctx)
   Date.now = real;
   prueba("si nadie aporta, la historia se cierra sola", ctx.dicho.at(-1).m.includes("Nadie siguió la historia") && juegoDe(db).estado === "inactivo", ctx.dicho.at(-1));
 }
+{
+  // Pasado el tiempo del tramo, un solo !historia basta para que la historia siga (aunque no haya mensajes normales)
+  const db = baseFalsa({ memoria: false }), ctx = contextoJuego(db); conReloj(db);
+  const pepa = { id: "502", login: "pepa", nombre: "Pepa" };
+  const cortado = { ...ctx, dormir: async () => { throw new Error("la espera no llega"); } };
+  await orden(db, cortado, "!historia un pez con prisa").catch(() => {});
+  await orden(db, ctx, "!historia llegó pronto", pepa);
+  igual("con un aporte y el tramo aún abierto, espera", [juegoDe(db).n, juegoDe(db).aportes.length], [1, 1]);
+  db.avanzar(80);
+  ctx.durante = [async () => { await orden(db, ctx, "!juego parar"); }];
+  await orden(db, ctx, "!historia y ahora llego tarde", pepa);
+  Date.now = real;
+  prueba("con el tramo ya pasado, ese aporte la hace seguir", ctx.dicho.some((d) => d.m.startsWith("📖 (2/5)")), ctx.dicho.map((d) => d.m));
+}
 for (const [nombre, aj] of [["juegos desactivados", { juegos: false }], ["IA en pausa", { estado: "pausada" }]]) {
   const db = baseFalsa(aj), ctx = contextoJuego(db); conReloj(db); banco(db, "trivia", 2);
   await orden(db, ctx, "!trivia");
