@@ -31,7 +31,7 @@ export { aprobarBanco, borrarBanco, comandoJuego, generarBanco, guardarPregunta,
 
 // ---------- Contexto del chat ----------
 // Los últimos mensajes guardados en kyo_chat (sin el que se está contestando, que puede haberse guardado ya)
-async function chatReciente(db: any, login: string, texto: string, cuantos = 15): Promise<Linea[]> {
+async function chatReciente(db: any, login: string, texto: string, cuantos = 20): Promise<Linea[]> {
   const { data } = await db.from("kyo_chat").select("usuario, texto").order("id", { ascending: false }).limit(cuantos + 3);
   const l: Linea[] = (data || []).reverse();
   const i = l.map((x) => x.usuario === login && x.texto === texto.slice(0, 500)).lastIndexOf(true);
@@ -93,10 +93,12 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Pro
   if (await gastoMes(db) >= aj.topeMes) return;
 
   const { data: permiso, error } = await db.rpc("kyo_ia_permiso", {
-    p_user: userId, p_directo: directo.id, p_espera: esperaPara(aj, hilo, rol === "streamer"), p_tope: aj.topeDirecto,
+    p_user: userId, p_directo: directo.id, p_espera: esperaPara(aj, hilo, rol === "streamer"),
+    p_tope: aj.topeDirecto, p_tope_persona: aj.topePersona,
   });
   if (error) { await apuntar(db, directo.id, "permiso", { ok: false, error: "api", detalle: "Falta ejecutar 09_ia.sql: " + error.message }); return; }
   if (permiso === "tope") { await ctx.decir("💤 Hmph… por hoy ya he hablado bastante. Mañana más (si me apetece) 🦈"); return; }
+  if (permiso === "tope_persona") { await ctx.decir("💤 Contigo ya he hablado de sobra por hoy. Deja algo para los demás, anda. Mañana seguimos 🦈", ev.message_id); return; }
   if (permiso !== "ok") return;
 
   // Memoria: las notas sobre quien habla (solo las suyas) van como contexto
@@ -122,7 +124,7 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Pro
   if (!await ctx.decir(p.respuesta, ev.message_id)) return;
 
   await Promise.allSettled([
-    db.rpc("kyo_ia_contar", { p_directo: directo.id }),
+    db.rpc("kyo_ia_contar", { p_directo: directo.id, p_user: userId }),
     db.from("kyo_ia_hilo").upsert({ user_id: userId, nombre: q.nombre.slice(0, 40), ...hiloNuevo(hilo, texto, p.respuesta) }),
     marcarHilo(db, userId),
   ]);
@@ -147,7 +149,8 @@ export async function comandoIA(db: any, texto: string, badges: string[], ctx: C
     ]);
     await ctx.decir(
       "🧠 IA " + NOMBRE_ESTADO[est.ajustes.estado] + (hayClave() ? "" : " (falta la clave de Claude en Supabase)") +
-      " · " + (Number(d?.respuestas) || 0) + "/" + est.ajustes.topeDirecto + " respuestas " + (directo.enVivo ? "en este directo" : "hoy fuera de directo") +
+      " · " + (Number(d?.respuestas) || 0) + (est.ajustes.topeDirecto ? "/" + est.ajustes.topeDirecto : "") + " respuestas " + (directo.enVivo ? "en este directo" : "hoy fuera de directo") +
+      " (máx. " + est.ajustes.topePersona + " por persona)" +
       " · gasto del mes ≈ " + usd(gasto) + " de " + usd(est.ajustes.topeMes) + " USD",
     );
     return true;

@@ -77,13 +77,20 @@ function baseFalsa(ajustes = {}) {
       if (nombre === "kyo_ia_permiso") {
         let d = t.kyo_directo.find((x) => x.id === a.p_directo);
         if (!d) t.kyo_directo.push(d = { id: a.p_directo, respuestas: 0, aviso_tope: false });
-        if (d.respuestas >= a.p_tope) { const ya = d.aviso_tope; d.aviso_tope = true; return Promise.resolve({ data: ya ? "tope_ya" : "tope", error: null }); }
-        const u = t.kyo_ia_turno.find((x) => x.user_id === a.p_user);
-        if (u && reloj - u.ultimo < a.p_espera * 1000) return Promise.resolve({ data: "espera", error: null });
-        if (u) u.ultimo = reloj; else t.kyo_ia_turno.push({ user_id: a.p_user, ultimo: reloj });
+        if (a.p_tope > 0 && d.respuestas >= a.p_tope) { const ya = d.aviso_tope; d.aviso_tope = true; return Promise.resolve({ data: ya ? "tope_ya" : "tope", error: null }); }
+        let u = t.kyo_ia_turno.find((x) => x.user_id === a.p_user);
+        if (!u) t.kyo_ia_turno.push(u = { user_id: a.p_user, ultimo: 0, directo: a.p_directo, respuestas: 0, aviso: false });
+        if (u.directo !== a.p_directo) Object.assign(u, { directo: a.p_directo, respuestas: 0, aviso: false });
+        if (a.p_tope_persona > 0 && u.respuestas >= a.p_tope_persona) { const ya = u.aviso; u.aviso = true; return Promise.resolve({ data: ya ? "tope_persona_ya" : "tope_persona", error: null }); }
+        if (reloj - u.ultimo < a.p_espera * 1000) return Promise.resolve({ data: "espera", error: null });
+        u.ultimo = reloj;
         return Promise.resolve({ data: "ok", error: null });
       }
-      if (nombre === "kyo_ia_contar") { const d = t.kyo_directo.find((x) => x.id === a.p_directo); if (d) d.respuestas++; return Promise.resolve({ data: d?.respuestas, error: null }); }
+      if (nombre === "kyo_ia_contar") {
+        const d = t.kyo_directo.find((x) => x.id === a.p_directo); if (d) d.respuestas++;
+        const u = t.kyo_ia_turno.find((x) => x.user_id === a.p_user && x.directo === a.p_directo); if (u) u.respuestas++;
+        return Promise.resolve({ data: d?.respuestas, error: null });
+      }
       if (nombre === "kyo_ia_gasto_mes") return Promise.resolve({ data: t.kyo_ia_uso.reduce((s, u) => s + u.coste, 0), error: null });
       if (["kyo_ia_limpiar", "kyo_viewer_limpiar", "kyo_juego_limpiar"].includes(nombre)) return Promise.resolve({ data: null, error: null });
       // ---- lo mismo que hace sql/11_juegos.sql ----
@@ -221,6 +228,9 @@ igual("puntos suspensivos sí", T.limpiarSalida("...hmph, vale"), "...hmph, vale
 igual("¡exclamación española sí!", T.limpiarSalida("¡Hola, Pepa!"), "¡Hola, Pepa!");
 igual("sin enlaces", T.limpiarSalida("mira esto https://malo.example/x y esto grifeo.com/regalo ya"), "mira esto y esto ya");
 igual("una sola línea", T.limpiarSalida("hola\n\nqué tal"), "hola qué tal");
+igual("sin el @nombre del principio (Twitch ya lo pone al responder)", T.limpiarSalida("@Nero_Cavalier_Angelo ¿Ocarina? Ya pasó de moda"), "¿Ocarina? Ya pasó de moda");
+igual("ni aunque venga dos veces o con coma", T.limpiarSalida("@Pepa, @Pepa: hola"), "hola");
+igual("una mención en medio de la frase se queda", T.limpiarSalida("eso pregúntaselo a @Kyo"), "eso pregúntaselo a @Kyo");
 igual("sin comillas alrededor", T.limpiarSalida('"H-hola"'), "H-hola");
 const larga = T.limpiarSalida("Frase uno bastante larga para la prueba. ".repeat(20));
 prueba("corta lo largo en una frase entera", larga.length <= 320 && larga.endsWith("."), larga.length);
@@ -247,7 +257,8 @@ console.log("4) Ajustes y coste");
 const lim = T.limpiarAjustes({ estado: "loca", cooldown: -5, topeDirecto: 99999, topeMes: "abc", nombres: "Aleta, tibu  x", ignorar: [] });
 igual("estado inválido → apagada", lim.estado, "apagada");
 igual("cooldown mínimo", lim.cooldown, 5);
-igual("tope del directo máximo", lim.topeDirecto, 2000);
+igual("tope del directo máximo", lim.topeDirecto, 5000);
+igual("tope del directo 0 = sin tope; por persona, 100 por defecto", [T.limpiarAjustes({ topeDirecto: 0 }).topeDirecto, T.limpiarAjustes({}).topePersona], [0, 100]);
 igual("tope del mes por defecto", lim.topeMes, 40);
 igual("nombres limpios", lim.nombres, ["aleta", "tibu"]);
 igual("lista de ignorados vacía se respeta", lim.ignorar, []);
@@ -293,7 +304,7 @@ console.log("5) Conversación completa (con Claude de mentira)");
 {
   const db = baseFalsa({ topeDirecto: 2 }), ctx = contexto();
   for (let i = 0; i < 5; i++) await turno(db, ctx, mensaje("@AletaBot hola", { id: "u" + i, login: "u" + i }));
-  igual("tope del directo: 2 respuestas + 1 aviso", ctx.dicho.length, 3);
+  igual("tope del directo (si se pone): 2 respuestas + 1 aviso", ctx.dicho.length, 3);
   prueba("el aviso del tope sale una sola vez", ctx.dicho.filter((d) => d.m.includes("por hoy")).length === 1);
   igual("y no gasta más tokens", db.t.kyo_ia_uso.length, 4);
 }
@@ -302,6 +313,21 @@ console.log("5) Conversación completa (con Claude de mentira)");
   db.t.kyo_ia_uso.push({ coste: 1.2 });
   await turno(db, ctx, mensaje("@AletaBot hola"));
   igual("tope del mes: se calla sin llamar a Claude", [ctx.dicho.length, db.t.kyo_ia_uso.length], [0, 1]);
+}
+{
+  // Tope por persona: nadie agota la IA de los demás; y sin tope general por defecto
+  const db = baseFalsa({ topePersona: 3 }), ctx = contexto();
+  igual("por defecto no hay tope general y sí por persona", [T.AJUSTES_IA.topeDirecto, T.AJUSTES_IA.topePersona], [0, 100]);
+  for (let i = 0; i < 6; i++) { db.avanzar(40); await turno(db, ctx, mensaje("@AletaBot hola " + i)); }
+  igual("una persona: 3 respuestas + 1 aviso para ella, y luego silencio", [ctx.dicho.length, ctx.dicho.filter((d) => d.m.includes("Contigo ya he hablado")).length, db.t.kyo_ia_uso.length], [4, 1, 6]);
+  await turno(db, ctx, mensaje("@AletaBot y yo qué", { id: "999", login: "otra", nombre: "Otra" }));
+  igual("a otra persona le sigue contestando", ctx.dicho.length, 5);
+  conReloj(db); await IA.comandoIA(db, "!ia", ["broadcaster"], ctx); Date.now = real;
+  prueba("!ia enseña las respuestas sin tope general y el máximo por persona", /· 4 respuestas .*máx\. 3 por persona/.test(ctx.dicho.at(-1).m), ctx.dicho.at(-1).m);
+  const otro = { ...ctx, enVivo: async () => ({ id: "directo-2", inicio: new Date().toISOString() }) };
+  db.t.kyo_ajustes = db.t.kyo_ajustes.filter((f) => f.id !== "directo"); db.avanzar(200);
+  await turno(db, otro, mensaje("@AletaBot nuevo directo"));
+  igual("en el directo siguiente su cuenta empieza de cero", ctx.dicho.length, 7);
 }
 for (const estado of ["pausada", "apagada"]) {
   const db = baseFalsa({ estado }), ctx = contexto();
@@ -362,7 +388,7 @@ for (const estado of ["pausada", "apagada"]) {
   await IA.comandoIA(db, "!ia encender", ["broadcaster"], ctx);
   igual("Kyo sí", db.t.kyo_ajustes.find((f) => f.id === "ia").datos.estado, "activa");
   await IA.comandoIA(db, "!ia", ["broadcaster"], ctx);
-  prueba("!ia enseña respuestas y gasto", /0\/150 respuestas.*0,00 de 40,00 USD/.test(ctx.dicho.at(-1).m), ctx.dicho.at(-1).m);
+  prueba("!ia enseña respuestas y gasto", /· 0 respuestas.*máx\. 100 por persona.*0,00 de 40,00 USD/.test(ctx.dicho.at(-1).m), ctx.dicho.at(-1).m);
   Date.now = real;
 }
 

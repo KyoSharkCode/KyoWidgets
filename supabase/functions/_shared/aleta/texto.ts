@@ -10,7 +10,8 @@ export type AjustesIA = {
   cooldown: number;       // segundos entre conversaciones nuevas, por persona
   esperaHilo: number;     // segundos entre turnos dentro de una conversación ya abierta
   turnosHilo: number;     // turnos rápidos seguidos antes de volver al cooldown normal
-  topeDirecto: number;    // respuestas de IA como máximo en un directo
+  topeDirecto: number;    // respuestas de IA como máximo en un directo (0 = sin tope)
+  topePersona: number;    // respuestas de IA como máximo a cada persona en un directo
   topeMes: number;        // gasto máximo del mes, en USD (al llegar, la IA se calla sola)
   soloEnDirecto: boolean; // fuera de directo solo contesta a Kyo y a sus mods (para probar)
   nombres: string[];      // palabras que cuentan como "me están hablando a mí"
@@ -27,7 +28,8 @@ export const AJUSTES_IA: AjustesIA = {
   cooldown: 30,
   esperaHilo: 6,
   turnosHilo: 6,
-  topeDirecto: 150,
+  topeDirecto: 0,
+  topePersona: 100,
   topeMes: 40,
   soloEnDirecto: true,
   nombres: ["aletabot", "aleta"],
@@ -59,7 +61,8 @@ export function limpiarAjustes(a: any): AjustesIA {
     cooldown: entero(a?.cooldown, 5, 600, d.cooldown),
     esperaHilo: entero(a?.esperaHilo, 2, 120, d.esperaHilo),
     turnosHilo: entero(a?.turnosHilo, 1, 20, d.turnosHilo),
-    topeDirecto: entero(a?.topeDirecto, 1, 2000, d.topeDirecto),
+    topeDirecto: entero(a?.topeDirecto, 0, 5000, d.topeDirecto),
+    topePersona: entero(a?.topePersona, 1, 1000, d.topePersona),
     topeMes: Number.isFinite(topeMes) ? Math.max(1, Math.min(1000, Math.round(topeMes * 100) / 100)) : d.topeMes,
     soloEnDirecto: a?.soloEnDirecto !== false,
     nombres: palabras(a?.nombres, 6, d.nombres),
@@ -136,6 +139,9 @@ export function trozosSecretos(instrucciones: string): string[] {
 export function limpiarSalida(bruto: string, secretos: string[] = [], max = 320): string {
   let t = String(bruto ?? "").replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮﻿]/g, " ").replace(/\s+/g, " ").trim();
   t = t.replace(/^["'«“]+|["'»”]+$/g, "").trim();
+  // AletaBot contesta "respondiendo" al mensaje, y Twitch ya pone delante el @nombre: si el modelo
+  // también lo escribe, saldría dos veces. Fuera las menciones del principio.
+  t = t.replace(/^(?:@[\p{L}\p{N}_]+[,:]?\s*)+/u, "").trim();
   // un bot no debe escribir comandos: fuera "/me", "/ban…", ".timeout…" y "!comando" al empezar
   t = t.replace(/^\/me\s+/i, "");
   // (un solo símbolo pegado a una letra; "...hmph" y "¡hola!" se quedan como están)
