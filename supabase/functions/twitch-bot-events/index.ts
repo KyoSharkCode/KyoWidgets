@@ -9,15 +9,16 @@
 // Y la IA: cuando alguien nombra a AletaBot (o le responde), contesta con Claude. Todo eso vive en
 // ../_shared/aleta/ (aquí solo está el enganche); se controla con !ia (tú y tus mods) y en Kyo Estudio → 🧠 IA.
 // AletaBot también recuerda a los habituales y los saluda al llegar (!misdatos, !llamame, !olvidame: cualquiera).
+// Y juega con el chat: !trivia, !adivinanza, !historia y !juego parar (tú y tus mods); !puntos y !top (cualquiera).
 // Twitch también avisa aquí de cuándo empieza y termina el directo (stream.online / stream.offline).
 //
 // "Verify JWT" debe estar DESACTIVADO en esta función (Twitch la llama sin tus claves).
 // Secretos: KYO_SETUP_KEY y TWITCH_CLIENT_SECRET (la firma se calcula con KYO_SETUP_KEY). Para la IA, ANTHROPIC_API_KEY.
 // Tablas: kyo_chat (sql/03_bot.sql), kyo_contadores + función kyo_usar (sql/04_comandos.sql) kyo_sorteo (sql/05_sorteos.sql),
-// kyo_voto + kyo_votos (sql/06_encuestas.sql) y las de la IA (sql/09_ia.sql y sql/10_viewers.sql).
+// kyo_voto + kyo_votos (sql/06_encuestas.sql) y las de la IA (sql/09_ia.sql, sql/10_viewers.sql y sql/11_juegos.sql).
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { atenderIA, comandoIA, comandoMemoria, eventoDirecto, presenciaIA, type Contexto, type Presencia } from "../_shared/aleta/ia.ts";
+import { atenderIA, comandoIA, comandoJuego, comandoMemoria, eventoDirecto, presenciaIA, type Contexto, type Presencia } from "../_shared/aleta/ia.ts";
 
 // ---------- Ayudantes de Twitch (iguales en las 4 funciones de AletaBot) ----------
 // El Client ID no es secreto. El Client Secret vive en Supabase Secrets (TWITCH_CLIENT_SECRET).
@@ -744,6 +745,8 @@ async function atender(db: any, ev: any, idBot: string, idMensaje: string, prese
   catch { /* y con los comandos !ia (p. ej. falta 09_ia.sql) */ }
   try { if (await comandoMemoria(db, ev, txt, contextoIA(db, ev, idBot))) return; }
   catch { /* y con !misdatos, !llamame, !olvidame (p. ej. falta 10_viewers.sql) */ }
+  try { if (await comandoJuego(db, ev, txt, badges, contextoIA(db, ev, idBot))) return; }
+  catch { /* y con los juegos (p. ej. falta 11_juegos.sql) */ }
 
   const c = buscarComando(await leerComandos(db), txt);
   if (!c) {

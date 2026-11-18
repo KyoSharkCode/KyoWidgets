@@ -97,6 +97,39 @@ function abrir() {
           '<div class="acciones botbarra"><input type="text" id="iaProbarTxt" maxlength="300" aria-label="Mensaje de prueba para la IA" placeholder="Aleta, ¿me echabas de menos?"><button class="btn pri" type="button" id="iaProbar">Probar</button></div>' +
           '<div class="botres" id="iaRes" hidden></div>' +
         '</div>' +
+        '<div class="card"><h2>🎮 Juegos</h2>' +
+          '<p class="nota">Trivia, adivinanzas e historia colectiva. Las preguntas salen de tu banco: Claude las escribe aquí, tú las revisas y solo se usan las que apruebes. Durante una partida de trivia o adivinanzas no se gasta IA; en la historia, AletaBot escribe un trocito cada vez.</p>' +
+          '<div class="ovestado" id="iaJgEstado">Cargando…</div>' +
+          '<label class="copiaimg"><input type="checkbox" id="iaJuegos"> Juegos activados</label>' +
+          '<div class="bopts"><label><span>Segundos por pregunta (15–60)</span><input type="number" id="iaTiempo" min="15" max="60"></label></div>' +
+          '<div class="acciones"><button class="btn pri" type="button" id="iaJgGuardar">💾 Guardar juegos</button></div>' +
+          '<h3 class="iasub">✨ Generar preguntas con Claude</h3>' +
+          '<div class="bopts">' +
+            '<label><span>Tipo</span><select id="iaGenTipo"><option value="trivia">Trivia</option><option value="adivinanza">Adivinanzas</option></select></label>' +
+            '<label><span>Cuántas</span><select id="iaGenN"><option>5</option><option selected>10</option><option>15</option><option>20</option></select></label>' +
+          '</div>' +
+          '<label class="f"><span>Tema (vacío = cultura general)</span><input type="text" id="iaGenTema" maxlength="80" placeholder="Zenless Zone Zero, anime, tiburones…"></label>' +
+          '<div class="acciones"><button class="btn pri" type="button" id="iaGenerar">✨ Generar</button><span class="nota" id="iaGenInfo"></span></div>' +
+          '<p class="nota">El tema se guarda como categoría: <code>!trivia 5 anime</code> usa solo las de «anime». Revisa siempre las respuestas antes de aprobar: Claude puede equivocarse en algún dato.</p>' +
+          '<details class="soopts"><summary>✍️ Añadir una pregunta a mano</summary>' +
+            '<div class="bopts">' +
+              '<label><span>Tipo</span><select id="iaPgTipo"><option value="trivia">Trivia</option><option value="adivinanza">Adivinanza</option></select></label>' +
+              '<label><span>Categoría (opcional)</span><input type="text" id="iaPgCat" maxlength="30"></label>' +
+            '</div>' +
+            '<label class="f"><span>Pregunta</span><input type="text" id="iaPgPregunta" maxlength="220" placeholder="¿Cómo se llama la mascota del canal?"></label>' +
+            '<label class="f"><span>Respuestas válidas (separadas por comas; la primera es la que se anuncia)</span><input type="text" id="iaPgResp" maxlength="200" placeholder="AletaBot, Aleta"></label>' +
+            '<label class="f"><span>Pista (opcional)</span><input type="text" id="iaPgPista" maxlength="120"></label>' +
+            '<div class="acciones"><button class="btn" type="button" id="iaPgGuardar">Añadir al banco</button></div>' +
+          '</details>' +
+          '<h3 class="iasub">📚 Banco de preguntas</h3>' +
+          '<div class="acciones"><select id="iaBcFiltro" aria-label="Qué preguntas ver"><option value="pendiente">Pendientes de revisar</option><option value="activa">Aprobadas</option></select><button class="btn" type="button" id="iaBcAprobar">✔ Aprobar todas</button><button class="btn" type="button" id="iaBcBorrar">🗑 Borrar pendientes</button></div>' +
+          '<div class="iatabla iabanco" id="iaBanco"></div>' +
+          '<h3 class="iasub">🏆 Puntos</h3>' +
+          '<div class="iatabla" id="iaRanking"></div>' +
+          '<div class="acciones"><button class="btn" type="button" id="iaPtsReiniciar">Poner todos los puntos a cero</button></div>' +
+          '<h3 class="iasub">📖 Últimas historias</h3>' +
+          '<div id="iaHistorias"></div>' +
+        '</div>' +
         '<div class="card"><h2>🚩 Mensajes marcados</h2>' +
           '<p class="nota">Mensajes dirigidos a AletaBot que el filtro consideró problemáticos. No les contestó.</p>' +
           '<div class="iatabla" id="iaAvisos"></div>' +
@@ -107,6 +140,11 @@ function abrir() {
           '<li><code>!ia sigue</code><span>la reanuda después de una pausa (tú y tus mods)</span></li>' +
           '<li><code>!ia apagar</code><span>la apaga del todo (tú y tus mods)</span></li>' +
           '<li><code>!ia encender</code><span>la vuelve a encender después de apagarla (solo tú)</span></li>' +
+          '<li><code>!trivia</code> · <code>!trivia 8 anime</code><span>empieza una trivia (5 preguntas, o las que digas y de la categoría que digas) (tú y tus mods)</span></li>' +
+          '<li><code>!adivinanza</code><span>empieza una ronda de adivinanzas (tú y tus mods)</span></li>' +
+          '<li><code>!historia tema</code><span>empieza una historia colectiva; el chat la continúa con <b>!historia y su frase</b>. <b>!historia fin</b> la termina (tú y tus mods)</span></li>' +
+          '<li><code>!juego parar</code><span>para el juego en marcha (tú y tus mods)</span></li>' +
+          '<li><code>!puntos</code> · <code>!top</code><span>sus puntos y los 5 primeros (cualquiera)</span></li>' +
           '<li><code>!misdatos</code><span>AletaBot le dice a esa persona lo que recuerda de ella (cualquiera)</span></li>' +
           '<li><code>!llamame Apodo</code><span>le dice cómo quiere que la llame (cualquiera)</span></li>' +
           '<li><code>!olvidame</code><span>borra todo lo que recuerda de esa persona y no guarda nada más (cualquiera)</span></li>' +
@@ -139,6 +177,7 @@ function abrir() {
     $('#iaEsperaHilo', app).value = a.esperaHilo; $('#iaTurnosHilo', app).value = a.turnosHilo;
     $('#iaSoloDirecto', app).checked = a.soloEnDirecto !== false;
     $('#iaNombres', app).value = (a.nombres || []).join(', '); $('#iaIgnorar', app).value = (a.ignorar || []).join(', ');
+    $('#iaJuegos', app).checked = a.juegos !== false; $('#iaTiempo', app).value = a.tiempoPregunta;
     $('#iaMemoria', app).checked = a.memoria !== false; $('#iaSaludos', app).checked = a.saludos !== false; $('#iaSaludarDesde', app).value = a.saludarDesde;
 
     const r = d.resumen || { mes: 0, directos: [] };
@@ -228,6 +267,76 @@ function abrir() {
     catch (er) { aviso('No encuentro la función aleta-ia.', 5000); b.disabled = false; }
   });
   leerViewers();
+
+  // ---------- Juegos ----------
+  const NOMBRE_JUEGO = { trivia: 'una trivia', adivinanza: 'una ronda de adivinanzas', historia: 'una historia colectiva' };
+  let juegos = null;
+  function pintarJuegos(d) {
+    juegos = d;
+    const je = $('#iaJgEstado', app), t = d.totales || {}, tr = t.trivia || {}, ad = t.adivinanza || {};
+    if (d.sql === false) { je.className = 'ovestado mal'; je.textContent = 'Falta ejecutar 11_juegos.sql en Supabase (SQL Editor).'; }
+    else {
+      je.className = 'ovestado ' + (d.juego ? 'pend' : 'ok');
+      je.textContent = (d.juego ? '🎮 Ahora mismo hay ' + NOMBRE_JUEGO[d.juego.tipo] + ' en marcha (' + d.juego.n + '/' + d.juego.total + '). ' : '') +
+        'Trivia: ' + num(tr.activas) + ' aprobadas, ' + num(tr.pendientes) + ' pendientes · Adivinanzas: ' + num(ad.activas) + ' aprobadas, ' + num(ad.pendientes) + ' pendientes.';
+    }
+    const filtro = $('#iaBcFiltro', app).value, lista = (d.preguntas || []).filter(x => x.estado === filtro);
+    $('#iaBcAprobar', app).hidden = $('#iaBcBorrar', app).hidden = filtro !== 'pendiente' || !lista.length;
+    $('#iaBanco', app).innerHTML = lista.length
+      ? '<table><thead><tr><th>Pregunta</th><th>Respuestas</th><th></th></tr></thead><tbody>' + lista.map(x =>
+          '<tr><td>' + esc(x.pregunta) + '<small>' + (x.tipo === 'trivia' ? 'Trivia' : 'Adivinanza') + (x.categoria ? ' · ' + esc(x.categoria) : '') + (x.pista ? ' · pista: ' + esc(x.pista) : '') + (x.usos ? ' · usada ' + num(x.usos) + (x.usos === 1 ? ' vez' : ' veces') : '') + '</small></td>' +
+          '<td>' + (x.respuestas || []).map(esc).join('<br>') + '</td>' +
+          '<td>' + (x.estado === 'pendiente' ? '<button class="btn" type="button" data-aprobar="' + x.id + '" aria-label="Aprobar esta pregunta">✔</button> ' : '') + '<button class="btn" type="button" data-quitar="' + x.id + '" aria-label="Borrar esta pregunta">🗑</button></td></tr>').join('') + '</tbody></table>'
+      : '<p class="nota">' + (filtro === 'pendiente' ? 'No hay preguntas pendientes de revisar.' : 'Todavía no hay preguntas aprobadas. Genera unas cuantas arriba y apruébalas.') + '</p>';
+    $('#iaRanking', app).innerHTML = (d.ranking || []).length
+      ? '<table><thead><tr><th>Quién</th><th>Puntos</th></tr></thead><tbody>' + d.ranking.map((x, i) => '<tr><td>' + (i + 1) + '. ' + esc(x.nombre) + '</td><td>' + num(x.puntos) + '</td></tr>').join('') + '</tbody></table>'
+      : '<p class="nota">Todavía no hay puntos.</p>';
+    $('#iaPtsReiniciar', app).hidden = !(d.ranking || []).length;
+    $('#iaHistorias', app).innerHTML = (d.historias || []).length
+      ? d.historias.map(h => '<details class="soopts"><summary>' + esc(h.tema || 'Sin tema') + ' · ' + esc(fecha(h.ts)) + '</summary><p class="nota iahistoria">' + esc(h.texto) + '</p>' + ((h.autores || []).length ? '<p class="nota">Con: ' + h.autores.map(esc).join(', ') + '</p>' : '') + '</details>').join('')
+      : '<p class="nota">Aún no se ha terminado ninguna historia.</p>';
+  }
+  async function pedirJuegos(cuerpo, hecho, boton) {
+    if (boton) boton.disabled = true;
+    let d = null;
+    try {
+      d = await pedir(cuerpo);
+      if (d.ok) { pintarJuegos(d); if (hecho) aviso(typeof hecho === 'function' ? hecho(d) : hecho); }
+      else if (cuerpo.accion === 'juegos') { const je = $('#iaJgEstado', app); je.className = 'ovestado mal'; je.textContent = errTexto(d); }
+      else aviso(d.error === 'pregunta' ? 'Esa pregunta no vale: necesita un texto de al menos 8 letras, una respuesta, y que la respuesta no esté dentro de la pregunta.' : errTexto(d, true), 6000);
+    } catch (e) { aviso('No encuentro la función aleta-ia.', 5000); }
+    if (boton) boton.disabled = false;
+    return d;
+  }
+  $('#iaJgGuardar', app).addEventListener('click', e => {
+    if (!st.d) return;
+    guardar({ ajustes: Object.assign({}, st.d.ajustes, { juegos: $('#iaJuegos', app).checked, tiempoPregunta: $('#iaTiempo', app).value }) }, 'Juegos guardados ✓', e.currentTarget);
+  });
+  $('#iaGenerar', app).addEventListener('click', async e => {
+    const info = $('#iaGenInfo', app);
+    info.textContent = 'Claude está escribiendo… (puede tardar medio minuto)';
+    const d = await pedirJuegos({ accion: 'generarBanco', tipo: $('#iaGenTipo', app).value, tema: $('#iaGenTema', app).value, n: $('#iaGenN', app).value }, null, e.currentTarget);
+    info.textContent = d && d.ok ? (d.nuevas ? d.nuevas + (d.nuevas === 1 ? ' pregunta nueva' : ' preguntas nuevas') + ' para revisar · ' + usd(d.coste) + ' USD' : 'No salió ninguna pregunta nueva (quizá ya las tenías). Prueba con otro tema.') : '';
+    if (d && d.ok && d.nuevas) { $('#iaBcFiltro', app).value = 'pendiente'; pintarJuegos(d); }
+  });
+  $('#iaPgGuardar', app).addEventListener('click', async e => {
+    const d = await pedirJuegos({ accion: 'guardarPregunta', tipo: $('#iaPgTipo', app).value, categoria: $('#iaPgCat', app).value, pregunta: $('#iaPgPregunta', app).value, respuestas: $('#iaPgResp', app).value, pista: $('#iaPgPista', app).value }, 'Pregunta añadida y aprobada ✓', e.currentTarget);
+    if (d && d.ok) ['#iaPgPregunta', '#iaPgResp', '#iaPgPista'].forEach(q => { $(q, app).value = ''; });
+  });
+  $('#iaBcFiltro', app).addEventListener('change', () => { if (juegos) pintarJuegos(juegos); });
+  const dosVeces = (b, texto, hacer) => {
+    if (!b.dataset.seguro) { b.dataset.seguro = '1'; b.dataset.antes = b.textContent; b.textContent = texto; setTimeout(() => { if (b.dataset.seguro) { delete b.dataset.seguro; b.textContent = b.dataset.antes; } }, 3000); return; }
+    delete b.dataset.seguro; b.textContent = b.dataset.antes; hacer();
+  };
+  $('#iaBcAprobar', app).addEventListener('click', e => pedirJuegos({ accion: 'aprobarBanco', todas: true }, 'Preguntas aprobadas ✓', e.currentTarget));
+  $('#iaBcBorrar', app).addEventListener('click', e => { const b = e.currentTarget; dosVeces(b, '¿Borrar todas las pendientes?', () => pedirJuegos({ accion: 'borrarBanco', pendientes: true }, 'Pendientes borradas 🫧', b)); });
+  $('#iaPtsReiniciar', app).addEventListener('click', e => { const b = e.currentTarget; dosVeces(b, '¿Seguro? Se pierden todos los puntos', () => pedirJuegos({ accion: 'reiniciarPuntos' }, 'Puntos a cero ✓', b)); });
+  $('#iaBanco', app).addEventListener('click', e => {
+    const a = e.target.closest('[data-aprobar]'), q = e.target.closest('[data-quitar]');
+    if (a) pedirJuegos({ accion: 'aprobarBanco', ids: [Number(a.dataset.aprobar)] }, null, a);
+    else if (q) dosVeces(q, '¿Borrar?', () => pedirJuegos({ accion: 'borrarBanco', id: Number(q.dataset.quitar) }, null, q));
+  });
+  pedirJuegos({ accion: 'juegos' });
 
   async function probar() {
     const txt = $('#iaProbarTxt', app).value.trim(), res = $('#iaRes', app), b = $('#iaProbar', app);

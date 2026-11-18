@@ -127,7 +127,11 @@ export async function comandoMemoria(db: any, ev: any, texto: string, ctx: Conte
 
   const { data, error } = await pedir(o.orden === "olvidar" ? "olvidar" : o.orden === "recordar" ? "recordar" : "ver");
   if (error || !data || data.estado === "espera") return true;
-  if (o.orden === "olvidar") { _resueltos.ids.add(userId); await responder(TXT_MEMORIA.olvidado(nombre)); }
+  if (o.orden === "olvidar") {
+    _resueltos.ids.add(userId);
+    await db.from("kyo_puntos").delete().eq("user_id", userId); // también sus puntos de los juegos (si existe la tabla)
+    await responder(TXT_MEMORIA.olvidado(nombre));
+  }
   else if (o.orden === "recordar") await responder(TXT_MEMORIA.recordar(nombre));
   else if (data.estado === "sin_memoria") await responder(TXT_MEMORIA.sinMemoria(nombre));
   else await responder(textoMisDatos(nombre, aPerfil(data.perfil)));
@@ -149,6 +153,7 @@ export async function borrarViewer(db: any, userId: unknown) {
   if (!id) return { ok: false, error: "viewer" };
   const { error } = await db.from("kyo_viewer").delete().eq("user_id", id);
   await db.from("kyo_ia_hilo").delete().eq("user_id", id);
+  await db.from("kyo_puntos").delete().eq("user_id", id);
   return error ? { ok: false, error: "sql" } : { ok: true };
 }
 

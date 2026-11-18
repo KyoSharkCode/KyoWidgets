@@ -7,6 +7,7 @@
 // va para AletaBot se lee junto, en una sola consulta, y se recuerda unos segundos.
 
 import { AJUSTES_IA, HILO_SIGUE, limpiarAjustes, type AjustesIA, type Uso } from "./texto.ts";
+import { aJuego, juegoActivo, type Juego } from "./juegos-texto.ts";
 import type { Llamada } from "./claude.ts";
 
 // Lo que twitch-bot-events le presta a la IA para hablar con Twitch
@@ -16,20 +17,24 @@ export type Contexto = {
   decir: (mensaje: string, responderA?: string) => Promise<boolean>;
   // pregunta a Twitch si el canal está en directo: {id, inicio}, null si no, undefined si Twitch no contestó
   enVivo: () => Promise<{ id: string; inicio: string } | null | undefined>;
+  // esperar unos milisegundos (los juegos lo usan para los tiempos; las pruebas lo sustituyen por un reloj de mentira)
+  dormir?: (ms: number) => Promise<void>;
 };
 
 export type Directo = { id: string; inicio: string; enVivo: boolean; fuente: "eventsub" | "helix"; visto: string };
 // hilos: con quién acaba de hablar AletaBot (id de Twitch → cuándo le contestó, en milisegundos)
-export type Estado = { ajustes: AjustesIA; personalidad: string; directo: Directo | null; hilos: Record<string, number> };
+// juego: el juego en marcha (trivia, adivinanzas o historia), si lo hay
+export type Estado = { ajustes: AjustesIA; personalidad: string; directo: Directo | null; hilos: Record<string, number>; juego: Juego };
 
 export const ahoraISO = () => new Date(Date.now()).toISOString();
 const hace = (iso: string | undefined) => (iso ? Date.now() - Date.parse(iso) : Infinity);
 
-// ---------- Ajustes, personalidad, directo y conversaciones abiertas (una sola consulta, recordada 15 s) ----------
+// ---------- Ajustes, personalidad, directo, conversaciones abiertas y juego (una sola consulta, recordada 15 s) ----------
+// Mientras hay un juego en marcha se recuerda solo 2 s: las respuestas del chat tienen que compararse con la pregunta actual.
 let _estado: { ts: number; e: Estado } | null = null;
 export async function leerEstado(db: any, fresco = false): Promise<Estado> {
-  if (!fresco && _estado && Date.now() - _estado.ts < 15_000) return _estado.e;
-  const { data } = await db.from("kyo_ajustes").select("id, datos").in("id", ["ia", "ia_personalidad", "directo", "ia_hilos"]);
+  if (!fresco && _estado && Date.now() - _estado.ts < (juegoActivo(_estado.e.juego) ? 2000 : 15_000)) return _estado.e;
+  const { data } = await db.from("kyo_ajustes").select("id, datos").in("id", ["ia", "ia_personalidad", "directo", "ia_hilos", "juego"]);
   const fila = (id: string) => (data || []).find((r: any) => r.id === id)?.datos;
   const d = fila("directo");
   const e: Estado = {
@@ -37,6 +42,7 @@ export async function leerEstado(db: any, fresco = false): Promise<Estado> {
     personalidad: String(fila("ia_personalidad")?.texto || ""),
     directo: d?.id ? d : null,
     hilos: fila("ia_hilos") || {},
+    juego: aJuego(fila("juego")),
   };
   _estado = { ts: Date.now(), e };
   return e;
@@ -48,6 +54,18 @@ async function guardarFila(db: any, id: string, datos: unknown) {
 export const guardarAjustes = (db: any, a: unknown) => guardarFila(db, "ia", limpiarAjustes(a));
 export const guardarPersonalidad = (db: any, texto: unknown) =>
   guardarFila(db, "ia_personalidad", { texto: String(texto ?? "").replace(/\r/g, "").trim().slice(0, 4000) });
+
+// El juego en marcha: se guarda y se actualiza lo recordado en memoria
+export async function guardarJuego(db: any, j: Juego) {
+  await db.from("kyo_ajustes").upsert({ id: "juego", datos: j, updated_at: ahoraISO() });
+  if (_estado) _estado.e.juego = j;
+}
+export async function leerJuego(db: any): Promise<Juego> {
+  const { data } = await db.from("kyo_ajustes").select("datos").eq("id", "juego").maybeSingle();
+  const j = aJuego(data?.datos);
+  if (_estado) _estado.e.juego = j;
+  return j;
+}
 
 // AletaBot acaba de contestar a alguien: se apunta para que su siguiente mensaje, aunque no la nombre,
 // pueda contar como continuación. Así no hay que consultar la conversación de cada persona que escribe.
@@ -88,6 +106,7 @@ export async function eventoDirecto(db: any, tipo: string, ev: any) {
     // de paso, borra conversaciones y registros viejos, y los perfiles de quien no viene desde hace un año
     await db.rpc("kyo_ia_limpiar");
     await db.rpc("kyo_viewer_limpiar");
+    await db.rpc("kyo_juego_limpiar");
   } else if (tipo === "stream.offline") {
     const { directo } = await leerEstado(db, true);
     await guardarFila(db, "directo", { id: directo?.id || "ninguno", inicio: directo?.inicio || ahoraISO(), enVivo: false, fuente: "eventsub", visto: ahoraISO() });

@@ -18,6 +18,8 @@ export type AjustesIA = {
   memoria: boolean;       // recordar a los viewers (perfil pequeño por persona)
   saludos: boolean;       // saludar a los habituales cuando llegan (una vez por directo)
   saludarDesde: number;   // a partir de cuántos directos alguien cuenta como habitual
+  juegos: boolean;        // trivia, adivinanzas e historia colectiva
+  tiempoPregunta: number; // segundos para contestar cada pregunta de trivia (las adivinanzas, un 50 % más)
 };
 
 export const AJUSTES_IA: AjustesIA = {
@@ -33,6 +35,8 @@ export const AJUSTES_IA: AjustesIA = {
   memoria: true,
   saludos: true,
   saludarDesde: 3,
+  juegos: true,
+  tiempoPregunta: 30,
 };
 
 const entero = (v: unknown, min: number, max: number, def: number) => {
@@ -63,6 +67,8 @@ export function limpiarAjustes(a: any): AjustesIA {
     memoria: a?.memoria !== false,
     saludos: a?.saludos !== false,
     saludarDesde: entero(a?.saludarDesde, 2, 100, d.saludarDesde),
+    juegos: a?.juegos !== false,
+    tiempoPregunta: entero(a?.tiempoPregunta, 15, 60, d.tiempoPregunta),
   };
 }
 

@@ -8,6 +8,7 @@
 //   4. Sonnet: la respuesta, con la personalidad en caché + los últimos mensajes + el hilo con esa persona.
 //   5. Código: se limpia la respuesta y se apuntan los tokens gastados.
 //
+// Fase 3 (juegos.ts): si hay una trivia o una adivinanza en marcha, antes de nada se mira si el mensaje acierta.
 // Fase 2 (memoria.ts): si se conoce a quien habla, sus notas van como contexto (<perfil>) y el filtro
 // puede proponer un dato nuevo que recordar.
 //
@@ -21,9 +22,12 @@ import { instrucciones, mensajeFiltro, mensajesChat, type Linea, type Quien, typ
 import { conversar, filtrar, hayClave } from "./claude.ts";
 import { apuntar, directoActual, gastoMes, guardarAjustes, leerEstado, marcarHilo, type Contexto } from "./estado.ts";
 import { guardarRecuerdo, leerPerfil, type Presencia } from "./memoria.ts";
+import { atenderJuego } from "./juegos.ts";
+import { juegoActivo } from "./juegos-texto.ts";
 
 export { eventoDirecto, guardarAjustes, guardarPersonalidad, type Contexto } from "./estado.ts";
 export { borrarViewer, comandoMemoria, listarViewers, presenciaIA, probarSaludo, type Presencia } from "./memoria.ts";
+export { aprobarBanco, borrarBanco, comandoJuego, generarBanco, guardarPregunta, reiniciarPuntos, resumenJuegos } from "./juegos.ts";
 
 // ---------- Contexto del chat ----------
 // Los últimos mensajes guardados en kyo_chat (sin el que se está contestando, que puede haberse guardado ya)
@@ -60,6 +64,7 @@ async function pensar(db: any, o: { directo: string; chat: Linea[]; hilo: Hilo; 
 // Lo llama twitch-bot-events con cada mensaje que no era un comando. "presencia" es lo que
 // presenciaIA averiguó de quien escribe al contar su visita (si la contó con este mismo mensaje).
 export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Promise<Presencia>): Promise<void> {
+  const t0 = Date.now();
   const bruto = String(ev?.message?.text || "").trim();
   if (!bruto || bruto.startsWith("!")) return;
   // chat compartido con otro canal: solo se contesta a los mensajes escritos en el canal de Kyo
@@ -70,6 +75,9 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Pro
   const est = await leerEstado(db);
   const aj = est.ajustes;
   if (aj.estado !== "activa" || !hayClave() || aj.ignorar.includes(login)) return;
+
+  // Juegos: ¿este mensaje acierta la pregunta en marcha? (y, de paso, hace de despertador si un tiempo se pasó)
+  if (aj.juegos && juegoActivo(est.juego) && await atenderJuego(db, ev, ctx, est, t0)) return;
 
   // Un mensaje normal (ni la nombra ni estaba hablando con ella) termina aquí, sin consultar nada más
   let disparo = detectar(ev, ctx.idBot, aj.nombres);
