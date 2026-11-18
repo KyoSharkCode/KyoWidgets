@@ -7,7 +7,10 @@
 
 import Anthropic from "npm:@anthropic-ai/sdk@1.10.0";
 import { costeDe, MODELO_CHAT, MODELO_TAREAS, usoDe, type Uso } from "./texto.ts";
-import { FILTRO_ESQUEMA, FILTRO_SISTEMA, leerVeredicto, type Veredicto } from "./prompt.ts";
+import {
+  APODO_ESQUEMA, APODO_SISTEMA, BANCO_ESQUEMA, FILTRO_ESQUEMA, FILTRO_SISTEMA, HISTORIA_SISTEMA, instruccionesBanco,
+  leerApodoVale, leerBanco, leerVeredicto, mensajeApodo, mensajeBanco, type Veredicto,
+} from "./prompt.ts";
 
 export const hayClave = () => !!(Deno.env.get("ANTHROPIC_API_KEY") ?? "").trim();
 
@@ -34,24 +37,50 @@ function fallo(e: unknown): Llamada<never> {
 
 const textoDe = (m: Anthropic.Message) => m.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
 
-// Filtro previo. valor = null cuando el modelo no dio un veredicto válido (se trata como "no contestar").
-export async function filtrar(contenido: string): Promise<Llamada<Veredicto | null>> {
+// Una tarea corta para Haiku. Con "esquema" contesta en JSON con esa forma; sin él, texto normal.
+// valor = "" si el modelo se niega a contestar.
+async function haiku(sistema: string, contenido: string, maxTokens: number, esquema?: Record<string, unknown>, esperaMs?: number): Promise<Llamada<string>> {
   const c = cliente();
   if (!c) return { ok: false, error: "sin_clave", detalle: "Falta el secreto ANTHROPIC_API_KEY" };
   try {
     const m = await c.messages.create({
       model: MODELO_TAREAS,
-      max_tokens: 200,
-      system: [{ type: "text", text: FILTRO_SISTEMA, cache_control: { type: "ephemeral" } }],
-      thinking: { type: "disabled" }, // clasificar no necesita razonar: así no se pagan tokens de pensamiento
-      output_config: { effort: "low", format: { type: "json_schema", schema: FILTRO_ESQUEMA } },
+      max_tokens: maxTokens,
+      system: [{ type: "text", text: sistema, cache_control: { type: "ephemeral" } }],
+      thinking: { type: "disabled" }, // son tareas mecánicas: sin razonamiento no se pagan tokens de pensamiento
+      output_config: esquema ? { effort: "low", format: { type: "json_schema", schema: esquema } } : { effort: "low" },
       messages: [{ role: "user", content: contenido }],
-    });
+    }, esperaMs ? { timeout: esperaMs } : undefined);
     const uso = usoDe(m.usage);
-    const valor = m.stop_reason === "refusal" ? null : leerVeredicto(textoDe(m));
-    return { ok: true, valor, modelo: MODELO_TAREAS, uso, coste: costeDe(MODELO_TAREAS, uso) };
+    return { ok: true, valor: m.stop_reason === "refusal" ? "" : textoDe(m), modelo: MODELO_TAREAS, uso, coste: costeDe(MODELO_TAREAS, uso) };
   } catch (e) { return fallo(e); }
 }
+
+// Filtro previo. valor = null cuando el modelo no dio un veredicto válido (se trata como "no contestar").
+export async function filtrar(contenido: string): Promise<Llamada<Veredicto | null>> {
+  const r = await haiku(FILTRO_SISTEMA, contenido, 300, FILTRO_ESQUEMA);
+  return r.ok ? { ...r, valor: leerVeredicto(r.valor) } : r;
+}
+
+// El saludo a los habituales que llegan. valor = "" si no salió nada (se usa uno de repuesto).
+export const escribirSaludo = (sistema: string, contenido: string): Promise<Llamada<string>> => haiku(sistema, contenido, 160);
+
+// ¿Se puede usar este apodo en público? (para !llamame)
+export async function revisarApodo(apodo: string): Promise<Llamada<boolean>> {
+  const r = await haiku(APODO_SISTEMA, mensajeApodo(apodo), 60, APODO_ESQUEMA);
+  return r.ok ? { ...r, valor: leerApodoVale(r.valor) } : r;
+}
+
+// Genera preguntas de trivia o adivinanzas para el banco (desde el Estudio, antes de jugar).
+// Devuelve lo que escribió el modelo sin limpiar: quien llama lo pasa por limpiarPregunta.
+export async function generarPreguntas(tipo: "trivia" | "adivinanza", tema: string, n: number): Promise<Llamada<unknown[]>> {
+  // es una respuesta larga (hasta 20 preguntas): se le da más tiempo que a un mensaje de chat
+  const r = await haiku(instruccionesBanco(tipo), mensajeBanco(tema, n), 400 + n * 220, BANCO_ESQUEMA, 90_000);
+  return r.ok ? { ...r, valor: leerBanco(r.valor) } : r;
+}
+
+// Un trozo de la historia colectiva. valor = "" si no salió nada.
+export const escribirHistoria = (contenido: string): Promise<Llamada<string>> => haiku(HISTORIA_SISTEMA, contenido, 200);
 
 // La respuesta de AletaBot. valor = "" cuando el modelo se niega a contestar (AletaBot se calla).
 export async function conversar(sistema: string, mensajes: Anthropic.MessageParam[]): Promise<Llamada<string>> {

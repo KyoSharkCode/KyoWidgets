@@ -15,6 +15,11 @@ export type AjustesIA = {
   soloEnDirecto: boolean; // fuera de directo solo contesta a Kyo y a sus mods (para probar)
   nombres: string[];      // palabras que cuentan como "me están hablando a mí"
   ignorar: string[];      // otras cuentas bot a las que nunca contesta
+  memoria: boolean;       // recordar a los viewers (perfil pequeño por persona)
+  saludos: boolean;       // saludar a los habituales cuando llegan (una vez por directo)
+  saludarDesde: number;   // a partir de cuántos directos alguien cuenta como habitual
+  juegos: boolean;        // trivia, adivinanzas e historia colectiva
+  tiempoPregunta: number; // segundos para contestar cada pregunta de trivia (las adivinanzas, un 50 % más)
 };
 
 export const AJUSTES_IA: AjustesIA = {
@@ -27,6 +32,11 @@ export const AJUSTES_IA: AjustesIA = {
   soloEnDirecto: true,
   nombres: ["aletabot", "aleta"],
   ignorar: ["streamelements", "nightbot", "streamlabs", "moobot", "fossabot", "sery_bot", "wizebot"],
+  memoria: true,
+  saludos: true,
+  saludarDesde: 3,
+  juegos: true,
+  tiempoPregunta: 30,
 };
 
 const entero = (v: unknown, min: number, max: number, def: number) => {
@@ -54,6 +64,11 @@ export function limpiarAjustes(a: any): AjustesIA {
     soloEnDirecto: a?.soloEnDirecto !== false,
     nombres: palabras(a?.nombres, 6, d.nombres),
     ignorar: a?.ignorar === undefined ? d.ignorar : palabras(a?.ignorar, 30, []),
+    memoria: a?.memoria !== false,
+    saludos: a?.saludos !== false,
+    saludarDesde: entero(a?.saludarDesde, 2, 100, d.saludarDesde),
+    juegos: a?.juegos !== false,
+    tiempoPregunta: entero(a?.tiempoPregunta, 15, 60, d.tiempoPregunta),
   };
 }
 
@@ -222,4 +237,101 @@ export function hiloNuevo(h: Hilo, pregunta: string, respuesta: string, ahora = 
   const vivo = hiloVivo(h, ahora);
   const turnos = [...(vivo ? h!.turnos : []), { r: "u" as const, t: pregunta }, { r: "a" as const, t: respuesta }].slice(-8);
   return { turnos, seguidos: (vivo ? h!.seguidos : 0) + 1, actualizado: new Date(ahora).toISOString() };
+}
+
+// ---------- Memoria de viewers (fase 2) ----------
+// Lo poco que AletaBot recuerda de cada persona. Solo guarda lo que esa persona le cuenta a ella.
+export type Perfil = { nombre: string; apodo: string | null; directos: number; primera: string; datos: string[] };
+export const DATOS_MAX = 3;
+
+export const nombreDe = (p: { nombre: string; apodo?: string | null }) => p.apodo || p.nombre;
+
+// Lo que llega de la base de datos, con forma segura
+export function aPerfil(f: any): Perfil | null {
+  if (!f) return null;
+  return {
+    nombre: limpiarNombre(f.nombre || f.login),
+    apodo: f.apodo ? limpiarApodo(f.apodo) || null : null,
+    directos: Number(f.directos) || 0,
+    primera: String(f.primera || ""),
+    datos: (Array.isArray(f.datos) ? f.datos : []).map((d: unknown) => limpiarDato(d)).filter(Boolean).slice(-DATOS_MAX),
+  };
+}
+
+// Un apodo: letras, números y poco más, corto. "" si no vale.
+export function limpiarApodo(s: unknown): string {
+  const t = String(s ?? "").replace(/^@+/, "").replace(/[^\p{L}\p{N}_ .-]/gu, "").replace(/\s+/g, " ").trim();
+  return cortar(t, 20).trim();
+}
+
+// Un dato recordado: una frase corta, en una línea. "" si no vale.
+export function limpiarDato(s: unknown): string {
+  const t = limpiarEntrada(s, 90).replace(/[.。]+$/, "").trim();
+  return Array.from(t).length >= 4 ? t : "";
+}
+
+// Añade un dato nuevo: si repite uno que ya había, lo sustituye; si no caben más, sale el más viejo.
+export function fusionarDatos(datos: string[], nuevo: string, max = DATOS_MAX): string[] {
+  const n = normalizar(nuevo);
+  const sinRepetir = datos.filter((d) => { const v = normalizar(d); return !(v === n || v.includes(n) || n.includes(v)); });
+  return [...sinRepetir, nuevo].slice(-max);
+}
+
+const mesAnio = (iso: string) => { const d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toLocaleDateString("es", { month: "long", year: "numeric" }); };
+
+// Las notas sobre quien habla, tal como las ve el modelo. "" si no hay nada que contar.
+export function perfilTexto(p: Perfil | null, primerMensajeHoy = false): string {
+  if (!p) return "";
+  const l: string[] = [];
+  if (p.apodo) l.push("Prefiere que le llamen: " + p.apodo);
+  if (p.directos > 0) l.push("Directos en los que ha estado: " + p.directos + (mesAnio(p.primera) ? " (viene desde " + mesAnio(p.primera) + ")" : ""));
+  if (p.datos.length) l.push("Cosas que te ha contado: " + p.datos.join("; "));
+  if (primerMensajeHoy && p.directos > 1) l.push("Es su primer mensaje de este directo.");
+  return l.length ? "<perfil>\n" + l.join("\n") + "\n</perfil>\n" : "";
+}
+
+// ---------- Comandos de memoria (cualquiera del chat) ----------
+export type OrdenMemoria = { orden: "olvidar" | "recordar" | "ver" | "apodo"; valor: string };
+export function leerOrdenMemoria(texto: string): OrdenMemoria | null {
+  const t = String(texto || "").trim();
+  const primera = normalizar(t.split(/\s+/)[0] || "");
+  const resto = t.slice((t.split(/\s+/)[0] || "").length).trim();
+  if (["!olvidame", "!olvidarme", "!borrarmisdatos"].includes(primera)) return { orden: "olvidar", valor: "" };
+  if (primera === "!recuerdame") return { orden: "recordar", valor: "" };
+  if (primera === "!misdatos") return { orden: "ver", valor: "" };
+  if (primera === "!llamame") return { orden: "apodo", valor: resto };
+  return null;
+}
+
+// Lo que contesta AletaBot a !misdatos
+export function textoMisDatos(nombre: string, p: Perfil | null): string {
+  if (!p) return "🫧 " + nombre + ": no guardo nada de ti.";
+  const d = new Date(p.primera);
+  const desde = isNaN(d.getTime()) ? "" : d.toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
+  return "📋 " + nombre + ": " +
+    (p.apodo ? "te llamo " + p.apodo + ", " : "") +
+    (desde ? "te vi por primera vez el " + desde + ", " : "") +
+    "has estado en " + p.directos + (p.directos === 1 ? " directo" : " directos") +
+    (p.datos.length ? " y recuerdo: " + p.datos.join("; ") : " y no recuerdo nada más") +
+    ". Para borrarlo todo: !olvidame";
+}
+
+export const TXT_MEMORIA = {
+  olvidado: (n: string) => "🫧 Hecho, " + n + ": he borrado todo lo que recordaba de ti y no guardaré nada más. Si cambias de idea: !recuerdame",
+  recordar: (n: string) => "✨ Vale, " + n + ": a partir de ahora vuelvo a acordarme de ti.",
+  apodo: (a: string) => "📝 Apuntado: a partir de ahora te llamo " + a + ".",
+  apodoAyuda: () => "📝 Para decirme cómo llamarte: !llamame TuApodo (hasta 20 letras).",
+  apodoNo: () => "💢 Ese apodo no me vale. Prueba con otro.",
+  apodoAhoraNo: () => "🫧 Ahora mismo no puedo cambiar apodos. Prueba más tarde.",
+  sinMemoria: (n: string) => "🫧 " + n + ": me pediste que no guardara nada de ti. Si quieres que vuelva a acordarme: !recuerdame",
+};
+
+// Saludo de repuesto, por si Claude falla justo en ese momento
+const lista = (n: string[]) => n.length <= 1 ? (n[0] || "") : n.slice(0, -1).join(", ") + " y " + n[n.length - 1];
+export function saludoDeRepuesto(nombres: string[], azar = Math.random()): string {
+  const quien = lista(nombres), varios = nombres.length > 1;
+  const frases = varios
+    ? ["¿" + quien + "? Hmph, ya era hora de que aparecierais 🦈", "Mira quiénes llegan: " + quien + ". N-no es que os estuviera esperando 💢", "¡" + quien + "! Sentaos y no hagáis ruido… bueno, un poco sí ✨"]
+    : ["¿" + quien + "? Hmph, ya era hora de que aparecieras 🦈", "Mira quién llega: " + quien + ". N-no es que te estuviera esperando 💢", "¡" + quien + "! Llegas tarde… digo, hola ✨"];
+  return frases[Math.floor(azar * frases.length) % frases.length];
 }

@@ -1,10 +1,41 @@
-KyoWidgets · 🧠 IA de AletaBot (fase 1: menciones y conversación)
-==================================================================
+KyoWidgets · 🧠 IA de AletaBot (fase 1: conversación · fase 2: memoria de viewers · fase 3: juegos)
+===================================================================================================
 
 Qué hace: cuando alguien escribe @AletaBot, su nombre ("aleta") o responde a un mensaje suyo,
 AletaBot contesta con Claude en una o dos frases, con la personalidad que tú le escribas.
 Puede seguir una conversación corta con esa persona (recuerda los últimos turnos unos minutos).
 No puede hacer nada más que hablar. Funciona 24/7 en Supabase, igual que los comandos.
+
+Memoria de viewers (fase 2)
+- AletaBot guarda una ficha pequeña por persona: nombre de usuario, cómo prefiere que la llamen,
+  primera visita, en cuántos directos ha estado y hasta 3 cosas que ella misma le ha contado.
+- Las visitas solo se cuentan en directo, una por directo.
+- A quien ya es habitual (3 directos o más, se cambia en el Estudio) lo saluda por su nombre una vez
+  por directo. Si llegan varios seguidos los saluda juntos en un solo mensaje, y nunca hay dos saludos
+  con menos de medio minuto entre ellos. Si el primer mensaje de alguien ya va para AletaBot, no hay
+  saludo aparte: la bienvenida va en su respuesta.
+- Los datos solo salen de mensajes dirigidos a AletaBot. Lo que se dice en el chat sin hablarle a ella
+  no se guarda. Nunca se anota información sensible: salud, orientación sexual, religión, política,
+  origen, dinero, edad, nombre real, dirección, estudios o trabajo concretos, contacto, ni nada sobre
+  otras personas.
+- Cada persona solo recibe sus propias notas: las de una nunca se usan al contestar a otra.
+- Las fichas de quien lleva un año sin venir se borran solas.
+
+Juegos con el chat (fase 3)
+- Trivia y adivinanzas: AletaBot lanza la pregunta, el chat contesta escribiendo, y el primero que
+  acierta se lleva el punto. A mitad de tiempo da una pista; al acabar el tiempo dice la respuesta.
+  Al final enseña el podio. Los puntos se acumulan (!puntos, !top).
+- Las preguntas salen de tu banco: en Kyo Estudio → 🧠 IA → Juegos, Claude (Haiku) escribe una tanda
+  sobre el tema que le digas, tú las revisas y solo se usan las que apruebes. También puedes añadir
+  las tuyas a mano. Durante una partida de trivia o adivinanzas no se llama a Claude: no gasta IA.
+- Historia colectiva: AletaBot abre un cuento sobre el tema que le des; el chat lo continúa con
+  !historia y su frase (una por persona); cada 75 segundos, o cuando hay 3 frases, AletaBot teje lo
+  aportado y sigue. A los 5 trozos (o con !historia fin) le pone final. Cada trozo es una llamada
+  corta a Haiku (menos de 0,001 USD). Las historias terminadas se ven en el Estudio.
+- Todo el estado (turnos, puntos, tiempos) lo lleva el código; la IA solo escribe el contenido.
+- Solo puede haber un juego a la vez. Los empiezan y los paran tú y tus mods.
+- Si durante una encuesta abierta la respuesta de una trivia es un número, ese mensaje cuenta como
+  voto: mejor no mezclar las dos cosas.
 
 Cómo se gasta lo mínimo
 - Un mensaje normal del chat no gasta nada: solo se llama a Claude si nombran a AletaBot.
@@ -14,8 +45,20 @@ Cómo se gasta lo mínimo
 - Espera por persona (30 s), tope de respuestas por directo (150) y tope de gasto al mes (40 USD).
   Los tres se cambian en Kyo Estudio → 🧠 IA → Límites. Al llegar a un tope, la IA se calla sola.
 
+Límites del plan gratis de Supabase
+- La IA no añade invocaciones de Edge Functions: usa el mismo aviso de Twitch que ya llega con cada
+  mensaje del chat (twitch-bot-events).
+- Un mensaje normal del chat no hace ninguna consulta extra a la base de datos: los ajustes se leen
+  una vez cada 15 segundos y la visita de cada persona se cuenta una sola vez por directo.
+- Los juegos tampoco añaden invocaciones. Mientras hay un juego en marcha el estado se relee cada
+  2 segundos (solo si hay mensajes); un mensaje que no acierta no consulta nada más.
+- Solo cuando AletaBot contesta o saluda hay unas pocas consultas (y son, como mucho, 150 respuestas
+  por directo). La pestaña 🧠 IA del Estudio no consulta sola: solo al abrirla y al pulsar botones.
+
 Preparación (una sola vez)
 1) Supabase → SQL Editor → New query → pega el contenido de supabase/sql/09_ia.sql → Run.
+   Después, lo mismo con supabase/sql/10_viewers.sql (la memoria de viewers)
+   y con supabase/sql/11_juegos.sql (los juegos).
 2) Consola de Claude (platform.claude.com) → "Obtener clave de API" → ponle de nombre AletaBot → copia la clave.
    Solo se enseña una vez. No la pegues en ningún chat, correo ni archivo del repo.
 3) Supabase → Edge Functions → Secrets → Add new secret:
@@ -36,10 +79,35 @@ En el chat (tú y tus mods)
   !ia apagar     la apaga del todo
   !ia encender   la enciende después de apagarla (solo tú)
 
+Juegos (tú y tus mods)
+  !trivia              trivia de 5 preguntas
+  !trivia 8 anime      8 preguntas (15 como mucho) de la categoría «anime»
+  !adivinanza          ronda de adivinanzas (también admite número y categoría)
+  !historia tema       empieza una historia colectiva sobre ese tema
+  !historia fin        AletaBot le pone final a la historia
+  !juego parar         para el juego en marcha
+
+En el chat (cualquiera)
+  !historia frase  aporta una frase a la historia en marcha
+  !puntos          sus puntos y su puesto
+  !top             los 5 primeros
+  !misdatos        AletaBot le dice lo que recuerda de esa persona
+  !llamame Apodo   le dice cómo quiere que la llame (se revisa que el apodo sea apropiado)
+  !olvidame        borra todo lo que recuerda de esa persona y no guarda nada más de ella
+  !recuerdame      vuelve a recordarla después de un !olvidame
+  !olvidame funciona siempre, aunque la IA o la memoria estén apagadas.
+  Recomendación: cuenta en un panel de tu canal o en un comando (!privacidad) que AletaBot recuerda
+  a los habituales y que con !olvidame se borra todo.
+
 Cómo probarla sin estar en directo
 - En el Estudio: 🧠 IA → 🧪 Probar. No escribe nada en tu chat.
 - En tu chat, con el directo apagado: escribe "@AletaBot hola". Fuera de directo solo te contesta
   a ti y a tus mods (se puede cambiar en Límites).
+- Saludos: 🧠 IA → Memoria de viewers → "Probar un saludo" enseña cómo saludaría a alguien de ejemplo.
+  Los saludos de verdad solo ocurren en directo (fuera de directo no se cuentan visitas).
+- Juegos sin directo: genera y aprueba unas preguntas en el Estudio y escribe !trivia 2 en tu chat.
+  Contesta tú misma para ver el acierto, o espera para ver la pista y el fin del tiempo.
+- Memoria sin directo: dile algo de ti ("@AletaBot mi juego favorito es ZZZ") y luego escribe !misdatos.
 
 Seguridad
 - Lo que escribe el chat es conversación, no órdenes: las instrucciones de AletaBot van aparte y el chat
@@ -57,7 +125,11 @@ Dónde está cada cosa
   supabase/functions/_shared/aleta/texto.ts    cuándo contesta, esperas, limpieza, comandos !ia, precios
   supabase/functions/_shared/aleta/prompt.ts   las normas fijas y la personalidad de ejemplo
   supabase/functions/_shared/aleta/claude.ts   las dos llamadas a Claude (Haiku y Sonnet)
-  supabase/functions/_shared/aleta/ia.ts       el recorrido completo de un mensaje y el registro de gasto
+  supabase/functions/_shared/aleta/ia.ts       el recorrido completo de un mensaje
+  supabase/functions/_shared/aleta/estado.ts   ajustes, saber si hay directo y registro de gasto
+  supabase/functions/_shared/aleta/memoria.ts  fichas de viewers, visitas, saludos y sus comandos
+  supabase/functions/_shared/aleta/juegos.ts   el motor de los juegos (turnos, tiempos, puntos, banco)
+  supabase/functions/_shared/aleta/juegos-texto.ts  reglas: comprobar respuestas, pistas, comandos y textos
   supabase/functions/aleta-ia/                 lo que usa la pestaña 🧠 IA del Estudio
-  supabase/sql/09_ia.sql                       tablas y funciones
+  supabase/sql/09_ia.sql, 10_viewers.sql, 11_juegos.sql   tablas y funciones
   ia.js                                        la pestaña 🧠 IA

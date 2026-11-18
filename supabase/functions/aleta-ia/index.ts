@@ -6,13 +6,25 @@
 //   POST {clave, accion:"guardar", ajustes?, personalidad?}  → guarda (se aplica en ~10 s)
 //   POST {clave, accion:"probar", texto, nombre?, personalidad?} → {ok, filtro, respuesta, coste} SIN escribir en el chat
 //                                                               (usa la personalidad que mandes, aunque no esté guardada; gasta tokens de verdad)
+//   POST {clave, accion:"probarSaludo", personalidad?}        → {ok, respuesta, coste}: cómo saludaría a un habitual de ejemplo
+//   POST {clave, accion:"viewers", buscar?}                  → {ok, viewers, total, sql}: los perfiles que recuerda (100 como mucho)
+//   POST {clave, accion:"borrarViewer", user_id}             → borra del todo el perfil de esa persona
+//   POST {clave, accion:"juegos"}                            → {ok, preguntas, totales, ranking, historias, juego, sql}
+//   POST {clave, accion:"generarBanco", tipo, tema, n}       → pide a Claude n preguntas (quedan pendientes de aprobar). Gasta tokens
+//   POST {clave, accion:"guardarPregunta", id?, tipo, categoria, pregunta, respuestas, pista} → añade o corrige una (queda aprobada)
+//   POST {clave, accion:"aprobarBanco", ids? | todas:true}   → aprueba preguntas pendientes
+//   POST {clave, accion:"borrarBanco", id | pendientes:true} → borra una pregunta, o todas las pendientes
+//   POST {clave, accion:"reiniciarPuntos"}                   → pone a cero los puntos de todo el mundo
 //
 // "Verify JWT" puede quedarse ACTIVADO (el Estudio envía la anon key).
 // Con 3 fallos seguidos del código se bloquea un rato (tabla kyo_intentos, sql/03_intentos.sql).
-// Secretos: KYO_SETUP_KEY y ANTHROPIC_API_KEY (la clave de la Consola de Claude). Tablas: sql/09_ia.sql.
+// Secretos: KYO_SETUP_KEY y ANTHROPIC_API_KEY (la clave de la Consola de Claude). Tablas: sql/09_ia.sql, sql/10_viewers.sql y sql/11_juegos.sql.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { guardarAjustes, guardarPersonalidad, probarIA, resumenIA } from "../_shared/aleta/ia.ts";
+import {
+  aprobarBanco, borrarBanco, borrarViewer, generarBanco, guardarAjustes, guardarPersonalidad, guardarPregunta, listarViewers,
+  probarIA, probarSaludo, reiniciarPuntos, resumenIA, resumenJuegos,
+} from "../_shared/aleta/ia.ts";
 import { PERSONALIDAD_BASE } from "../_shared/aleta/prompt.ts";
 
 const cors = {
@@ -78,6 +90,31 @@ Deno.serve(async (req) => {
   if (body.accion === "probar") {
     const r = await probarIA(db, { texto: body.texto, nombre: body.nombre, personalidad: body.personalidad });
     return json(r, r.ok ? 200 : 400);
+  }
+
+  if (body.accion === "probarSaludo") {
+    const r = await probarSaludo(db, body.personalidad);
+    return json(r, r.ok ? 200 : 400);
+  }
+
+  if (body.accion === "viewers") {
+    return json({ ok: true, ...(await listarViewers(db, body.buscar)) });
+  }
+
+  if (body.accion === "borrarViewer") {
+    const r = await borrarViewer(db, body.user_id);
+    return json(r, r.ok ? 200 : 400);
+  }
+
+  if (body.accion === "juegos") return json({ ok: true, ...(await resumenJuegos(db)) });
+  if (["generarBanco", "guardarPregunta", "aprobarBanco", "borrarBanco", "reiniciarPuntos"].includes(body.accion)) {
+    const r = body.accion === "generarBanco" ? await generarBanco(db, { tipo: body.tipo, tema: body.tema, n: body.n })
+      : body.accion === "guardarPregunta" ? await guardarPregunta(db, body)
+      : body.accion === "aprobarBanco" ? await aprobarBanco(db, { ids: body.ids, todas: body.todas })
+      : body.accion === "borrarBanco" ? await borrarBanco(db, { id: body.id, pendientes: body.pendientes })
+      : await reiniciarPuntos(db);
+    if (!r.ok) return json(r, 400);
+    return json({ ...r, ...(await resumenJuegos(db)) });
   }
 
   return json({ ok: false, error: "accion" }, 400);
