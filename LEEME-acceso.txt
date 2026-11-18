@@ -1,0 +1,68 @@
+KyoWidgets · 🔐 Entrar a Kyo Estudio con tu cuenta de Google
+============================================================
+
+Qué cambia: en vez de escribir el código de acceso (KYO_SETUP_KEY), entras con tu cuenta de Google.
+La sesión la gestiona Supabase Auth. Cada función del Estudio comprueba que la sesión es auténtica
+(con la clave pública de tu proyecto, sin consultar nada: no gasta invocaciones ni logs) y que el
+correo es el tuyo. Los overlays de OBS y el botón del Stream Deck no cambian.
+
+El cambio se hace en dos tiempos para que no te quedes fuera:
+  1) Funcionan las dos puertas a la vez: Google y el código de siempre.
+  2) Cuando ya entras con Google, cierras la puerta del código con un secreto (paso 8).
+
+Paso a paso (una sola vez)
+
+En Google Cloud (console.cloud.google.com), con tu cuenta de Google.
+Los nombres de los menús pueden variar un poco: Google los cambia de vez en cuando.
+1) Crea un proyecto nuevo (por ejemplo "Kyo Estudio").
+2) Pantalla de consentimiento de OAuth (APIs y servicios → Pantalla de consentimiento, o "Google Auth
+   Platform"): tipo de usuario "Externo", nombre de la app y tu correo. Déjala en modo "Prueba" y
+   añade TU correo como usuario de prueba. Así solo tu cuenta puede completar el inicio de sesión.
+3) Credenciales → Crear credenciales → ID de cliente de OAuth → Aplicación web.
+   En "URIs de redireccionamiento autorizados" pon exactamente:
+       https://TU-PROYECTO.supabase.co/auth/v1/callback
+   (TU-PROYECTO es el mismo que aparece en config.js, en SUPABASE_URL.)
+4) Copia el "ID de cliente" y el "Secreto del cliente".
+
+En Supabase (tu proyecto):
+5) Authentication → Sign In / Providers → Google → actívalo y pega el ID de cliente y el secreto → Save.
+   El secreto se pega solo ahí: no lo escribas en ningún chat ni archivo.
+6) Authentication → URL Configuration:
+     Site URL: la dirección de tu Estudio (la que abres en el navegador, con https://).
+     Redirect URLs: añade esa misma dirección terminada en /** (así vale con y sin index.html).
+7) Edge Functions → Secrets → Add new secret:
+     Name:  KYO_ADMIN_EMAILS
+     Value: tu correo de Google (si algún día quieres dejar entrar a alguien más, sepáralos con comas)
+
+En el Estudio:
+   Conexiones → 🔐 Acceso → "Cerrar sesión en este navegador" → pulsa "Entrar con Google".
+   Si la cuenta no es la tuya, verás "Esa cuenta de Google no tiene acceso al Estudio".
+
+8) Cuando hayas entrado con Google, cierra la puerta del código:
+   Supabase → Edge Functions → Secrets → Add new secret:
+     Name:  KYO_SOLO_GOOGLE
+     Value: si
+   Desde ese momento el código ya no sirve para entrar (ni siquiera el correcto).
+   NO borres KYO_SETUP_KEY: se sigue usando por dentro para firmar los avisos de Twitch.
+
+Si algo falla y te quedas fuera
+- Borra el secreto KYO_SOLO_GOOGLE en Supabase: el código de acceso vuelve a funcionar al momento.
+- "Esa cuenta de Google no tiene acceso": revisa que KYO_ADMIN_EMAILS tenga exactamente tu correo.
+- Vuelves a la pantalla de entrada tras elegir cuenta: revisa el paso 6 (la dirección del Estudio) y que
+  el URI del paso 3 sea exacto.
+
+Recomendado después (más seguridad)
+- Supabase → Authentication → Providers → Email: desactívalo (el Estudio no lo usa).
+- Supabase → Authentication → Sign In / Providers → "Allow new users to sign up": desactívalo cuando ya
+  hayas entrado una vez con Google. Así nadie más puede crear una cuenta en tu proyecto.
+- Activa la verificación en dos pasos en tu cuenta de Google, si no la tienes.
+
+Pruebas automáticas (opcional; no hablan con Google ni con Supabase)
+     npm run acceso
+  → "✅ Las … pruebas pasan": sesiones caducadas, de otro proyecto, con el correo cambiado, firmadas
+    con otra clave o sin firma no entran.
+
+Dónde está cada cosa
+  supabase/functions/_shared/acceso.ts   la comprobación (sesión de Google o código) que usan las 14 funciones
+  acceso.js                              el botón de Google, la sesión y su renovación en el navegador
+  index.html                             la pantalla de entrada y la tarjeta 🔐 Acceso de Conexiones
