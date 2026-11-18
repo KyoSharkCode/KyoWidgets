@@ -57,7 +57,8 @@ function abrir() {
         '<div class="card"><h2>⚙️ Límites</h2>' +
           '<div class="bopts">' +
             '<label><span>Espera por persona (segundos)</span><input type="number" id="iaCooldown" min="5" max="600"></label>' +
-            '<label><span>Respuestas por directo</span><input type="number" id="iaTopeDirecto" min="1" max="2000"></label>' +
+            '<label><span>Respuestas por persona y directo</span><input type="number" id="iaTopePersona" min="1" max="1000"></label>' +
+            '<label><span>Respuestas por directo (0 = sin tope)</span><input type="number" id="iaTopeDirecto" min="0" max="5000"></label>' +
             '<label><span>Gasto máximo al mes (USD)</span><input type="number" id="iaTopeMes" min="1" max="1000" step="1"></label>' +
           '</div>' +
           '<label class="copiaimg"><input type="checkbox" id="iaSoloDirecto"> Solo contesta en directo (fuera de directo, solo a ti y a tus mods, para probar)</label>' +
@@ -71,7 +72,7 @@ function abrir() {
             '<p class="nota">La espera por persona se aplica al empezar a hablarle. Dentro de una conversación ya abierta contesta más rápido durante unos turnos y luego vuelve a la espera normal.</p>' +
           '</details>' +
           '<div class="acciones"><button class="btn pri" type="button" id="iaLimGuardar">💾 Guardar límites</button></div>' +
-          '<p class="nota">Al llegar al tope del directo o al del mes, AletaBot deja de usar la IA sola. Los comandos, sorteos y encuestas siguen funcionando igual.</p>' +
+          '<p class="nota">Cada persona tiene su propio máximo por directo, para que nadie agote la IA de los demás. Al llegar al tope del directo (si lo hay) o al del mes, AletaBot deja de usar la IA sola. Los comandos, sorteos y encuestas siguen funcionando igual.</p>' +
         '</div>' +
         '<div class="card"><h2>👥 Memoria de viewers</h2>' +
           '<p class="nota">AletaBot guarda una ficha pequeña de cada persona del chat: su nombre, cómo prefiere que la llamen, desde cuándo viene, en cuántos directos ha estado y hasta 3 cosas que <b>ella misma le ha contado a AletaBot</b>. Lo que se dice en el chat sin hablarle a ella no se guarda, y los temas sensibles (salud, religión, política, edad, dónde vive…) se descartan.</p>' +
@@ -173,7 +174,7 @@ function abrir() {
 
     if (!st.sucia) pers.value = d.personalidad || d.personalidadBase || '';
     $('#iaPersInfo', app).textContent = d.personalidad ? '' : 'Estás usando la personalidad de ejemplo.';
-    $('#iaCooldown', app).value = a.cooldown; $('#iaTopeDirecto', app).value = a.topeDirecto; $('#iaTopeMes', app).value = a.topeMes;
+    $('#iaCooldown', app).value = a.cooldown; $('#iaTopeDirecto', app).value = a.topeDirecto; $('#iaTopeMes', app).value = a.topeMes; $('#iaTopePersona', app).value = a.topePersona;
     $('#iaEsperaHilo', app).value = a.esperaHilo; $('#iaTurnosHilo', app).value = a.turnosHilo;
     $('#iaSoloDirecto', app).checked = a.soloEnDirecto !== false;
     $('#iaNombres', app).value = (a.nombres || []).join(', '); $('#iaIgnorar', app).value = (a.ignorar || []).join(', ');
@@ -220,7 +221,7 @@ function abrir() {
   $('#iaLimGuardar', app).addEventListener('click', e => {
     if (!st.d) return;
     guardar({ ajustes: Object.assign({}, st.d.ajustes, {
-      cooldown: $('#iaCooldown', app).value, topeDirecto: $('#iaTopeDirecto', app).value, topeMes: $('#iaTopeMes', app).value,
+      cooldown: $('#iaCooldown', app).value, topeDirecto: $('#iaTopeDirecto', app).value, topeMes: $('#iaTopeMes', app).value, topePersona: $('#iaTopePersona', app).value,
       esperaHilo: $('#iaEsperaHilo', app).value, turnosHilo: $('#iaTurnosHilo', app).value, soloEnDirecto: $('#iaSoloDirecto', app).checked,
       nombres: $('#iaNombres', app).value, ignorar: $('#iaIgnorar', app).value
     }) }, 'Límites guardados ✓', e.currentTarget);

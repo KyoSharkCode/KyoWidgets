@@ -41,9 +41,12 @@ Cómo se gasta lo mínimo
 - Un mensaje normal del chat no gasta nada: solo se llama a Claude si nombran a AletaBot.
 - Haiku 5.5 decide primero si hay que contestar y si el mensaje es problemático (céntimos de céntimo).
 - Sonnet 5.5 escribe la respuesta: máximo 1-2 frases, con la personalidad guardada en caché
-  y solo los últimos 15 mensajes del chat como contexto. Una respuesta cuesta unos 0,0025 USD.
-- Espera por persona (30 s), tope de respuestas por directo (150) y tope de gasto al mes (40 USD).
-  Los tres se cambian en Kyo Estudio → 🧠 IA → Límites. Al llegar a un tope, la IA se calla sola.
+  y los últimos 20 mensajes del chat como contexto. Una respuesta cuesta unos 0,0035 USD
+  (medido en el primer directo: 150 respuestas, 0,51 USD).
+- Espera por persona (30 s), máximo de respuestas por persona y directo (100) y tope de gasto al mes
+  (40 USD). También hay un tope de respuestas por directo, que viene quitado (0 = sin tope).
+  Todo se cambia en Kyo Estudio → 🧠 IA → Límites. Al llegar a un tope, la IA se calla sola
+  (con el de por persona, solo deja de contestar a esa persona, y se lo dice una vez).
 
 Límites del plan gratis de Supabase
 - La IA no añade invocaciones de Edge Functions: usa el mismo aviso de Twitch que ya llega con cada
@@ -58,7 +61,7 @@ Límites del plan gratis de Supabase
 Preparación (una sola vez)
 1) Supabase → SQL Editor → New query → pega el contenido de supabase/sql/09_ia.sql → Run.
    Después, lo mismo con supabase/sql/10_viewers.sql (la memoria de viewers)
-   y con supabase/sql/11_juegos.sql (los juegos).
+   con supabase/sql/11_juegos.sql (los juegos) y con supabase/sql/12_tope_persona.sql (máximo por persona).
 2) Consola de Claude (platform.claude.com) → "Obtener clave de API" → ponle de nombre AletaBot → copia la clave.
    Solo se enseña una vez. No la pegues en ningún chat, correo ni archivo del repo.
 3) Supabase → Edge Functions → Secrets → Add new secret:
@@ -131,5 +134,5 @@ Dónde está cada cosa
   supabase/functions/_shared/aleta/juegos.ts   el motor de los juegos (turnos, tiempos, puntos, banco)
   supabase/functions/_shared/aleta/juegos-texto.ts  reglas: comprobar respuestas, pistas, comandos y textos
   supabase/functions/aleta-ia/                 lo que usa la pestaña 🧠 IA del Estudio
-  supabase/sql/09_ia.sql, 10_viewers.sql, 11_juegos.sql   tablas y funciones
+  supabase/sql/09_ia.sql, 10_viewers.sql, 11_juegos.sql, 12_tope_persona.sql   tablas y funciones
   ia.js                                        la pestaña 🧠 IA
