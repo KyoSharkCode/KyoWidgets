@@ -3,7 +3,8 @@
 // cada vez que alguien escribe en tu chat, aunque no tengas OBS ni el Estudio abiertos.
 // Se pulsa UNA VEZ, y otra vez si cambias tu KYO_SETUP_KEY o el proyecto de Supabase.
 //
-//   POST {clave}   → crea la suscripción de EventSub "channel.chat.message"
+//   POST {clave}   → crea las suscripciones de EventSub "channel.chat.message" (el chat) y
+//                    "stream.online" / "stream.offline" (para que la IA sepa cuándo hay directo)
 //
 // "Verify JWT" puede quedarse ACTIVADO (el Estudio envía la anon key).
 // Con 3 fallos seguidos del código se bloquea un rato (tabla kyo_intentos, sql/03_intentos.sql).
@@ -140,23 +141,33 @@ Deno.serve(async (req) => {
   const app = await tokenApp();
   if (!app) return json({ ok: false, error: "sin_token_app" }, 500);
 
-  // Borra las suscripciones anteriores y crea una nueva. Así, si cambias tu KYO_SETUP_KEY
+  // Borra las suscripciones anteriores y crea unas nuevas. Así, si cambias tu KYO_SETUP_KEY
   // (con la que se firma cada aviso), basta con volver a pulsar "Activar escucha 24/7".
-  const existentes = await helix("/eventsub/subscriptions?type=channel.chat.message", app);
-  for (const s of existentes.body?.data || []) {
-    if (s.condition?.broadcaster_user_id === canal) await helix("/eventsub/subscriptions?id=" + encodeURIComponent(s.id), app, { method: "DELETE" });
+  const TIPOS = ["channel.chat.message", "stream.online", "stream.offline"];
+  for (const tipo of TIPOS) {
+    const existentes = await helix("/eventsub/subscriptions?type=" + tipo, app);
+    for (const s of existentes.body?.data || []) {
+      if (s.condition?.broadcaster_user_id === canal) await helix("/eventsub/subscriptions?id=" + encodeURIComponent(s.id), app, { method: "DELETE" });
+    }
   }
 
   const callback = `${Deno.env.get("SUPABASE_URL")}/functions/v1/twitch-bot-events`;
+  const transport = { method: "webhook", callback, secret: await secretoEventos() };
   const r = await helix("/eventsub/subscriptions", app, {
     method: "POST",
-    body: JSON.stringify({
-      type: "channel.chat.message",
-      version: "1",
-      condition: { broadcaster_user_id: canal, user_id: bot.id },
-      transport: { method: "webhook", callback, secret: await secretoEventos() },
-    }),
+    body: JSON.stringify({ type: "channel.chat.message", version: "1", condition: { broadcaster_user_id: canal, user_id: bot.id }, transport }),
   });
   if (!r.ok) return json({ ok: false, error: "twitch", detalle: r.body }, 502);
-  return json({ ok: true, estado: r.body?.data?.[0]?.status || null });
+
+  // Inicio y fin del directo (no necesitan ningún permiso). Si fallaran, el chat sigue funcionando
+  // y la IA le pregunta a Twitch si hay directo cuando lo necesita.
+  const directo: Record<string, boolean> = {};
+  for (const tipo of ["stream.online", "stream.offline"]) {
+    const d = await helix("/eventsub/subscriptions", app, {
+      method: "POST",
+      body: JSON.stringify({ type: tipo, version: "1", condition: { broadcaster_user_id: canal }, transport }),
+    });
+    directo[tipo] = d.ok;
+  }
+  return json({ ok: true, estado: r.body?.data?.[0]?.status || null, directo });
 });

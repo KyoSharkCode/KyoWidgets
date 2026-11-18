@@ -6,12 +6,17 @@
 // También lleva los SORTEOS: !participar (todos) y !sorteo / !ganador (tú y tus mods),
 // y las ENCUESTAS: se vota escribiendo solo el número y se abren con !encuesta (tú y tus mods),
 // y las PREDICCIONES de Twitch (puntos del canal) con !prediccion (tú y tus mods; necesita tu canal conectado).
+// Y la IA: cuando alguien nombra a AletaBot (o le responde), contesta con Claude. Todo eso vive en
+// ../_shared/aleta/ (aquí solo está el enganche); se controla con !ia (tú y tus mods) y en Kyo Estudio → 🧠 IA.
+// Twitch también avisa aquí de cuándo empieza y termina el directo (stream.online / stream.offline).
 //
 // "Verify JWT" debe estar DESACTIVADO en esta función (Twitch la llama sin tus claves).
-// Secretos: KYO_SETUP_KEY y TWITCH_CLIENT_SECRET (la firma se calcula con KYO_SETUP_KEY).
-// Tablas: kyo_chat (sql/03_bot.sql), kyo_contadores + función kyo_usar (sql/04_comandos.sql) kyo_sorteo (sql/05_sorteos.sql) y kyo_voto + kyo_votos (sql/06_encuestas.sql).
+// Secretos: KYO_SETUP_KEY y TWITCH_CLIENT_SECRET (la firma se calcula con KYO_SETUP_KEY). Para la IA, ANTHROPIC_API_KEY.
+// Tablas: kyo_chat (sql/03_bot.sql), kyo_contadores + función kyo_usar (sql/04_comandos.sql) kyo_sorteo (sql/05_sorteos.sql),
+// kyo_voto + kyo_votos (sql/06_encuestas.sql) y las de la IA (sql/09_ia.sql).
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { atenderIA, comandoIA, eventoDirecto, type Contexto } from "../_shared/aleta/ia.ts";
 
 // ---------- Ayudantes de Twitch (iguales en las 4 funciones de AletaBot) ----------
 // El Client ID no es secreto. El Client Secret vive en Supabase Secrets (TWITCH_CLIENT_SECRET).
@@ -689,7 +694,37 @@ async function atenderPrediccion(db: any, txt: string, badges: string[]): Promis
   return true;
 }
 
-// Responde a un mensaje del chat si es un comando
+// ---------- Enganche de la IA (lo demás está en ../_shared/aleta/) ----------
+// AletaBot escribe en el chat, como respuesta a un mensaje si se indica cuál. true si Twitch lo aceptó.
+async function escribir(db: any, canalId: string, mensaje: string, responderA?: string): Promise<boolean> {
+  const bot = await tokenBot(db);
+  if (!bot || !canalId || !mensaje) return false;
+  const enviar = (extra: Record<string, string>) => helix("/chat/messages", bot.access_token, {
+    method: "POST",
+    body: JSON.stringify({ broadcaster_id: canalId, sender_id: bot.id, message: mensaje.slice(0, 480), ...extra }),
+  });
+  let r = await enviar(responderA ? { reply_parent_message_id: responderA } : {});
+  // si el mensaje original ya no existe (lo borraron), se manda como mensaje normal
+  if (!r.ok && responderA && r.status === 400) r = await enviar({});
+  return r.ok && r.body?.data?.[0]?.is_sent !== false;
+}
+// ¿El canal está en directo ahora? {id, inicio}, null si no, undefined si Twitch no contestó
+async function directoTwitch(canalId: string): Promise<{ id: string; inicio: string } | null | undefined> {
+  const app = await tokenApp();
+  if (!app || !canalId) return undefined;
+  const r = await helix("/streams?user_id=" + encodeURIComponent(canalId), app);
+  if (!r.ok) return undefined;
+  const s = r.body?.data?.[0];
+  return s && s.type === "live" ? { id: String(s.id), inicio: s.started_at } : null;
+}
+const contextoIA = (db: any, ev: any, idBot: string): Contexto => ({
+  idBot,
+  decir: (mensaje, responderA) => escribir(db, ev.broadcaster_user_id, mensaje, responderA),
+  enVivo: () => directoTwitch(ev.broadcaster_user_id),
+});
+// ---------- fin del enganche de la IA ----------
+
+// Responde a un mensaje del chat si es un comando (y, si no lo es, mira si va para la IA)
 const vistos = new Set<string>(); // por si Twitch reenvía el mismo aviso
 async function atender(db: any, ev: any, idBot: string, idMensaje: string) {
   const txt = String(ev?.message?.text || "");
@@ -704,9 +739,16 @@ async function atender(db: any, ev: any, idBot: string, idMensaje: string) {
   catch { /* igual con la encuesta (p. ej. falta 06_encuestas.sql) */ }
   try { if (await atenderPrediccion(db, txt, badges)) return; }
   catch { /* y con la predicción */ }
+  try { if (await comandoIA(db, txt, badges, contextoIA(db, ev, idBot))) return; }
+  catch { /* y con los comandos !ia (p. ej. falta 09_ia.sql) */ }
 
   const c = buscarComando(await leerComandos(db), txt);
-  if (!c) return;
+  if (!c) {
+    // No es un comando: si nombran a AletaBot o le responden, contesta la IA
+    try { await atenderIA(db, ev, contextoIA(db, ev, idBot)); }
+    catch { /* la IA nunca debe romper el resto del bot */ }
+    return;
+  }
   const q: Quien = { nombre: ev.chatter_user_name || ev.chatter_user_login, login: ev.chatter_user_login, badges };
   if (!puedeUsar(c, q)) return;
 
@@ -768,6 +810,14 @@ Deno.serve(async (req) => {
       atender(db, ev, datos.subscription?.condition?.user_id || "", id),
     ]);
     // Se contesta a Twitch enseguida y el trabajo sigue en segundo plano
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(trabajo);
+    else await trabajo;
+  }
+
+  // Empieza o termina el directo: la IA lo usa para el tope de respuestas por directo
+  if (tipo === "notification" && (datos.subscription?.type === "stream.online" || datos.subscription?.type === "stream.offline")) {
+    const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const trabajo = eventoDirecto(db, datos.subscription.type, datos.event).catch(() => {});
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(trabajo);
     else await trabajo;
   }
