@@ -1,0 +1,63 @@
+KyoWidgets · 🧠 IA de AletaBot (fase 1: menciones y conversación)
+==================================================================
+
+Qué hace: cuando alguien escribe @AletaBot, su nombre ("aleta") o responde a un mensaje suyo,
+AletaBot contesta con Claude en una o dos frases, con la personalidad que tú le escribas.
+Puede seguir una conversación corta con esa persona (recuerda los últimos turnos unos minutos).
+No puede hacer nada más que hablar. Funciona 24/7 en Supabase, igual que los comandos.
+
+Cómo se gasta lo mínimo
+- Un mensaje normal del chat no gasta nada: solo se llama a Claude si nombran a AletaBot.
+- Haiku 5.5 decide primero si hay que contestar y si el mensaje es problemático (céntimos de céntimo).
+- Sonnet 5.5 escribe la respuesta: máximo 1-2 frases, con la personalidad guardada en caché
+  y solo los últimos 15 mensajes del chat como contexto. Una respuesta cuesta unos 0,0025 USD.
+- Espera por persona (30 s), tope de respuestas por directo (150) y tope de gasto al mes (40 USD).
+  Los tres se cambian en Kyo Estudio → 🧠 IA → Límites. Al llegar a un tope, la IA se calla sola.
+
+Preparación (una sola vez)
+1) Supabase → SQL Editor → New query → pega el contenido de supabase/sql/09_ia.sql → Run.
+2) Consola de Claude (platform.claude.com) → "Obtener clave de API" → ponle de nombre AletaBot → copia la clave.
+   Solo se enseña una vez. No la pegues en ningún chat, correo ni archivo del repo.
+3) Supabase → Edge Functions → Secrets → Add new secret:
+     Name:  ANTHROPIC_API_KEY
+     Value: (la clave que acabas de copiar)
+4) Despliega las funciones twitch-bot-events y twitch-bot-subscribe (cambiaron) y la nueva aleta-ia.
+   Las tres usan la carpeta supabase/functions/_shared/aleta/, así que se suben con ella.
+   "Verify JWT": DESACTIVADO en twitch-bot-events (como siempre) y activado en las otras dos.
+5) Kyo Estudio → ⚙️ Conexiones → "Activar escucha 24/7" otra vez. Así Twitch avisa también de cuándo
+   empieza y termina tu directo (para el tope por directo). Si no lo pulsas, funciona igual: AletaBot
+   le pregunta a Twitch si estás en directo cuando lo necesita.
+6) Kyo Estudio → 🧠 IA: revisa la personalidad, pulsa "Probar" y, cuando te guste, "▶ Activar".
+
+En el chat (tú y tus mods)
+  !ia            dice si está activa, cuántas respuestas lleva y el gasto del mes
+  !ia pausa      deja de contestar
+  !ia sigue      vuelve a contestar después de una pausa
+  !ia apagar     la apaga del todo
+  !ia encender   la enciende después de apagarla (solo tú)
+
+Cómo probarla sin estar en directo
+- En el Estudio: 🧠 IA → 🧪 Probar. No escribe nada en tu chat.
+- En tu chat, con el directo apagado: escribe "@AletaBot hola". Fuera de directo solo te contesta
+  a ti y a tus mods (se puede cambiar en Límites).
+
+Seguridad
+- Lo que escribe el chat es conversación, no órdenes: las instrucciones de AletaBot van aparte y el chat
+  no puede cambiarlas. Si le piden que las ignore o que las enseñe, no lo hace.
+- Si el filtro ve un mensaje ofensivo, sexual o de odio, AletaBot no contesta y el mensaje aparece en
+  🧠 IA → Mensajes marcados.
+- Antes de escribir, se limpia la respuesta: una sola línea, sin enlaces, sin "/" ni "!" al empezar.
+- La clave de Claude vive solo en los secretos de Supabase. No está en el código ni en GitHub.
+
+Pruebas automáticas (opcional, para quien toque el código; no gastan nada)
+     npm run ia
+  → "✅ Las … pruebas pasan". Necesita Node 22.18 o más nuevo.
+
+Dónde está cada cosa
+  supabase/functions/_shared/aleta/texto.ts    cuándo contesta, esperas, limpieza, comandos !ia, precios
+  supabase/functions/_shared/aleta/prompt.ts   las normas fijas y la personalidad de ejemplo
+  supabase/functions/_shared/aleta/claude.ts   las dos llamadas a Claude (Haiku y Sonnet)
+  supabase/functions/_shared/aleta/ia.ts       el recorrido completo de un mensaje y el registro de gasto
+  supabase/functions/aleta-ia/                 lo que usa la pestaña 🧠 IA del Estudio
+  supabase/sql/09_ia.sql                       tablas y funciones
+  ia.js                                        la pestaña 🧠 IA

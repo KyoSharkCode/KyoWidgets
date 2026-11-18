@@ -129,8 +129,8 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .botlista{display:grid;gap:10px;max-height:min(70vh,900px);overflow-y:auto;overflow-x:hidden;padding:10px;margin:0 -6px -6px 0;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.015)}
 .botlista:empty{display:none;border:0;padding:0}
 .botcuenta{margin:0 4px}
-.bcmd textarea,.botimport textarea{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;resize:vertical;min-height:44px;box-sizing:border-box}
-.bcmd textarea:focus,.botimport textarea:focus{outline:none;border-color:var(--acc2)}
+.bcmd textarea,.botimport textarea,#iaPers{width:100%;font:500 14px "Fredoka",sans-serif;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px;resize:vertical;min-height:44px;box-sizing:border-box}
+.bcmd textarea:focus,.botimport textarea:focus,#iaPers:focus{outline:none;border-color:var(--acc2)}
 .bcmd .bnombre{flex:1;font:700 15px ui-monospace,Menlo,Consolas,monospace;color:var(--acc2)}
 .bcmd .bborrar{padding:6px 12px;flex:none}
 .bopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
@@ -141,6 +141,29 @@ input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--
 .botres b{font-family:"Fredoka",sans-serif;color:var(--acc2)}
 .botres span{overflow-wrap:anywhere}
 .botres.mal{color:#ffc2cd;border-color:rgba(255,143,163,.5)}
+.botres small{color:var(--faint);font-size:12.5px}
+/* Pestaña IA de AletaBot */
+#iaPers{line-height:1.5;margin-bottom:10px}
+.iacheck{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:6px;font-size:14px;color:var(--dim)}
+.iacheck li{padding-left:24px;position:relative;overflow-wrap:anywhere}
+.iacheck li::before{content:"";position:absolute;left:4px;top:.45em;width:9px;height:9px;border-radius:50%;background:var(--faint)}
+.iacheck li.ok::before{background:var(--ok)}.iacheck li.mal::before{background:var(--bad)}.iacheck li.pend::before{background:var(--acc)}
+.iacheck small{display:block;color:var(--faint);font-size:12.5px}
+.iamonto{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.iamonto b{font:700 26px "Fredoka",sans-serif;color:var(--acc2);font-variant-numeric:tabular-nums}
+.iamonto span{color:var(--dim);font-size:14px}
+.iabarra{height:8px;border-radius:999px;background:var(--panel2);box-shadow:0 0 0 1px var(--line);overflow:hidden;margin:10px 0 14px}
+.iabarra i{display:block;height:100%;background:linear-gradient(90deg,var(--acc2),var(--acc));transform-origin:0 50%;border-radius:999px}
+.iatabla{overflow-x:auto;margin-bottom:10px}
+.iatabla table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.iatabla th{font:700 11px "Chakra Petch",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:right;padding:6px 8px;white-space:nowrap}
+.iatabla td{padding:7px 8px;border-top:1px solid var(--line);text-align:right;vertical-align:top;white-space:nowrap}
+.iatabla th:first-child,.iatabla td:first-child{text-align:left;padding-left:0}
+.iatabla td small{display:block;color:var(--faint);font-size:12px}
+#iaAvisos th,#iaAvisos td{text-align:left;white-space:normal;overflow-wrap:anywhere}
+#iaAvisos td:nth-child(2){min-width:150px}
+#iaAvisos th:nth-child(3),#iaAvisos td:nth-child(3){white-space:nowrap;overflow-wrap:normal}
+#iaApp .ovcol{grid-template-columns:minmax(0,1fr)}
 .botvars{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .botvars li{display:grid;gap:2px}
 .botvars code{color:var(--acc2);font-size:13px}
@@ -413,6 +436,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
       <div class="subfila"><span class="sublbl">Escenas y chat</span><div class="subbtns">
         <button type="button" data-sub="overlays" aria-pressed="false">📺 Overlays</button>
         <button type="button" data-sub="aletabot" aria-pressed="false">🦈 AletaBot</button>
+        <button type="button" data-sub="aletaia" aria-pressed="false">🧠 IA</button>
       </div></div>
     </div>
     <div class="subgrupo" data-de="crear" hidden>
@@ -777,6 +801,11 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     <div id="botApp"><div class="card"><p class="nota">Cargando…</p></div></div>
   </section>
 
+  <!-- ===================== IA DE ALETABOT ===================== -->
+  <section data-panel="aletaia" hidden>
+    <div id="iaApp"><div class="card"><p class="nota">Cargando…</p></div></div>
+  </section>
+
   <section data-panel="musica" hidden>
     <div class="card animhead">
       <h2>🎶 Mis músicas</h2>
@@ -1020,7 +1049,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 
   // ---------- Pestañas: 4 grupos y sus apartados ----------
   const GRUPOS = {
-    directo: ['spotify', 'fortnite', 'cuenta', 'contador', 'meta', 'chat', 'sorteo', 'prediccion', 'combo', 'overlays', 'aletabot'],
+    directo: ['spotify', 'fortnite', 'cuenta', 'contador', 'meta', 'chat', 'sorteo', 'prediccion', 'combo', 'overlays', 'aletabot', 'aletaia'],
     crear: ['animaciones', 'anuncios', 'imagenes', 'musica'],
     canal: ['paneles', 'prensa'],
     ajustes: ['conexiones']
@@ -1048,7 +1077,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     });
     if (n === 'contador' && window.kyoContadores) window.kyoContadores.abrir();
     if (n === 'meta' && window.kyoMeta) window.kyoMeta.abrir();
-    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'combo') { if (window.kyoCombo) window.kyoCombo.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else if (n === 'aletabot') { if (window.kyoBot) window.kyoBot.abrir(); } else if (n === 'prensa') { if (window.kyoPrensa) window.kyoPrensa.abrir(); } else { comprobarSpotify(); comprobarBot(); }
+    if (W[n]) actualizar(n); else if (n === 'animaciones') { if (window.kyoAnim) window.kyoAnim.abrir(); } else if (n === 'anuncios') { if (window.kyoAnim) window.kyoAnim.abrirAnuncios(); } else if (n === 'paneles') { if (window.kyoPaneles) window.kyoPaneles.abrir(); } else if (n === 'overlays') { if (window.kyoOverlays) window.kyoOverlays.abrir(); } else if (n === 'combo') { if (window.kyoCombo) window.kyoCombo.abrir(); } else if (n === 'imagenes') { if (window.kyoImagenes) window.kyoImagenes.abrir(); } else if (n === 'musica') { if (window.kyoAnim) window.kyoAnim.abrirMusica(); } else if (n === 'aletabot') { if (window.kyoBot) window.kyoBot.abrir(); } else if (n === 'aletaia') { if (window.kyoIA) window.kyoIA.abrir(); } else if (n === 'prensa') { if (window.kyoPrensa) window.kyoPrensa.abrir(); } else { comprobarSpotify(); comprobarBot(); }
   }
   $$('nav.tabs [data-grupo]').forEach(b => b.addEventListener('click', () => tab(b.dataset.grupo)));
   $$('#subtabs button').forEach(b => b.addEventListener('click', () => tab(b.dataset.sub)));
@@ -1058,7 +1087,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
     const dlg = $('#ir'), txt = $('#irTexto'), lista = $('#irLista');
     if (!dlg || typeof dlg.showModal !== 'function') { $('#btnIr').hidden = true; return; }
     const NOMG = { directo: 'En directo', crear: 'Crear', canal: 'Mi canal', ajustes: 'Ajustes' };
-    const EXTRA = { conexiones: 'spotify fortnite aletabot twitch canal copia seguridad backup restaurar acceso codigo', meta: 'donaciones tips streamelements', contador: 'muertes rage quits stream deck', spotify: 'cancion canción now playing', chat: 'mensajes', sorteo: 'encuesta votacion', overlays: 'escenas obs pantalla', combo: 'combinado agrupar juntar una sola fuente vertical horizontal timer contador anuncios', aletabot: 'bot comandos', prensa: 'press kit marcas colaboraciones', paneles: 'acerca de twitch', musica: 'mp3 audio', imagenes: 'fondos png jpg', anuncios: 'tiktok reels shorts mp4', animaciones: 'premiere mov video zzz zenless discos equipo habilidades' };
+    const EXTRA = { conexiones: 'spotify fortnite aletabot twitch canal copia seguridad backup restaurar acceso codigo', meta: 'donaciones tips streamelements', contador: 'muertes rage quits stream deck', spotify: 'cancion canción now playing', chat: 'mensajes', sorteo: 'encuesta votacion', overlays: 'escenas obs pantalla', combo: 'combinado agrupar juntar una sola fuente vertical horizontal timer contador anuncios', aletabot: 'bot comandos', aletaia: 'aletabot inteligencia artificial claude personalidad gasto tokens', prensa: 'press kit marcas colaboraciones', paneles: 'acerca de twitch', musica: 'mp3 audio', imagenes: 'fondos png jpg', anuncios: 'tiktok reels shorts mp4', animaciones: 'premiere mov video zzz zenless discos equipo habilidades' };
     const DESTINOS = $$('#subtabs button').map(b => ({ id: b.dataset.sub, nom: b.textContent.trim(), g: grupoDe(b.dataset.sub) }))
       .concat([{ id: 'conexiones', nom: '🔌 Conexiones, copia de seguridad y acceso', g: 'ajustes' }]);
     const plano = (t) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -1320,6 +1349,7 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 <script type="module" src="overlays.js"></script>
 <script type="module" src="combo.js"></script>
 <script type="module" src="bot.js"></script>
+<script type="module" src="ia.js"></script>
 <script src="overlays/iconos-contador.js"></script>
 <script type="module" src="contadores.js"></script>
 <script type="module" src="meta.js"></script>
