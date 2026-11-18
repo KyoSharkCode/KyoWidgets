@@ -8,106 +8,22 @@
 //   4. Sonnet: la respuesta, con la personalidad en caché + los últimos mensajes + el hilo con esa persona.
 //   5. Código: se limpia la respuesta y se apuntan los tokens gastados.
 //
-// Tablas y funciones SQL: sql/09_ia.sql. Ajustes en kyo_ajustes (filas "ia", "ia_personalidad", "directo", "ia_error").
+// Fase 2 (memoria.ts): si se conoce a quien habla, sus notas van como contexto (<perfil>) y el filtro
+// puede proponer un dato nuevo que recordar.
+//
+// Tablas y funciones SQL: sql/09_ia.sql y sql/10_viewers.sql. Lo compartido (ajustes, directo, gasto) está en estado.ts.
 
 import {
-  AJUSTES_IA, aplicarOrden, detectar, esperaPara, hiloNuevo, hiloSigue, hiloVivo, leerOrden, limpiarAjustes,
-  limpiarEntrada, limpiarSalida, rolDe, trozosSecretos, type AjustesIA, type Disparo, type Hilo, type Uso,
+  aplicarOrden, detectar, esperaPara, hiloNuevo, hiloSigue, hiloVivo, leerOrden, limpiarEntrada, limpiarSalida,
+  perfilTexto, rolDe, trozosSecretos, type Disparo, type Hilo, type Perfil,
 } from "./texto.ts";
 import { instrucciones, mensajeFiltro, mensajesChat, type Linea, type Quien, type Veredicto } from "./prompt.ts";
-import { conversar, filtrar, hayClave, type Llamada } from "./claude.ts";
+import { conversar, filtrar, hayClave } from "./claude.ts";
+import { apuntar, directoActual, gastoMes, guardarAjustes, leerEstado, type Contexto } from "./estado.ts";
+import { guardarRecuerdo, leerPerfil, type Presencia } from "./memoria.ts";
 
-// Lo que twitch-bot-events le presta a la IA para hablar con Twitch
-export type Contexto = {
-  idBot: string;
-  // escribe en el chat (como respuesta al mensaje "responderA" si se da). true si Twitch lo aceptó
-  decir: (mensaje: string, responderA?: string) => Promise<boolean>;
-  // pregunta a Twitch si el canal está en directo: {id, inicio}, null si no, undefined si Twitch no contestó
-  enVivo: () => Promise<{ id: string; inicio: string } | null | undefined>;
-};
-
-type Directo = { id: string; inicio: string; enVivo: boolean; fuente: "eventsub" | "helix"; visto: string };
-type Estado = { ajustes: AjustesIA; personalidad: string; directo: Directo | null };
-
-const ahoraISO = () => new Date().toISOString();
-const hace = (iso: string | undefined) => (iso ? Date.now() - Date.parse(iso) : Infinity);
-
-// ---------- Ajustes, personalidad y directo (una sola consulta, recordada unos segundos) ----------
-let _estado: { ts: number; e: Estado } | null = null;
-export async function leerEstado(db: any, fresco = false): Promise<Estado> {
-  if (!fresco && _estado && Date.now() - _estado.ts < 8000) return _estado.e;
-  const { data } = await db.from("kyo_ajustes").select("id, datos").in("id", ["ia", "ia_personalidad", "directo"]);
-  const fila = (id: string) => (data || []).find((r: any) => r.id === id)?.datos;
-  const d = fila("directo");
-  const e: Estado = {
-    ajustes: limpiarAjustes(fila("ia") || AJUSTES_IA),
-    personalidad: String(fila("ia_personalidad")?.texto || ""),
-    directo: d?.id ? d : null,
-  };
-  _estado = { ts: Date.now(), e };
-  return e;
-}
-async function guardarFila(db: any, id: string, datos: unknown) {
-  _estado = null;
-  return await db.from("kyo_ajustes").upsert({ id, datos, updated_at: ahoraISO() });
-}
-export const guardarAjustes = (db: any, a: unknown) => guardarFila(db, "ia", limpiarAjustes(a));
-export const guardarPersonalidad = (db: any, texto: unknown) =>
-  guardarFila(db, "ia_personalidad", { texto: String(texto ?? "").replace(/\r/g, "").trim().slice(0, 4000) });
-
-// ---------- ¿Hay directo ahora? ----------
-// Lo normal es que Twitch avise (stream.online / stream.offline → eventoDirecto). Si esos avisos aún no
-// están activados, o el aviso de fin se perdió, se le pregunta a Twitch de vez en cuando.
-async function directoActual(db: any, fila: Directo | null, ctx: Contexto): Promise<{ id: string; enVivo: boolean }> {
-  const fuera = { id: "fuera-" + ahoraISO().slice(0, 10), enVivo: false };
-  const preguntar = !fila
-    || (fila.fuente === "helix" && hace(fila.visto) > 120_000)
-    || (fila.enVivo && hace(fila.inicio) > 14 * 3600_000 && hace(fila.visto) > 600_000);
-  if (!preguntar) return fila!.enVivo ? { id: fila!.id, enVivo: true } : fuera;
-  const v = await ctx.enVivo();
-  if (v === undefined) return fila?.enVivo ? { id: fila.id, enVivo: true } : fuera; // Twitch no contestó: se queda lo que había
-  const nueva: Directo = {
-    id: v ? v.id : (fila?.id || "ninguno"), inicio: v ? v.inicio : (fila?.inicio || ahoraISO()),
-    enVivo: !!v, fuente: fila?.fuente === "eventsub" ? "eventsub" : "helix", visto: ahoraISO(),
-  };
-  await guardarFila(db, "directo", nueva);
-  return v ? { id: v.id, enVivo: true } : fuera;
-}
-
-// Avisos de Twitch: empieza o termina el directo (los recibe twitch-bot-events)
-export async function eventoDirecto(db: any, tipo: string, ev: any) {
-  if (tipo === "stream.online") {
-    await guardarFila(db, "directo", { id: String(ev?.id || "directo-" + Date.now()), inicio: ev?.started_at || ahoraISO(), enVivo: true, fuente: "eventsub", visto: ahoraISO() });
-    await db.rpc("kyo_ia_limpiar"); // de paso, borra conversaciones y registros viejos
-  } else if (tipo === "stream.offline") {
-    const { directo } = await leerEstado(db, true);
-    await guardarFila(db, "directo", { id: directo?.id || "ninguno", inicio: directo?.inicio || ahoraISO(), enVivo: false, fuente: "eventsub", visto: ahoraISO() });
-  }
-}
-
-// ---------- Gasto ----------
-let _gasto: { ts: number; usd: number } | null = null;
-export async function gastoMes(db: any, fresco = false): Promise<number> {
-  if (!fresco && _gasto && Date.now() - _gasto.ts < 45_000) return _gasto.usd;
-  const { data, error } = await db.rpc("kyo_ia_gasto_mes");
-  const usd = error ? 0 : Number(data) || 0;
-  _gasto = { ts: Date.now(), usd };
-  return usd;
-}
-
-// Apunta cada llamada (tokens y coste) y, si falló, deja el último error a la vista del Estudio
-async function apuntar(db: any, directo: string, tarea: string, r: Llamada<unknown>) {
-  if (r.ok) {
-    const u: Uso = r.uso;
-    if (_gasto) _gasto.usd += r.coste;
-    await db.from("kyo_ia_uso").insert({
-      directo, tarea, modelo: r.modelo, entrada: u.entrada, salida: u.salida,
-      cache_lectura: u.cacheLectura, cache_escritura: u.cacheEscritura, coste: r.coste,
-    });
-  } else {
-    await db.from("kyo_ajustes").upsert({ id: "ia_error", datos: { ts: ahoraISO(), tarea, error: r.error, detalle: r.detalle }, updated_at: ahoraISO() });
-  }
-}
+export { eventoDirecto, guardarAjustes, guardarPersonalidad, type Contexto } from "./estado.ts";
+export { borrarViewer, comandoMemoria, listarViewers, presenciaIA, probarSaludo, type Presencia } from "./memoria.ts";
 
 // ---------- Contexto del chat ----------
 // Los últimos mensajes guardados en kyo_chat (sin el que se está contestando, que puede haberse guardado ya)
@@ -127,22 +43,23 @@ async function leerHilo(db: any, userId: string): Promise<Hilo> {
 
 // ---------- Filtro + respuesta ----------
 type Pensado = { veredicto: Veredicto | null; respuesta: string; coste: number; error?: string };
-async function pensar(db: any, o: { directo: string; chat: Linea[]; hilo: Hilo; q: Quien; texto: string; disparo: Disparo; personalidad: string; tarea?: string }): Promise<Pensado> {
-  const f = await filtrar(mensajeFiltro(o.chat, o.q, o.texto, o.disparo));
+async function pensar(db: any, o: { directo: string; chat: Linea[]; hilo: Hilo; q: Quien; texto: string; disparo: Disparo; personalidad: string; perfil?: string; tarea?: string }): Promise<Pensado> {
+  const f = await filtrar(mensajeFiltro(o.chat, o.q, o.texto, o.disparo, o.perfil));
   await apuntar(db, o.directo, "filtro", f);
   if (!f.ok) return { veredicto: null, respuesta: "", coste: 0, error: f.error };
   if (!f.valor?.responder) return { veredicto: f.valor, respuesta: "", coste: f.coste };
 
   const sistema = instrucciones(o.personalidad);
-  const r = await conversar(sistema, mensajesChat(o.chat, hiloVivo(o.hilo) ? o.hilo!.turnos : [], o.q, o.texto));
+  const r = await conversar(sistema, mensajesChat(o.chat, hiloVivo(o.hilo) ? o.hilo!.turnos : [], o.q, o.texto, o.perfil));
   await apuntar(db, o.directo, o.tarea || "chat", r);
   if (!r.ok) return { veredicto: f.valor, respuesta: "", coste: f.coste, error: r.error };
   return { veredicto: f.valor, respuesta: limpiarSalida(r.valor, trozosSecretos(sistema)), coste: f.coste + r.coste };
 }
 
 // ---------- Mensajes del chat ----------
-// Lo llama twitch-bot-events con cada mensaje que no era un comando.
-export async function atenderIA(db: any, ev: any, ctx: Contexto): Promise<void> {
+// Lo llama twitch-bot-events con cada mensaje que no era un comando. "presencia" es lo que
+// presenciaIA averiguó de quien escribe al contar su visita (si la contó con este mismo mensaje).
+export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Promise<Presencia>): Promise<void> {
   const bruto = String(ev?.message?.text || "").trim();
   if (!bruto || bruto.startsWith("!")) return;
   // chat compartido con otro canal: solo se contesta a los mensajes escritos en el canal de Kyo
@@ -171,9 +88,21 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto): Promise<void> 
   if (permiso === "tope") { await ctx.decir("💤 Hmph… por hoy ya he hablado bastante. Mañana más (si me apetece) 🦈"); return; }
   if (permiso !== "ok") return;
 
+  // Memoria: las notas sobre quien habla (solo las suyas) van como contexto
+  let perfil: Perfil | null = null, nuevo = false;
+  if (aj.memoria) {
+    const pres = presencia ? await presencia.catch(() => null) : null;
+    if (pres) { perfil = pres.perfil; nuevo = pres.nuevo; }
+    else perfil = await leerPerfil(db, userId).catch(() => null);
+  }
+
   const q: Quien = { nombre: ev.chatter_user_name || login, rol };
   const texto = limpiarEntrada(bruto);
-  const p = await pensar(db, { directo: directo.id, chat: await chatReciente(db, login, bruto), hilo, q, texto, disparo, personalidad: est.personalidad });
+  const p = await pensar(db, {
+    directo: directo.id, chat: await chatReciente(db, login, bruto), hilo, q, texto, disparo,
+    personalidad: est.personalidad, perfil: perfilTexto(perfil, nuevo),
+  });
+  if (aj.memoria && p.veredicto?.responder) await guardarRecuerdo(db, ev, p.veredicto).catch(() => {});
 
   if (p.veredicto && (p.veredicto.motivo === "toxico" || p.veredicto.avisar_mods)) {
     await db.from("kyo_ia_aviso").insert({ usuario: login, texto: bruto.slice(0, 500), motivo: p.veredicto.motivo, grave: p.veredicto.avisar_mods });

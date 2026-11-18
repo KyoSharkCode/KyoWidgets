@@ -73,6 +73,17 @@ function abrir() {
           '<div class="acciones"><button class="btn pri" type="button" id="iaLimGuardar">💾 Guardar límites</button></div>' +
           '<p class="nota">Al llegar al tope del directo o al del mes, AletaBot deja de usar la IA sola. Los comandos, sorteos y encuestas siguen funcionando igual.</p>' +
         '</div>' +
+        '<div class="card"><h2>👥 Memoria de viewers</h2>' +
+          '<p class="nota">AletaBot guarda una ficha pequeña de cada persona del chat: su nombre, cómo prefiere que la llamen, desde cuándo viene, en cuántos directos ha estado y hasta 3 cosas que <b>ella misma le ha contado a AletaBot</b>. Lo que se dice en el chat sin hablarle a ella no se guarda, y los temas sensibles (salud, religión, política, edad, dónde vive…) se descartan.</p>' +
+          '<label class="copiaimg"><input type="checkbox" id="iaMemoria"> Recordar a los viewers</label>' +
+          '<label class="copiaimg"><input type="checkbox" id="iaSaludos"> Saludar a los habituales cuando llegan (una vez por directo)</label>' +
+          '<div class="bopts"><label><span>Es habitual a partir de (directos)</span><input type="number" id="iaSaludarDesde" min="2" max="100"></label></div>' +
+          '<div class="acciones"><button class="btn pri" type="button" id="iaMemGuardar">💾 Guardar memoria</button><button class="btn" type="button" id="iaSaludoProbar">🧪 Probar un saludo</button></div>' +
+          '<div class="botres" id="iaSaludoRes" hidden></div>' +
+          '<p class="nota">Si llegan varios habituales seguidos los saluda juntos en un solo mensaje, y nunca hay dos saludos con menos de medio minuto entre ellos. Las fichas de quien lleva un año sin venir se borran solas.</p>' +
+          '<div class="acciones botbarra"><input type="text" id="iaVwBuscar" maxlength="25" aria-label="Buscar viewer por nombre de usuario" placeholder="🔎 Buscar por nombre de usuario…"><span class="nota" id="iaVwTotal"></span></div>' +
+          '<div class="iatabla iaviewers" id="iaViewers"></div>' +
+        '</div>' +
       '</div>' +
       '<div class="ovprev ovcol">' +
         '<div class="card"><h2>💸 Gasto</h2>' +
@@ -96,6 +107,10 @@ function abrir() {
           '<li><code>!ia sigue</code><span>la reanuda después de una pausa (tú y tus mods)</span></li>' +
           '<li><code>!ia apagar</code><span>la apaga del todo (tú y tus mods)</span></li>' +
           '<li><code>!ia encender</code><span>la vuelve a encender después de apagarla (solo tú)</span></li>' +
+          '<li><code>!misdatos</code><span>AletaBot le dice a esa persona lo que recuerda de ella (cualquiera)</span></li>' +
+          '<li><code>!llamame Apodo</code><span>le dice cómo quiere que la llame (cualquiera)</span></li>' +
+          '<li><code>!olvidame</code><span>borra todo lo que recuerda de esa persona y no guarda nada más (cualquiera)</span></li>' +
+          '<li><code>!recuerdame</code><span>vuelve a recordarla después de un !olvidame (cualquiera)</span></li>' +
         '</ul></div>' +
       '</div>' +
     '</div>';
@@ -124,6 +139,7 @@ function abrir() {
     $('#iaEsperaHilo', app).value = a.esperaHilo; $('#iaTurnosHilo', app).value = a.turnosHilo;
     $('#iaSoloDirecto', app).checked = a.soloEnDirecto !== false;
     $('#iaNombres', app).value = (a.nombres || []).join(', '); $('#iaIgnorar', app).value = (a.ignorar || []).join(', ');
+    $('#iaMemoria', app).checked = a.memoria !== false; $('#iaSaludos', app).checked = a.saludos !== false; $('#iaSaludarDesde', app).value = a.saludarDesde;
 
     const r = d.resumen || { mes: 0, directos: [] };
     const pct = Math.min(100, Math.round((Number(r.mes) || 0) / (Number(a.topeMes) || 1) * 100));
@@ -171,6 +187,47 @@ function abrir() {
     }) }, 'Límites guardados ✓', e.currentTarget);
   });
   $('#iaRefrescar', app).addEventListener('click', leer);
+
+  // ---------- Memoria de viewers ----------
+  $('#iaMemGuardar', app).addEventListener('click', e => {
+    if (!st.d) return;
+    guardar({ ajustes: Object.assign({}, st.d.ajustes, { memoria: $('#iaMemoria', app).checked, saludos: $('#iaSaludos', app).checked, saludarDesde: $('#iaSaludarDesde', app).value }) }, 'Memoria guardada ✓', e.currentTarget);
+  });
+  $('#iaSaludoProbar', app).addEventListener('click', async e => {
+    const b = e.currentTarget, res = $('#iaSaludoRes', app);
+    b.disabled = true; res.hidden = false; res.className = 'botres'; res.innerHTML = '<span>Pensando…</span>';
+    try {
+      const d = await pedir({ accion: 'probarSaludo', personalidad: pers.value });
+      if (d.ok) res.innerHTML = '<b>AletaBot (a Pepa, que lleva 7 directos y tiene un gato)</b><span>' + esc(d.respuesta) + '</span><small>Coste de esta prueba: ' + usd(d.coste) + ' USD</small>';
+      else { res.className = 'botres mal'; res.innerHTML = '<span>' + esc(errTexto(d, true)) + '</span>'; }
+    } catch (er) { res.className = 'botres mal'; res.innerHTML = '<span>No encuentro la función aleta-ia.</span>'; }
+    b.disabled = false;
+  });
+  const vw = $('#iaViewers', app);
+  async function leerViewers() {
+    try {
+      const d = await pedir({ accion: 'viewers', buscar: $('#iaVwBuscar', app).value });
+      if (!d.ok) { vw.innerHTML = '<p class="nota">' + esc(errTexto(d)) + '</p>'; return; }
+      if (d.sql === false) { vw.innerHTML = '<p class="nota">Falta ejecutar 10_viewers.sql en Supabase (SQL Editor).</p>'; $('#iaVwTotal', app).textContent = ''; return; }
+      $('#iaVwTotal', app).textContent = d.total + (d.total === 1 ? ' persona' : ' personas') + (d.total > d.viewers.length ? ' (se ven las ' + d.viewers.length + ' más recientes)' : '');
+      vw.innerHTML = d.viewers.length
+        ? '<table><thead><tr><th>Quién</th><th>Directos</th><th>Recuerda</th><th></th></tr></thead><tbody>' + d.viewers.map(v =>
+            '<tr><td>' + esc(v.apodo || v.nombre || v.login) + '<small>' + esc(v.login) + (v.apodo ? ' · le llama ' + esc(v.apodo) : '') + ' · desde ' + esc(new Date(v.primera).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })) + '</small></td>' +
+            '<td>' + num(v.directos) + '</td><td>' + ((v.datos || []).map(esc).join('<br>') || '<small>—</small>') + '</td>' +
+            '<td><button class="btn" type="button" data-borrar="' + esc(v.user_id) + '" aria-label="Borrar la ficha de ' + esc(v.login) + '">🗑</button></td></tr>').join('') + '</tbody></table>'
+        : '<p class="nota">' + ($('#iaVwBuscar', app).value ? 'Nadie con ese nombre.' : 'Todavía no recuerda a nadie. Las fichas se crean cuando alguien escribe en el chat durante un directo.') + '</p>';
+    } catch (e) { vw.innerHTML = '<p class="nota">No encuentro la función aleta-ia.</p>'; }
+  }
+  let tBuscar;
+  $('#iaVwBuscar', app).addEventListener('input', () => { clearTimeout(tBuscar); tBuscar = setTimeout(leerViewers, 400); });
+  vw.addEventListener('click', async e => {
+    const b = e.target.closest('[data-borrar]'); if (!b) return;
+    if (!b.dataset.seguro) { b.dataset.seguro = '1'; b.textContent = '¿Borrar?'; setTimeout(() => { delete b.dataset.seguro; b.textContent = '🗑'; }, 3000); return; }
+    b.disabled = true;
+    try { const d = await pedir({ accion: 'borrarViewer', user_id: b.dataset.borrar }); if (d.ok) { aviso('Ficha borrada 🫧'); leerViewers(); } else { aviso(errTexto(d), 5000); b.disabled = false; } }
+    catch (er) { aviso('No encuentro la función aleta-ia.', 5000); b.disabled = false; }
+  });
+  leerViewers();
 
   async function probar() {
     const txt = $('#iaProbarTxt', app).value.trim(), res = $('#iaRes', app), b = $('#iaProbar', app);

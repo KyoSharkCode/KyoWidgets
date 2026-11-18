@@ -8,15 +8,16 @@
 // y las PREDICCIONES de Twitch (puntos del canal) con !prediccion (tú y tus mods; necesita tu canal conectado).
 // Y la IA: cuando alguien nombra a AletaBot (o le responde), contesta con Claude. Todo eso vive en
 // ../_shared/aleta/ (aquí solo está el enganche); se controla con !ia (tú y tus mods) y en Kyo Estudio → 🧠 IA.
+// AletaBot también recuerda a los habituales y los saluda al llegar (!misdatos, !llamame, !olvidame: cualquiera).
 // Twitch también avisa aquí de cuándo empieza y termina el directo (stream.online / stream.offline).
 //
 // "Verify JWT" debe estar DESACTIVADO en esta función (Twitch la llama sin tus claves).
 // Secretos: KYO_SETUP_KEY y TWITCH_CLIENT_SECRET (la firma se calcula con KYO_SETUP_KEY). Para la IA, ANTHROPIC_API_KEY.
 // Tablas: kyo_chat (sql/03_bot.sql), kyo_contadores + función kyo_usar (sql/04_comandos.sql) kyo_sorteo (sql/05_sorteos.sql),
-// kyo_voto + kyo_votos (sql/06_encuestas.sql) y las de la IA (sql/09_ia.sql).
+// kyo_voto + kyo_votos (sql/06_encuestas.sql) y las de la IA (sql/09_ia.sql y sql/10_viewers.sql).
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { atenderIA, comandoIA, eventoDirecto, type Contexto } from "../_shared/aleta/ia.ts";
+import { atenderIA, comandoIA, comandoMemoria, eventoDirecto, presenciaIA, type Contexto, type Presencia } from "../_shared/aleta/ia.ts";
 
 // ---------- Ayudantes de Twitch (iguales en las 4 funciones de AletaBot) ----------
 // El Client ID no es secreto. El Client Secret vive en Supabase Secrets (TWITCH_CLIENT_SECRET).
@@ -726,7 +727,7 @@ const contextoIA = (db: any, ev: any, idBot: string): Contexto => ({
 
 // Responde a un mensaje del chat si es un comando (y, si no lo es, mira si va para la IA)
 const vistos = new Set<string>(); // por si Twitch reenvía el mismo aviso
-async function atender(db: any, ev: any, idBot: string, idMensaje: string) {
+async function atender(db: any, ev: any, idBot: string, idMensaje: string, presencia?: Promise<Presencia>) {
   const txt = String(ev?.message?.text || "");
   if (!txt || ev.chatter_user_id === idBot) return; // AletaBot no se responde a sí misma
   if (vistos.has(idMensaje)) return;
@@ -741,11 +742,13 @@ async function atender(db: any, ev: any, idBot: string, idMensaje: string) {
   catch { /* y con la predicción */ }
   try { if (await comandoIA(db, txt, badges, contextoIA(db, ev, idBot))) return; }
   catch { /* y con los comandos !ia (p. ej. falta 09_ia.sql) */ }
+  try { if (await comandoMemoria(db, ev, txt, contextoIA(db, ev, idBot))) return; }
+  catch { /* y con !misdatos, !llamame, !olvidame (p. ej. falta 10_viewers.sql) */ }
 
   const c = buscarComando(await leerComandos(db), txt);
   if (!c) {
     // No es un comando: si nombran a AletaBot o le responden, contesta la IA
-    try { await atenderIA(db, ev, contextoIA(db, ev, idBot)); }
+    try { await atenderIA(db, ev, contextoIA(db, ev, idBot), presencia); }
     catch { /* la IA nunca debe romper el resto del bot */ }
     return;
   }
@@ -805,9 +808,13 @@ Deno.serve(async (req) => {
   if (tipo === "notification" && datos.subscription?.type === "channel.chat.message") {
     const ev = datos.event;
     const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const idBot = datos.subscription?.condition?.user_id || "";
+    // La memoria cuenta la visita de quien escribe (y saluda a los habituales); nunca debe romper lo demás
+    const presencia: Promise<Presencia> = presenciaIA(db, ev, contextoIA(db, ev, idBot)).catch(() => null);
     const trabajo = Promise.allSettled([
       guardarEnChat(db, ev),
-      atender(db, ev, datos.subscription?.condition?.user_id || "", id),
+      presencia,
+      atender(db, ev, idBot, id, presencia),
     ]);
     // Se contesta a Twitch enseguida y el trabajo sigue en segundo plano
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(trabajo);

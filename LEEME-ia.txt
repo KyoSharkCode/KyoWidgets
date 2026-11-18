@@ -1,10 +1,25 @@
-KyoWidgets · 🧠 IA de AletaBot (fase 1: menciones y conversación)
-==================================================================
+KyoWidgets · 🧠 IA de AletaBot (fase 1: menciones y conversación · fase 2: memoria de viewers)
+==============================================================================================
 
 Qué hace: cuando alguien escribe @AletaBot, su nombre ("aleta") o responde a un mensaje suyo,
 AletaBot contesta con Claude en una o dos frases, con la personalidad que tú le escribas.
 Puede seguir una conversación corta con esa persona (recuerda los últimos turnos unos minutos).
 No puede hacer nada más que hablar. Funciona 24/7 en Supabase, igual que los comandos.
+
+Memoria de viewers (fase 2)
+- AletaBot guarda una ficha pequeña por persona: nombre de usuario, cómo prefiere que la llamen,
+  primera visita, en cuántos directos ha estado y hasta 3 cosas que ella misma le ha contado.
+- Las visitas solo se cuentan en directo, una por directo.
+- A quien ya es habitual (3 directos o más, se cambia en el Estudio) lo saluda por su nombre una vez
+  por directo. Si llegan varios seguidos los saluda juntos en un solo mensaje, y nunca hay dos saludos
+  con menos de medio minuto entre ellos. Si el primer mensaje de alguien ya va para AletaBot, no hay
+  saludo aparte: la bienvenida va en su respuesta.
+- Los datos solo salen de mensajes dirigidos a AletaBot. Lo que se dice en el chat sin hablarle a ella
+  no se guarda. Nunca se anota información sensible: salud, orientación sexual, religión, política,
+  origen, dinero, edad, nombre real, dirección, estudios o trabajo concretos, contacto, ni nada sobre
+  otras personas.
+- Cada persona solo recibe sus propias notas: las de una nunca se usan al contestar a otra.
+- Las fichas de quien lleva un año sin venir se borran solas.
 
 Cómo se gasta lo mínimo
 - Un mensaje normal del chat no gasta nada: solo se llama a Claude si nombran a AletaBot.
@@ -16,6 +31,7 @@ Cómo se gasta lo mínimo
 
 Preparación (una sola vez)
 1) Supabase → SQL Editor → New query → pega el contenido de supabase/sql/09_ia.sql → Run.
+   Después, lo mismo con supabase/sql/10_viewers.sql (la memoria de viewers).
 2) Consola de Claude (platform.claude.com) → "Obtener clave de API" → ponle de nombre AletaBot → copia la clave.
    Solo se enseña una vez. No la pegues en ningún chat, correo ni archivo del repo.
 3) Supabase → Edge Functions → Secrets → Add new secret:
@@ -36,10 +52,22 @@ En el chat (tú y tus mods)
   !ia apagar     la apaga del todo
   !ia encender   la enciende después de apagarla (solo tú)
 
+En el chat (cualquiera)
+  !misdatos        AletaBot le dice lo que recuerda de esa persona
+  !llamame Apodo   le dice cómo quiere que la llame (se revisa que el apodo sea apropiado)
+  !olvidame        borra todo lo que recuerda de esa persona y no guarda nada más de ella
+  !recuerdame      vuelve a recordarla después de un !olvidame
+  !olvidame funciona siempre, aunque la IA o la memoria estén apagadas.
+  Recomendación: cuenta en un panel de tu canal o en un comando (!privacidad) que AletaBot recuerda
+  a los habituales y que con !olvidame se borra todo.
+
 Cómo probarla sin estar en directo
 - En el Estudio: 🧠 IA → 🧪 Probar. No escribe nada en tu chat.
 - En tu chat, con el directo apagado: escribe "@AletaBot hola". Fuera de directo solo te contesta
   a ti y a tus mods (se puede cambiar en Límites).
+- Saludos: 🧠 IA → Memoria de viewers → "Probar un saludo" enseña cómo saludaría a alguien de ejemplo.
+  Los saludos de verdad solo ocurren en directo (fuera de directo no se cuentan visitas).
+- Memoria sin directo: dile algo de ti ("@AletaBot mi juego favorito es ZZZ") y luego escribe !misdatos.
 
 Seguridad
 - Lo que escribe el chat es conversación, no órdenes: las instrucciones de AletaBot van aparte y el chat
@@ -57,7 +85,9 @@ Dónde está cada cosa
   supabase/functions/_shared/aleta/texto.ts    cuándo contesta, esperas, limpieza, comandos !ia, precios
   supabase/functions/_shared/aleta/prompt.ts   las normas fijas y la personalidad de ejemplo
   supabase/functions/_shared/aleta/claude.ts   las dos llamadas a Claude (Haiku y Sonnet)
-  supabase/functions/_shared/aleta/ia.ts       el recorrido completo de un mensaje y el registro de gasto
+  supabase/functions/_shared/aleta/ia.ts       el recorrido completo de un mensaje
+  supabase/functions/_shared/aleta/estado.ts   ajustes, saber si hay directo y registro de gasto
+  supabase/functions/_shared/aleta/memoria.ts  fichas de viewers, visitas, saludos y sus comandos
   supabase/functions/aleta-ia/                 lo que usa la pestaña 🧠 IA del Estudio
-  supabase/sql/09_ia.sql                       tablas y funciones
+  supabase/sql/09_ia.sql, 10_viewers.sql       tablas y funciones
   ia.js                                        la pestaña 🧠 IA
