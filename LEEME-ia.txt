@@ -29,6 +29,14 @@ Cómo se gasta lo mínimo
 - Espera por persona (30 s), tope de respuestas por directo (150) y tope de gasto al mes (40 USD).
   Los tres se cambian en Kyo Estudio → 🧠 IA → Límites. Al llegar a un tope, la IA se calla sola.
 
+Límites del plan gratis de Supabase
+- La IA no añade invocaciones de Edge Functions: usa el mismo aviso de Twitch que ya llega con cada
+  mensaje del chat (twitch-bot-events).
+- Un mensaje normal del chat no hace ninguna consulta extra a la base de datos: los ajustes se leen
+  una vez cada 15 segundos y la visita de cada persona se cuenta una sola vez por directo.
+- Solo cuando AletaBot contesta o saluda hay unas pocas consultas (y son, como mucho, 150 respuestas
+  por directo). La pestaña 🧠 IA del Estudio no consulta sola: solo al abrirla y al pulsar botones.
+
 Preparación (una sola vez)
 1) Supabase → SQL Editor → New query → pega el contenido de supabase/sql/09_ia.sql → Run.
    Después, lo mismo con supabase/sql/10_viewers.sql (la memoria de viewers).

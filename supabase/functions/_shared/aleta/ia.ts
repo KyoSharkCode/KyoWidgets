@@ -14,12 +14,12 @@
 // Tablas y funciones SQL: sql/09_ia.sql y sql/10_viewers.sql. Lo compartido (ajustes, directo, gasto) está en estado.ts.
 
 import {
-  aplicarOrden, detectar, esperaPara, hiloNuevo, hiloSigue, hiloVivo, leerOrden, limpiarEntrada, limpiarSalida,
+  aplicarOrden, detectar, esperaPara, HILO_SIGUE, hiloNuevo, hiloSigue, hiloVivo, leerOrden, limpiarEntrada, limpiarSalida,
   perfilTexto, rolDe, trozosSecretos, type Disparo, type Hilo, type Perfil,
 } from "./texto.ts";
 import { instrucciones, mensajeFiltro, mensajesChat, type Linea, type Quien, type Veredicto } from "./prompt.ts";
 import { conversar, filtrar, hayClave } from "./claude.ts";
-import { apuntar, directoActual, gastoMes, guardarAjustes, leerEstado, type Contexto } from "./estado.ts";
+import { apuntar, directoActual, gastoMes, guardarAjustes, leerEstado, marcarHilo, type Contexto } from "./estado.ts";
 import { guardarRecuerdo, leerPerfil, type Presencia } from "./memoria.ts";
 
 export { eventoDirecto, guardarAjustes, guardarPersonalidad, type Contexto } from "./estado.ts";
@@ -71,8 +71,11 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Pro
   const aj = est.ajustes;
   if (aj.estado !== "activa" || !hayClave() || aj.ignorar.includes(login)) return;
 
-  const hilo = await leerHilo(db, userId);
+  // Un mensaje normal (ni la nombra ni estaba hablando con ella) termina aquí, sin consultar nada más
   let disparo = detectar(ev, ctx.idBot, aj.nombres);
+  const reciente = est.hilos[userId];
+  if (!disparo && !(reciente && Date.now() - reciente < HILO_SIGUE * 1000)) return;
+  const hilo = await leerHilo(db, userId);
   if (!disparo) { if (!hiloSigue(hilo)) return; disparo = "hilo"; }
 
   const badges: string[] = (ev.badges || []).map((b: any) => b.set_id);
@@ -113,6 +116,7 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Pro
   await Promise.allSettled([
     db.rpc("kyo_ia_contar", { p_directo: directo.id }),
     db.from("kyo_ia_hilo").upsert({ user_id: userId, nombre: q.nombre.slice(0, 40), ...hiloNuevo(hilo, texto, p.respuesta) }),
+    marcarHilo(db, userId),
   ]);
 }
 

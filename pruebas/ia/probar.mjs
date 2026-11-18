@@ -39,10 +39,11 @@ function baseFalsa(ajustes = {}) {
   const viewerNuevo = (a) => ({ user_id: a.p_user, login: a.p_login || "", nombre: a.p_nombre || "", apodo: null, primera: new Date(reloj).toISOString(), ultima: reloj, directos: 0, ultimo_directo: null, saludado: null, saludo_pendiente: null, datos: [], no_recordar: false, ultimo_comando: null });
   reloj += 120_000; // cada prueba empieza "dos minutos después": la IA olvida lo que recordaba de la anterior
   const db = {
-    t,
+    t, consultas: 0,
     avanzar: (seg) => { reloj += seg * 1000; },
     ahora: () => reloj,
     from(tabla) {
+      db.consultas++;
       let filas = [...t[tabla]], cambio = null;
       const q = {
         update: (c) => { cambio = { c }; return q; },
@@ -69,6 +70,7 @@ function baseFalsa(ajustes = {}) {
       return q;
     },
     rpc(nombre, a) {
+      db.consultas++;
       if (nombre === "kyo_ia_permiso") {
         let d = t.kyo_directo.find((x) => x.id === a.p_directo);
         if (!d) t.kyo_directo.push(d = { id: a.p_directo, respuestas: 0, aviso_tope: false });
@@ -316,6 +318,30 @@ for (const estado of ["pausada", "apagada"]) {
   await IA.comandoIA(db, "!ia", ["broadcaster"], ctx);
   prueba("!ia enseña respuestas y gasto", /0\/150 respuestas.*0,00 de 40,00 USD/.test(ctx.dicho.at(-1).m), ctx.dicho.at(-1).m);
   Date.now = real;
+}
+
+console.log("5b) Límites de Supabase: un mensaje normal no consulta la base de datos");
+{
+  const db = baseFalsa({ memoria: false }), ctx = contexto();
+  await turno(db, ctx, mensaje("hola chat", { id: "900", login: "uno" }));
+  const tras1 = db.consultas;
+  for (let i = 0; i < 20; i++) { conReloj(db); db.avanzar(0.5); await IA.atenderIA(db, mensaje("mensaje normal " + i, { id: "9" + i, login: "v" + i }), ctx); Date.now = real; }
+  igual("20 mensajes normales seguidos: 0 consultas (los ajustes se recuerdan 15 s)", db.consultas - tras1, 0);
+  igual("el primero solo lee los ajustes (1 consulta)", tras1, 1);
+}
+{
+  const db = baseFalsa({ estado: "apagada" }), ctx = contexto({ id: "dir-Z", inicio: new Date().toISOString() });
+  for (let i = 0; i < 10; i++) { conReloj(db); db.avanzar(0.5); const ev = mensaje("hola " + i, { id: "8" + i, login: "w" + i }); await IA.presenciaIA(db, ev, ctx); await IA.atenderIA(db, ev, ctx); Date.now = real; }
+  igual("con la IA apagada: 1 consulta para 10 mensajes", db.consultas, 1);
+}
+{
+  const db = baseFalsa(), ctx = contexto({ id: "dir-Y", inicio: new Date().toISOString() });
+  const ev = () => mensaje("sigo aquí", { id: "950", login: "fiel", nombre: "Fiel" });
+  conReloj(db); await IA.presenciaIA(db, ev(), ctx);
+  const tras1 = db.consultas;
+  for (let i = 0; i < 10; i++) { db.avanzar(0.5); const e = ev(); await IA.presenciaIA(db, e, ctx); await IA.atenderIA(db, e, ctx); }
+  Date.now = real;
+  igual("con memoria: la visita se cuenta una vez y los siguientes mensajes de esa persona no consultan nada", db.consultas - tras1, 0);
 }
 
 console.log("6) Memoria: textos y comandos");

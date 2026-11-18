@@ -1,8 +1,12 @@
 // KyoWidgets · AletaBot IA · lo que comparten la conversación (ia.ts) y la memoria (memoria.ts):
 // los ajustes, saber si hay directo, el gasto del mes y el registro de cada llamada a Claude.
-// Ajustes en kyo_ajustes (filas "ia", "ia_personalidad", "directo", "ia_error"). Tablas: sql/09_ia.sql.
+// Ajustes en kyo_ajustes (filas "ia", "ia_personalidad", "directo", "ia_hilos", "ia_error"). Tablas: sql/09_ia.sql.
+//
+// Cada consulta a la base de datos cuenta para los límites del plan gratis de Supabase (logs), así que
+// un mensaje normal del chat no debe costar ninguna: todo lo que hace falta para decidir si un mensaje
+// va para AletaBot se lee junto, en una sola consulta, y se recuerda unos segundos.
 
-import { AJUSTES_IA, limpiarAjustes, type AjustesIA, type Uso } from "./texto.ts";
+import { AJUSTES_IA, HILO_SIGUE, limpiarAjustes, type AjustesIA, type Uso } from "./texto.ts";
 import type { Llamada } from "./claude.ts";
 
 // Lo que twitch-bot-events le presta a la IA para hablar con Twitch
@@ -15,22 +19,24 @@ export type Contexto = {
 };
 
 export type Directo = { id: string; inicio: string; enVivo: boolean; fuente: "eventsub" | "helix"; visto: string };
-export type Estado = { ajustes: AjustesIA; personalidad: string; directo: Directo | null };
+// hilos: con quién acaba de hablar AletaBot (id de Twitch → cuándo le contestó, en milisegundos)
+export type Estado = { ajustes: AjustesIA; personalidad: string; directo: Directo | null; hilos: Record<string, number> };
 
-export const ahoraISO = () => new Date().toISOString();
+export const ahoraISO = () => new Date(Date.now()).toISOString();
 const hace = (iso: string | undefined) => (iso ? Date.now() - Date.parse(iso) : Infinity);
 
-// ---------- Ajustes, personalidad y directo (una sola consulta, recordada unos segundos) ----------
+// ---------- Ajustes, personalidad, directo y conversaciones abiertas (una sola consulta, recordada 15 s) ----------
 let _estado: { ts: number; e: Estado } | null = null;
 export async function leerEstado(db: any, fresco = false): Promise<Estado> {
-  if (!fresco && _estado && Date.now() - _estado.ts < 8000) return _estado.e;
-  const { data } = await db.from("kyo_ajustes").select("id, datos").in("id", ["ia", "ia_personalidad", "directo"]);
+  if (!fresco && _estado && Date.now() - _estado.ts < 15_000) return _estado.e;
+  const { data } = await db.from("kyo_ajustes").select("id, datos").in("id", ["ia", "ia_personalidad", "directo", "ia_hilos"]);
   const fila = (id: string) => (data || []).find((r: any) => r.id === id)?.datos;
   const d = fila("directo");
   const e: Estado = {
     ajustes: limpiarAjustes(fila("ia") || AJUSTES_IA),
     personalidad: String(fila("ia_personalidad")?.texto || ""),
     directo: d?.id ? d : null,
+    hilos: fila("ia_hilos") || {},
   };
   _estado = { ts: Date.now(), e };
   return e;
@@ -42,6 +48,17 @@ async function guardarFila(db: any, id: string, datos: unknown) {
 export const guardarAjustes = (db: any, a: unknown) => guardarFila(db, "ia", limpiarAjustes(a));
 export const guardarPersonalidad = (db: any, texto: unknown) =>
   guardarFila(db, "ia_personalidad", { texto: String(texto ?? "").replace(/\r/g, "").trim().slice(0, 4000) });
+
+// AletaBot acaba de contestar a alguien: se apunta para que su siguiente mensaje, aunque no la nombre,
+// pueda contar como continuación. Así no hay que consultar la conversación de cada persona que escribe.
+export async function marcarHilo(db: any, userId: string) {
+  const { data } = await db.from("kyo_ajustes").select("datos").eq("id", "ia_hilos").maybeSingle();
+  const ahora = Date.now(), vivos: Record<string, number> = {};
+  for (const [k, v] of Object.entries(data?.datos || {})) if (ahora - Number(v) < HILO_SIGUE * 1000) vivos[k] = Number(v);
+  vivos[userId] = ahora;
+  await db.from("kyo_ajustes").upsert({ id: "ia_hilos", datos: vivos, updated_at: ahoraISO() });
+  if (_estado) _estado.e.hilos = vivos;
+}
 
 // ---------- ¿Hay directo ahora? ----------
 // Lo normal es que Twitch avise (stream.online / stream.offline → eventoDirecto). Si esos avisos aún no
@@ -58,7 +75,9 @@ export async function directoActual(db: any, fila: Directo | null, ctx: Contexto
     id: v ? v.id : (fila?.id || "ninguno"), inicio: v ? v.inicio : (fila?.inicio || ahoraISO()),
     enVivo: !!v, fuente: fila?.fuente === "eventsub" ? "eventsub" : "helix", visto: ahoraISO(),
   };
-  await guardarFila(db, "directo", nueva);
+  // se guarda y se actualiza lo recordado en memoria (sin obligar a releer los ajustes)
+  await db.from("kyo_ajustes").upsert({ id: "directo", datos: nueva, updated_at: ahoraISO() });
+  if (_estado) _estado.e.directo = nueva;
   return v ? { id: v.id, enVivo: true } : fuera;
 }
 
