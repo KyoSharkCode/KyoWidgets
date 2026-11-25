@@ -14,7 +14,7 @@
       extra: () => 'Los anuncios rotativos que actives en el Estudio actual (Overlays) salen en el sitio de la chibi.' },
     { id: 'terminando', n: 'Terminando', d: 'El cierre: el agradecimiento con tus redes, frases que van cambiando y tu personaje guiñando el ojo.', lista: true,
       extra: () => 'Los anuncios rotativos que actives en el Estudio actual (Overlays) salen en el sitio de Kyo.' },
-    { id: 'transicion', n: 'Transición', d: 'El stinger de OBS: la ola sube, aparece la aleta y al bajar ya estás en la otra escena.' }
+    { id: 'transicion', n: 'Transición', d: 'El stinger de OBS: la ola sube, aparece tu aleta y al bajar ya estás en la otra escena. Es un vídeo con transparencia: descárgalo aquí en .webm o en .mov.', lista: true, anim: 'transicion-2027' }
   ];
   const CLAVE = 'kyo2027_escenas_fmt';
   let fmts = {}; try { fmts = JSON.parse(localStorage.getItem(CLAVE) || '{}') || {}; } catch (e) {}
@@ -26,6 +26,19 @@
     el.className = 'esc' + (e.lista ? ' lista' : ' pronto-esc');
     if (!e.lista) {
       el.innerHTML = '<div class="esc-cab"><h3>' + e.n + '</h3><span class="estado">Pendiente</span></div><p class="nota">' + e.d + '</p>';
+      return el;
+    }
+    if (e.anim) {
+      // transición: la tarjeta del motor de animaciones (descarga .mov y .webm con transparencia) y los pasos para OBS
+      el.classList.add('anim');
+      el.innerHTML = '<div class="esc-cab"><h3>' + e.n + '</h3><span class="estado listo">Lista</span></div><p class="nota">' + e.d + '</p>' +
+        '<ol class="pasos"><li>Descarga el <b>.webm</b> (o el <b>.mov</b>) en horizontal y, para los directos en vertical, también el vertical.</li>' +
+        '<li>En OBS: <b>Transiciones de escena → + → Stinger</b> y elige el archivo.</li>' +
+        '<li>Pon el <b>punto de transición en 600 ms</b>: en ese momento la ola tapa toda la pantalla y OBS cambia de escena por debajo.</li></ol>' +
+        '<div class="herr"><p class="nota">Cargando la transición…</p></div>';
+      const caja = $('.herr', el);
+      import('../animaciones.js').then(() => window.kyoAnim.montar(caja, [e.anim]))
+        .catch((err) => { console.error(err); caja.innerHTML = '<p class="nota">No se pudo cargar la transición. Recarga la página.</p>'; });
       return el;
     }
     el.innerHTML =
