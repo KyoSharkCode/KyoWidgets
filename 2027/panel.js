@@ -25,7 +25,7 @@
       ['s1-subir', 'Subir todas las piezas el 1 de enero', 0]] },
     { n: 2, vista: 'videos', titulo: 'Videos', desc: 'Intro, outro, miniaturas y marca de agua. Antes del 1 de enero.', tareas: [
       ['s2-intro', 'Intro «Aleta al acecho»', 1], ['s2-outro', 'Outro (pantalla final)', 1], ['s2-miniaturas', 'Plantilla de miniaturas', 1],
-      ['s2-agua', 'Marca de agua', 0]] },
+      ['s2-agua', 'Marca de agua', 1]] },
     { n: 3, vista: 'escenas', titulo: 'Escenas de stream', desc: 'Las escenas de OBS con el estilo nuevo.', tareas: [
       ['s3-chatting', 'Just Chatting', 0], ['s3-comenzando', 'Comenzando', 0], ['s3-gameplay', 'Gameplay', 0],
       ['s3-volvemos', 'Volvemos', 0], ['s3-terminando', 'Terminando', 0], ['s3-transicion', 'Transición', 0]] },
@@ -180,6 +180,22 @@
       const b = e.target.closest('[data-copiar]'); if (!b) return;
       const hex = b.dataset.copiar;
       try { await navigator.clipboard.writeText(hex); aviso('Copiado ' + hex); } catch (err) { aviso('No se pudo copiar. El color es ' + hex); }
+    });
+    // marca de agua de YouTube: el isotipo centrado en un PNG cuadrado y transparente (YouTube la pide cuadrada)
+    document.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-agua]'); if (!b) return;
+      b.disabled = true;
+      try {
+        const im = new Image(); im.src = 'marca/logo/kyosumi-isotipo-color.svg'; await im.decode();
+        const L = 800, m = L * .06, k = Math.min((L - 2 * m) / im.width, (L - 2 * m) / im.height), w = im.width * k, h = im.height * k;
+        const cv = document.createElement('canvas'); cv.width = L; cv.height = L;
+        cv.getContext('2d').drawImage(im, (L - w) / 2, (L - h) / 2, w, h);
+        const blob = await new Promise((r) => cv.toBlob(r, 'image/png'));
+        const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = 'KyoSumi_marca_de_agua_YouTube_800x800.png';
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+        aviso('Descargada la marca de agua (' + Math.max(1, Math.round(blob.size / 1024)) + ' KB).');
+      } catch (err) { console.error(err); aviso('No se pudo crear la imagen.'); }
+      b.disabled = false;
     });
     window.addEventListener('hashchange', () => { ir(); const h = $('[data-vista]:not([hidden]) h1'); window.scrollTo(0, 0); if (h) h.focus({ preventScroll: true }); });
     ir();

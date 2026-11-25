@@ -261,6 +261,21 @@ p{margin:0}
 .mini-prev .acciones button:disabled{opacity:.6;cursor:progress}
 @media (max-width:1100px){.mini{grid-template-columns:minmax(0,1fr)}.mini-prev{position:static;order:-1}}
 
+/* Marca de agua */
+.agua{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px;align-items:center}
+.agua-demos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.agua-demo{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;border:1px solid rgba(111,227,240,.16)}
+.agua-demo.oscuro{background:radial-gradient(circle at 30% 35%,#5a2a2a,#1a0d12 70%)}
+.agua-demo.claro{background:radial-gradient(circle at 30% 35%,#fff6d8,#9fd3ee 75%)}
+.agua-demo img{position:absolute;right:4%;bottom:6%;width:11%;height:auto}
+.agua-demo span{position:absolute;left:8px;top:6px;font-family:var(--cs-f-hud);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.85);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.agua-demo.claro span{color:var(--cs-abisal);text-shadow:none}
+.agua-info{display:grid;gap:12px;justify-items:start}
+.pasos{margin:0;padding-left:20px;display:grid;gap:6px;color:#c9cfee;font-size:14.5px}
+.boton.coral{background:var(--cs-coral);border-color:var(--cs-coral);color:var(--cs-abisal);font-weight:700}
+.boton:disabled{opacity:.6;cursor:progress}
+@media (max-width:1100px){.agua{grid-template-columns:minmax(0,1fr)}}
+
 #aviso{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:50;background:var(--cs-abisal-2);border:1px solid rgba(111,227,240,.35);border-radius:14px;padding:11px 16px;font-weight:600;max-width:calc(100% - 32px)}
 footer{font-family:var(--cs-f-hud);font-size:12px;letter-spacing:.06em;color:#7f8bc0;margin-top:40px}
 
@@ -390,7 +405,7 @@ footer{font-family:var(--cs-f-hud);font-size:12px;letter-spacing:.06em;color:#7f
       <header class="vhead">
         <span class="eyebrow">Stage 2 · videos</span>
         <h1 id="h-videos" tabindex="-1">Videos</h1>
-        <p>Las piezas para los videos de YouTube: intro, outro y miniaturas. La intro va entre el hook y el video: pon el .mov en una pista por encima del final del hook y del principio del video, y la ola tapa uno y descubre el otro.</p>
+        <p>Las piezas para los videos de YouTube: intro, outro, miniaturas y marca de agua. La intro va entre el hook y el video: pon el .mov en una pista por encima del final del hook y del principio del video, y la ola tapa uno y descubre el otro.</p>
       </header>
       <div data-resumen="2"></div>
       <div class="herr" id="herrVideos"><p class="nota">Cargando la intro y el outro…</p></div>
@@ -398,7 +413,24 @@ footer{font-family:var(--cs-f-hud);font-size:12px;letter-spacing:.06em;color:#7f
         <div class="ptitulo"><h2 id="h-miniaturas">Miniaturas</h2><span class="nota">El marco sigue tu regla: Historia coral, Gacha oro, LoL aleta, Multijugador bioluz y Varios perla.</span></div>
         <div class="mini" id="miniaturas"><p class="nota">Cargando…</p></div>
       </section>
-      <p class="nota">La marca de agua aparecerá aquí cuando esté lista.</p>
+      <section class="panel" aria-labelledby="h-agua">
+        <div class="ptitulo"><h2 id="h-agua">Marca de agua de YouTube</h2><span class="nota">Tu isotipo en versión cuadrada, como pide YouTube.</span></div>
+        <div class="agua">
+          <div class="agua-demos">
+            <div class="agua-demo oscuro"><img src="marca/logo/kyosumi-isotipo-color.svg" alt="" width="512" height="369"><span>Vídeo oscuro</span></div>
+            <div class="agua-demo claro"><img src="marca/logo/kyosumi-isotipo-color.svg" alt="" width="512" height="369"><span>Vídeo claro</span></div>
+          </div>
+          <div class="agua-info">
+            <ol class="pasos">
+              <li>Descarga la imagen: PNG cuadrado de 800 × 800 con fondo transparente, de menos de 1 MB.</li>
+              <li>En YouTube Studio ve a <b>Personalización → Marca → Marca de agua del vídeo</b> y súbela.</li>
+              <li>Elige cuándo se ve: al final del vídeo, desde un minuto concreto o durante todo el vídeo.</li>
+            </ol>
+            <button type="button" class="boton coral" data-agua>Descargar marca de agua</button>
+            <p class="nota">YouTube la muestra pequeña en la esquina de abajo a la derecha. En el ordenador, quien pasa el ratón por encima puede suscribirse con un clic.</p>
+          </div>
+        </div>
+      </section>
     </section>
 
     <!-- STAGE 3 · ESCENAS -->
