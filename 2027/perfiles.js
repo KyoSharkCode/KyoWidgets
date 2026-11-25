@@ -90,9 +90,9 @@
     for (let x = 0; x < W; x += P) { const h = P * (3 + Math.floor(rnd() * 3)); ctx.fillRect(x, base - h, P, h); }
     const cols = [C.coral, C.coralP, C.indigo, C.aleta, C.menta];
     // el arrecife no pasa del 13% del alto, para no tapar textos en los banners bajos
-    const maxLen = Math.max(2, Math.floor(H * 0.13 / P) - 4);
+    const maxLen = Math.max(2, Math.floor(H * 0.13 / P) - 1);
     for (let x = P * 2; x < W; x += P * (5 + Math.floor(rnd() * 6))) {
-      const col = cols[Math.floor(rnd() * cols.length)], len = Math.min(maxLen, 4 + Math.floor(rnd() * 8)), x0 = x - (x % P), y0 = base - 4 * P;
+      const col = cols[Math.floor(rnd() * cols.length)], len = Math.min(maxLen, 4 + Math.floor(rnd() * 8)), x0 = x - (x % P), y0 = base - P; // nace en el borde inferior
       ctx.fillStyle = col;
       for (let i = 0; i < len; i++) {
         ctx.fillRect(x0, y0 - i * P, P, P);

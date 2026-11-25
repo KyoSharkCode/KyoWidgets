@@ -20,7 +20,8 @@ function coralesPixel(ctx, tm) {
     const col = cols[Math.floor(rnd() * cols.length)], len = 4 + Math.floor(rnd() * 7), x0 = x - x % P;
     const crec = E.back(pr(tm, 3.55 + i * .025, 4 + i * .025)); i++;
     const n = Math.round(len * clamp(crec, 0, 1.3)); ctx.fillStyle = col;
-    for (let k = 0; k < n; k++) { ctx.fillRect(x0, H - 4 * P - k * P, P, P); if (rnd() < .3) { const d = rnd() < .5 ? -1 : 1; for (let j = 1; j <= 2; j++) ctx.fillRect(x0 + d * j * P, H - 4 * P - k * P - j * P, P, P); } }
+    // cada coral nace en el borde inferior
+    for (let k = 0; k < n; k++) { ctx.fillRect(x0, H - P - k * P, P, P); if (rnd() < .3) { const d = rnd() < .5 ? -1 : 1; for (let j = 1; j <= 2; j++) ctx.fillRect(x0 + d * j * P, H - P - k * P - j * P, P, P); } }
   }
 }
 
