@@ -24,7 +24,7 @@
       ['s1-kick', 'Confirmar el tamaño del banner de Kick', 0], ['s1-google', 'Probar la entrada con Google', 0],
       ['s1-subir', 'Subir todas las piezas el 1 de enero', 0]] },
     { n: 2, vista: 'videos', titulo: 'Videos', desc: 'Intro, outro, miniaturas, plantillas verticales y marca de agua. Antes del 1 de enero.', tareas: [
-      ['s2-intro', 'Intro «Aleta al acecho»', 1], ['s2-outro', 'Outro', 0], ['s2-miniaturas', 'Plantilla de miniaturas', 0],
+      ['s2-intro', 'Intro «Aleta al acecho»', 1], ['s2-outro', 'Outro (pantalla final)', 1], ['s2-miniaturas', 'Plantilla de miniaturas', 0],
       ['s2-verticales', 'Plantillas verticales', 0], ['s2-agua', 'Marca de agua', 0]] },
     { n: 3, vista: 'escenas', titulo: 'Escenas de stream', desc: 'Las escenas de OBS con el estilo nuevo.', tareas: [
       ['s3-chatting', 'Just Chatting', 0], ['s3-comenzando', 'Comenzando', 0], ['s3-gameplay', 'Gameplay', 0],
@@ -156,9 +156,9 @@
     if (v === 'perfiles' && window.kyoPerfiles) window.kyoPerfiles.abrir();
     if (v === 'videos') {
       const caja = $('#herrVideos');
-      // el motor de animaciones del Estudio: monta aquí solo la tarjeta de la intro 2027
+      // el motor de animaciones del Estudio: monta aquí solo las tarjetas 2027 (intro y outro)
       import('../animaciones.js')
-        .then(() => window.kyoAnim.montar(caja, ['intro-2027']))
+        .then(() => window.kyoAnim.montar(caja, ['intro-2027', 'outro-2027']))
         .catch((e) => { console.error(e); caja.innerHTML = '<p class="nota">No se pudo cargar la herramienta de animaciones. Recarga la página.</p>'; });
     }
   }

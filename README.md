@@ -37,7 +37,7 @@ Lo nuevo de 2027 (estilo interno *Coral Stream*: arrecife vivo, kawaii, tech y g
 - `2027/marca/logo/`: el logo nuevo (isologo e isotipo) en SVG.
 - `2027/perfiles.js` (sección *Perfiles y banners* del panel; la antigua `2027/perfiles.html` lleva allí): **Perfiles y banners**. Foto de perfil (Twitch, YouTube, Kick y TikTok), banners de Twitch, YouTube (con su zona segura) y Kick (tamaño editable), y banner e invitación de Discord, con el estilo nuevo. Cada pieza se ajusta (imagen, zoom y posición) y se descarga en PNG al tamaño exacto. Se pueden subir imágenes propias, que se guardan en el navegador.
 - `2027/marca/personaje/`: las imágenes del personaje que usan esas piezas por defecto.
-- Sección *Videos* del panel: la **Intro 2027 «Aleta al acecho»**, la misma plantilla que está en Crear → Animaciones del Estudio (`animaciones/generales/intro-2027.js`, con el logo dibujado desde `2027/marca/logo-piezas.js`).
+- Sección *Videos* del panel: la **Intro 2027 «Aleta al acecho»** y el **Outro 2027** (pantalla final de YouTube con 1 vídeo + suscribirse, mensaje, redes, aleta nadando y música propia). Son las mismas plantillas que están en Crear → Animaciones del Estudio (`animaciones/generales/intro-2027.js` y `outro-2027.js`). Comparten el logo, el agua y el fondo a través de `animaciones/generales/coral-2027.js`, y el logo se dibuja desde `2027/marca/logo-piezas.js`.
 
 ## Hecho con
 
