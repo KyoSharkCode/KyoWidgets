@@ -23,9 +23,9 @@
       ['s1-offline', 'Pantalla Off Stream', 1], ['s1-discord', 'Banner e invitación de Discord', 1],
       ['s1-kick', 'Confirmar el tamaño del banner de Kick', 0], ['s1-google', 'Probar la entrada con Google', 0],
       ['s1-subir', 'Subir todas las piezas el 1 de enero', 0]] },
-    { n: 2, vista: 'videos', titulo: 'Videos', desc: 'Intro, outro, miniaturas, plantillas verticales y marca de agua. Antes del 1 de enero.', tareas: [
+    { n: 2, vista: 'videos', titulo: 'Videos', desc: 'Intro, outro, miniaturas y marca de agua. Antes del 1 de enero.', tareas: [
       ['s2-intro', 'Intro «Aleta al acecho»', 1], ['s2-outro', 'Outro (pantalla final)', 1], ['s2-miniaturas', 'Plantilla de miniaturas', 1],
-      ['s2-verticales', 'Plantillas verticales', 0], ['s2-agua', 'Marca de agua', 0]] },
+      ['s2-agua', 'Marca de agua', 0]] },
     { n: 3, vista: 'escenas', titulo: 'Escenas de stream', desc: 'Las escenas de OBS con el estilo nuevo.', tareas: [
       ['s3-chatting', 'Just Chatting', 0], ['s3-comenzando', 'Comenzando', 0], ['s3-gameplay', 'Gameplay', 0],
       ['s3-volvemos', 'Volvemos', 0], ['s3-terminando', 'Terminando', 0], ['s3-transicion', 'Transición', 0]] },
