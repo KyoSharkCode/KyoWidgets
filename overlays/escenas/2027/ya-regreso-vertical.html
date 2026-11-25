@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ya regreso (vertical) · 2027</title>
+<!-- Escena de OBS 2027 · Ya regreso · 1080×1920. Fuente de navegador de ese tamaño. -->
+<link rel="stylesheet" href="../../../fonts/escenas.css">
+<link rel="stylesheet" href="escena.css">
+<script src="../pausa-obs.js"></script>
+</head>
+<body>
+<div class="stage v scene" id="escena">
+  <div class="grid"></div><div class="rays"></div>
+  <div class="glow" style="left:20px;top:1020px"></div>
+  <svg class="lay" viewBox="0 0 1080 1920" aria-hidden="true"><g fill="none" stroke-linecap="round"><path d="M-30 1010 C 200 900, 360 1120, 560 1010 S 880 900, 1110 1000" stroke="rgba(111,227,240,.25)" stroke-width="18" filter="blur(6px)"/><path class="flow" d="M-30 1010 C 200 900, 360 1120, 560 1010 S 880 900, 1110 1000" stroke="#6FE3F0" stroke-width="6"/><path class="flow" style="animation-duration:4.2s" d="M-30 1040 C 200 930, 360 1150, 560 1040 S 880 930, 1110 1030" stroke="rgba(255,111,97,.6)" stroke-width="3"/><path class="flow" style="animation-duration:5s" d="M-30 978 C 200 868, 360 1088, 560 978 S 880 868, 1110 968" stroke="rgba(111,227,240,.35)" stroke-width="2"/></g></svg>
+  <img class="pj art" src="../../../2027/marca/personaje/kyo-chibi-palomitas.webp" alt="" style="height:860px;left:540px;margin-left:-315px">
+  <canvas class="reef"></canvas>
+  <div class="bubbles"></div>
+  <img class="logo" src="../../../2027/marca/logo/kyosumi-isologo-decorado.svg" alt="KyoSumi" width="1000" height="837" style="width:250px;left:84px;top:70px">
+  <div class="txt" style="left:90px;top:330px;width:900px">
+    <div class="redes"><span class="usr">@KyoSumiVT</span><span>Twitch · Kick · TikTok · YouTube</span></div>
+    <h1 class="tit"><span>¡Ya regreso!</span><span class="c">no te vayas…</span></h1>
+    <p class="subt"><svg viewBox="0 0 60 44" aria-hidden="true"><path d="M8 40 Q16 12 44 4 Q34 22 46 40 Z" fill="#2B2F7A" stroke="#F5F3FB" stroke-width="3.5" stroke-linejoin="round"/></svg><span class="linea">Fui por un snack marino…</span></p>
+    <div class="hud"><div class="l">Vuelvo en</div><div class="n">05:00</div><div class="b"><i></i></div></div>
+  </div>
+</div>
+<script src="escena.js"></script>
+<!-- anuncios rotativos del Estudio: mientras haya alguno activo ocupa el sitio de la chibi -->
+<script src="../../../config.js"></script>
+<script src="../anuncios.js" data-escena="ya-regreso" data-tema="2027"></script>
+<script>escena2027(document.getElementById('escena'), { min: 5, ya: '¡Ya volví!', lineas: ['Fui por un snack marino…', 'Alimentando al tiburón…', 'Persiguiendo burbujas…', 'No te vayas, ¡ya vuelvo!'] });</script>
+</body>
+</html>
