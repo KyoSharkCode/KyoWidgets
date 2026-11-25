@@ -26,6 +26,15 @@ Widgets y animaciones propias para los directos y videos de **KyoSumiVT**, con e
 
 Todo tiene versión normal y ediciones de temporada (Halloween y Navidad).
 
+## Temporada 2027
+
+Lo nuevo de 2027 (estilo interno *Coral Stream*: arrecife vivo, kawaii, tech y gamer) se construye en `2027/` sin tocar lo que se usa en los directos de 2026. Se entra con el botón flotante **2027** del Estudio. El 11 de enero de 2027 esa sección pasa a ser la principal.
+
+- `2027/index.html`: portada de la temporada, con las fechas clave y el avance por stages.
+- `2027/puerta.js`: la puerta de acceso de todas las páginas de 2027. Se entra con Google, con la misma sesión y la misma comprobación que el Estudio (si ya entraste en el Estudio, se abre directamente).
+- `2027/marca/coral-stream.css`: colores, fuentes y piezas comunes que comparte todo lo nuevo.
+- `2027/marca/logo/`: el logo nuevo (isologo e isotipo) en SVG.
+
 ## Hecho con
 
 HTML, CSS y JavaScript sin frameworks, Supabase para los datos y ffmpeg.wasm para crear los videos directamente en el navegador.
