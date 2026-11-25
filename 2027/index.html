@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kyo Estudio 2027</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="marca/logo/kyosumi-isotipo-color.svg">
+<link rel="stylesheet" href="marca/coral-stream.css">
+<style>
+/* Portada de la temporada 2027: lo nuevo se construye aquí y el 11 de enero pasa a ser el Estudio principal. */
+*{box-sizing:border-box}
+html{background:var(--cs-abisal)}
+body{margin:0;min-height:100vh;color:var(--cs-perla);font-family:var(--cs-f-texto);font-size:15px;line-height:1.6;
+  background:radial-gradient(900px 480px at 90% -8%,rgba(255,111,97,.16),transparent 60%),radial-gradient(800px 480px at -10% 30%,rgba(43,47,122,.6),transparent 60%),var(--cs-abisal);
+  padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.w{max-width:1080px;margin:0 auto;display:grid;gap:40px}
+a{color:var(--cs-bioluz)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--cs-bioluz);outline-offset:3px;border-radius:8px}
+h1,h2,h3{margin:0;font-family:var(--cs-f-nombre);font-weight:700;text-wrap:balance}
+h2{font-size:clamp(22px,3vw,28px)}
+p{margin:0;max-width:65ch}
+.eyebrow{font-family:var(--cs-f-hud);font-weight:700;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--cs-coral)}
+.muted{color:#9aa6d6}
+section{display:grid;gap:16px}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:max(18px,env(safe-area-inset-top,0px))}
+.volver{flex:none;white-space:nowrap;font-family:var(--cs-f-hud);font-weight:600;font-size:14px;letter-spacing:.06em;text-decoration:none;color:var(--cs-espuma);padding:8px 14px;border-radius:999px;border:1px solid rgba(111,227,240,.25)}
+.volver:hover{background:rgba(111,227,240,.1)}
+
+.hero{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:center}
+.hero h1{font-family:var(--cs-f-titulo);font-weight:400;font-size:clamp(46px,8vw,86px);line-height:.95;-webkit-text-stroke:8px var(--cs-abisal);paint-order:stroke fill}
+.hero h1 span{color:var(--cs-coral)}
+.hero .sub{margin-top:14px;font-size:17px;color:#d9ddf4}
+.hero img{width:100%;height:auto;max-width:300px;justify-self:center;filter:drop-shadow(0 10px 30px rgba(58,123,213,.35))}
+
+.fechas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.fecha{border-radius:18px;padding:16px 18px;background:rgba(17,26,71,.7);border:1px solid rgba(111,227,240,.18);display:grid;gap:2px}
+.fecha b{font-family:var(--cs-f-hud);font-weight:700;font-size:20px;letter-spacing:.04em}
+.fecha span{color:#c9cfee;font-size:14px}
+.fecha.clave{border-color:rgba(255,111,97,.5)}
+.fecha.clave b{color:var(--cs-coral)}
+
+.stages{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.stage{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 18px;border-radius:16px;background:rgba(17,26,71,.6);border:1px solid rgba(111,227,240,.14)}
+.stage .n{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-family:var(--cs-f-hud);font-weight:700;font-size:18px;background:var(--cs-indigo);color:var(--cs-perla)}
+.stage h3{font-size:17px}
+.stage p{font-size:14px;color:#b9c1e6}
+.estado{font-family:var(--cs-f-hud);font-weight:700;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;padding:5px 10px;border-radius:999px;white-space:nowrap;background:rgba(154,166,214,.14);color:#c9cfee}
+.estado.listo{background:rgba(94,242,184,.16);color:var(--cs-menta)}
+.stage.listo .n{background:var(--cs-menta);color:var(--cs-abisal)}
+
+.marca{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+.logo-card{border-radius:20px;padding:22px;display:grid;place-items:center;gap:10px;background:radial-gradient(circle at 50% 40%,#1d2a6e,#0c1440 75%);border:1px solid rgba(111,227,240,.18)}
+.logo-card img{width:100%;max-width:320px;height:auto}
+.logo-card span{font-family:var(--cs-f-hud);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9aa6d6}
+
+.paleta{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.sw{border-radius:14px;overflow:hidden;background:var(--cs-abisal-2);border:1px solid rgba(255,255,255,.08)}
+.sw i{display:block;height:56px}
+.sw div{padding:8px 10px;display:grid}
+.sw b{font-family:var(--cs-f-nombre);font-weight:600;font-size:14px}
+.sw code{font-family:var(--cs-f-hud);font-size:12px;color:var(--cs-espuma)}
+
+footer{font-family:var(--cs-f-hud);font-size:12px;letter-spacing:.06em;color:#9aa6d6}
+@media (max-width:760px){
+  .hero,.marca{grid-template-columns:minmax(0,1fr)}
+  .hero img{max-width:220px;order:-1}
+  .fechas{grid-template-columns:minmax(0,1fr)}
+  .stage{grid-template-columns:auto minmax(0,1fr)}
+  .stage .estado{grid-column:2;justify-self:start}
+}
+</style>
+</head>
+<body>
+<div class="w">
+  <header>
+    <span class="eyebrow">Kyo Estudio · temporada 2027</span>
+    <a class="volver" href="../">← Estudio actual</a>
+  </header>
+
+  <section class="hero">
+    <div>
+      <h1>Temporada <span>2027</span></h1>
+      <p class="sub">Aquí se construye todo lo nuevo, sin tocar lo que usas en los directos de 2026. El 11 de enero esta sección pasa a ser el Estudio principal.</p>
+    </div>
+    <img src="marca/logo/kyosumi-isologo-decorado.svg" alt="Logo de KyoSumi: KYO SUMI con aleta de tiburón" width="1000" height="837">
+  </section>
+
+  <section aria-labelledby="t-fechas">
+    <h2 id="t-fechas">Fechas clave</h2>
+    <div class="fechas">
+      <div class="fecha"><b>18 dic</b><span>Termina la temporada de streams 2026</span></div>
+      <div class="fecha clave"><b>1 ene</b><span>Los videos estrenan el estilo nuevo</span></div>
+      <div class="fecha clave"><b>11 ene</b><span>Vuelven los streams con todo lo nuevo</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="t-stages">
+    <h2 id="t-stages">Plan por stages</h2>
+    <ol class="stages">
+      <li class="stage listo"><span class="n">0</span><div><h3>Base técnica</h3><p>Esta sección, el botón 2027 del Estudio, el logo nuevo y los colores compartidos.</p></div><span class="estado listo">Listo</span></li>
+      <li class="stage"><span class="n">1</span><div><h3>Identidad en redes</h3><p>Fotos de perfil y banners para Twitch, YouTube, Kick, TikTok y Discord. Cambio el 1 de enero.</p></div><span class="estado">Pendiente</span></li>
+      <li class="stage"><span class="n">2</span><div><h3>Videos</h3><p>Intro con motion graphics, outro, miniaturas, plantillas verticales y marca de agua. Antes del 1 de enero.</p></div><span class="estado">Pendiente</span></li>
+      <li class="stage"><span class="n">3</span><div><h3>Escenas de stream</h3><p>Just Chatting, Comenzando, Gameplay, Volvemos, Terminando y transición.</p></div><span class="estado">Pendiente</span></li>
+      <li class="stage"><span class="n">4</span><div><h3>Widgets</h3><p>Spotify (entrada, 3 estilos), anuncios, predicción y encuesta compactos, metas con texto y barra.</p></div><span class="estado">Pendiente</span></li>
+      <li class="stage"><span class="n">5</span><div><h3>Alertas y animaciones</h3><p>Versión 2027 con los colores nuevos y ensayo en OBS el 9 o 10 de enero.</p></div><span class="estado">Pendiente</span></li>
+      <li class="stage"><span class="n">6</span><div><h3>El cambio</h3><p>El 11 de enero esta sección pasa a ser la principal y la de 2026 se archiva.</p></div><span class="estado">Pendiente</span></li>
+      <li class="stage"><span class="n">7</span><div><h3>Después del regreso</h3><p>Paneles, emotes e insignias, Discord, ediciones temáticas y merch.</p></div><span class="estado">Pendiente</span></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="t-marca">
+    <h2 id="t-marca">Marca</h2>
+    <div class="marca">
+      <div class="logo-card"><img src="marca/logo/kyosumi-isologo-decorado.svg" alt="Isologo de KyoSumi, versión decorada" width="1000" height="837" loading="lazy"><span>Isologo · decorada</span></div>
+      <div class="logo-card"><img src="marca/logo/kyosumi-isotipo-color.svg" alt="Isotipo de KyoSumi: aleta saliendo del agua" width="512" height="369" loading="lazy"><span>Isotipo · color</span></div>
+    </div>
+    <div class="paleta">
+      <div class="sw"><i style="background:var(--cs-abisal)"></i><div><b>Abisal</b><code>#0A1030</code></div></div>
+      <div class="sw"><i style="background:var(--cs-indigo)"></i><div><b>Índigo Kyo</b><code>#2B2F7A</code></div></div>
+      <div class="sw"><i style="background:var(--cs-aleta)"></i><div><b>Aleta</b><code>#3A7BD5</code></div></div>
+      <div class="sw"><i style="background:var(--cs-bioluz)"></i><div><b>Bioluz</b><code>#6FE3F0</code></div></div>
+      <div class="sw"><i style="background:var(--cs-espuma)"></i><div><b>Espuma</b><code>#C9E6F2</code></div></div>
+      <div class="sw"><i style="background:var(--cs-perla)"></i><div><b>Perla</b><code>#F5F3FB</code></div></div>
+      <div class="sw"><i style="background:var(--cs-coral)"></i><div><b>Coral</b><code>#FF6F61</code></div></div>
+      <div class="sw"><i style="background:var(--cs-coral-pastel)"></i><div><b>Coral Pastel</b><code>#FFB4A8</code></div></div>
+      <div class="sw"><i style="background:var(--cs-menta)"></i><div><b>Menta Byte</b><code>#5EF2B8</code></div></div>
+      <div class="sw"><i style="background:var(--cs-oro)"></i><div><b>Oro Premio</b><code>#F4C542</code></div></div>
+    </div>
+    <p class="muted">Los colores y las fuentes viven en <code>2027/marca/coral-stream.css</code>: todo lo nuevo los toma de ahí.</p>
+  </section>
+
+  <footer>KYO ESTUDIO · TEMPORADA 2027 · EN CONSTRUCCIÓN</footer>
+</div>
+</body>
+</html>

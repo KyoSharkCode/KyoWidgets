@@ -1,0 +1,53 @@
+/* KyoWidgets · Temporada 2027 · base de estilo "Coral Stream"
+   Colores, fuentes y piezas comunes que comparten todas las páginas, escenas y widgets de 2027.
+   Coral Stream es un nombre interno: no se escribe en nada que vea el público.
+   Reglas de uso: coral solo para lo importante (5% como máximo), menta solo cuando encaja
+   (datos de juego, progreso, mods) y nunca junto al coral, luna solo en ediciones especiales. */
+
+/* Fuentes alojadas en el repo (las mismas de las escenas actuales) */
+@font-face{font-family:"Cherry Bomb One";font-weight:400;font-style:normal;font-display:swap;src:url(../../fonts/cherry-bomb-one-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Fredoka";font-weight:600;font-style:normal;font-display:swap;src:url(../../fonts/fredoka-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Fredoka";font-weight:700;font-style:normal;font-display:swap;src:url(../../fonts/fredoka-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-weight:500;font-style:normal;font-display:swap;src:url(../../fonts/chakra-petch-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-weight:600;font-style:normal;font-display:swap;src:url(../../fonts/chakra-petch-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Chakra Petch";font-weight:700;font-style:normal;font-display:swap;src:url(../../fonts/chakra-petch-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"M PLUS Rounded 1c";font-weight:400;font-style:normal;font-display:swap;src:url(../../fonts/m-plus-rounded-1c-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"M PLUS Rounded 1c";font-weight:500;font-style:normal;font-display:swap;src:url(../../fonts/m-plus-rounded-1c-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"M PLUS Rounded 1c";font-weight:700;font-style:normal;font-display:swap;src:url(../../fonts/m-plus-rounded-1c-latin-700-normal.woff2) format("woff2")}
+
+:root{
+  /* Base: los colores del logo */
+  --cs-abisal:#0A1030;     /* fondo y contornos */
+  --cs-abisal-2:#111a47;   /* superficies sobre el fondo */
+  --cs-indigo:#2B2F7A;     /* paneles, aleta */
+  --cs-aleta:#3A7BD5;      /* color principal */
+  --cs-azul-claro:#A9D3F0; /* final del degradado del logo */
+  --cs-bioluz:#6FE3F0;     /* neón tech: bordes, líneas, HUD */
+  --cs-espuma:#C9E6F2;     /* textos secundarios, burbujas */
+  --cs-perla:#F5F3FB;      /* texto principal, borde pegatina */
+  /* Acentos 2027 */
+  --cs-coral:#FF6F61;      /* acento cálido: lo importante */
+  --cs-coral-pastel:#FFB4A8;
+  --cs-menta:#5EF2B8;      /* solo datos de juego, progreso, mods */
+  --cs-oro:#F4C542;        /* premios: VIP, metas cumplidas, combos */
+
+  /* Degradados del logo */
+  --cs-grad-texto:linear-gradient(180deg,#2F6FD0 0%,#3A7BD5 30%,#A9D3F0 100%);
+  --cs-grad-aleta:linear-gradient(180deg,#2B2F7A,#3A7BD5);
+  --cs-grad-ola:linear-gradient(180deg,#6FE3F0,#3A7BD5);
+
+  /* Tipografía */
+  --cs-f-titulo:"Cherry Bomb One","Fredoka",system-ui,sans-serif;  /* títulos grandes, con contorno */
+  --cs-f-nombre:"Fredoka","Baloo 2",system-ui,sans-serif;          /* nombres, widgets, cifras */
+  --cs-f-hud:"Chakra Petch","Rajdhani",ui-monospace,monospace;      /* datos y etiquetas en mayúsculas */
+  --cs-f-texto:"M PLUS Rounded 1c","Nunito",system-ui,sans-serif;  /* chat y textos largos */
+
+  /* Estilo pegatina: borde blanco + contorno Abisal + sombra sólida */
+  --cs-pegatina:0 0 0 6px var(--cs-perla),0 0 0 11px var(--cs-abisal),0 11px 0 11px var(--cs-abisal);
+  --cs-rebote:cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Piezas comunes */
+.cs-pegatina{border-radius:28px;box-shadow:var(--cs-pegatina)}
+.cs-titulo{font-family:var(--cs-f-titulo);font-weight:400;color:var(--cs-perla);-webkit-text-stroke:8px var(--cs-abisal);paint-order:stroke fill}
+.cs-etiqueta{font-family:var(--cs-f-hud);font-weight:700;letter-spacing:.14em;text-transform:uppercase}

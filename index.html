@@ -355,6 +355,12 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 .btn:disabled{opacity:.5;cursor:progress}
 .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,140%);background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:12px 18px;font-weight:600;box-shadow:0 10px 40px rgba(0,0,0,.5);transition:transform .3s var(--ease-out),opacity .2s var(--ease-out),visibility .3s;opacity:0;visibility:hidden;z-index:50;max-width:calc(100% - 32px)}
 .toast.on{transform:translate(-50%,0);opacity:1;visibility:visible}
+/* Botón flotante a la temporada 2027 (con los colores nuevos para distinguirlo del Estudio actual) */
+.ir2027{position:fixed;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:40;display:inline-flex;align-items:center;gap:6px;padding:7px 13px 7px 10px;border-radius:999px;background:#FF6F61;color:#0A1030;font:400 16px/1 "Cherry Bomb One","Fredoka",sans-serif;text-decoration:none;box-shadow:0 0 0 3px #F5F3FB,0 0 0 5px #0A1030,0 5px 0 5px #0A1030;transition:transform .2s var(--ease-out)}
+.ir2027 svg{width:18px;height:16px;flex:none}
+.ir2027:focus-visible{outline:3px solid var(--acc2);outline-offset:9px}
+@media (hover:hover) and (pointer:fine){.ir2027:hover{transform:translateY(-3px) rotate(-2deg)}}
+.ir2027:active{transform:scale(.96)}
 /* Puerta de acceso */
 #puerta{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:18px;background:rgba(7,5,26,.96)}
 #puertaCaja{width:380px;max-width:100%;display:grid;gap:14px;text-align:center}
@@ -895,6 +901,8 @@ input[type=datetime-local]{width:100%;font:500 14px "Fredoka",sans-serif;backgro
 </div>
 
 <div class="toast" id="toast" role="status"></div>
+
+<a class="ir2027" href="2027/" title="Abrir la temporada 2027 (lo nuevo en construcción)"><svg viewBox="0 0 60 44" aria-hidden="true"><path d="M8 40 Q16 12 44 4 Q34 22 46 40 Z" fill="#2B2F7A" stroke="#F5F3FB" stroke-width="4" stroke-linejoin="round"/></svg>2027</a>
 
 <script>
 (function () {
