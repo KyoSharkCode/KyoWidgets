@@ -9,7 +9,7 @@
     { id: 'comenzando', n: 'Comenzando', d: 'Antes de empezar: tu mensaje con las frases que van cambiando, la cuenta atrás de 5 minutos y tu personaje.', lista: true },
     { id: 'just-chatting', n: 'Just Chatting', d: 'Para charlar: el fondo del arrecife, el logo y el marco del chat a la izquierda. El chat, la meta, la música y la cinta de anuncios van encima como fuentes aparte.', lista: true, demo: true,
       extra: (v) => 'El chat va en otra fuente de navegador (el chat del Estudio) de ' + (v ? '960 × 570 en x 60, y 1080' : '520 × 770 en x 62, y 176') + '.' },
-    { id: 'gameplay', n: 'Gameplay', d: 'El fondo del arrecife para poner encima la captura del juego, con el logo en la esquina.' },
+    { id: 'gameplay', n: 'Gameplay', d: 'El fondo del arrecife para poner debajo de la captura del juego, con el logo pequeño en la esquina. En la vista previa, la guía marca dónde suele ir el juego.', lista: true, guias: true },
     { id: 'ya-regreso', n: 'Ya regreso', d: 'La pausa: tu mensaje, la cuenta atrás para volver y la chibi con palomitas.' },
     { id: 'terminando', n: 'Terminando', d: 'El cierre: el agradecimiento con tus redes y tu personaje guiñando el ojo.' },
     { id: 'transicion', n: 'Transición', d: 'El stinger de OBS: la ola sube, aparece la aleta y al bajar ya estás en la otra escena.' }
@@ -38,7 +38,7 @@
     new ResizeObserver(escala).observe(caja);
     const poner = (fmt) => {
       const v = fmt === 'v', u = url(e.id, v);
-      caja.classList.toggle('v', v); fr.src = u + (e.demo ? '?demo=1' : ''); inp.value = u; abrir.href = u;
+      caja.classList.toggle('v', v); fr.src = u + (e.demo ? '?demo=1' : e.guias ? '?guias=1' : ''); inp.value = u; abrir.href = u;
       tam.textContent = 'En OBS: fuente de navegador de ' + (v ? '1080 × 1920' : '1920 × 1080') + '.' + (e.extra ? ' ' + e.extra(v) : '');
       $$('input[type=radio]', el).forEach((r) => { r.checked = r.value === fmt; });
       fmts[e.id] = fmt; try { localStorage.setItem(CLAVE, JSON.stringify(fmts)); } catch (err) {}

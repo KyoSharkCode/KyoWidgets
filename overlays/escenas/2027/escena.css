@@ -55,9 +55,9 @@ canvas.reef{position:absolute;left:0;bottom:0;height:260px}
 .chatbox .cab b{font-family:var(--f-bomb);font-weight:400;font-size:34px;color:var(--perla)}
 .chatbox .cab svg{width:52px;height:30px}
 .chatbox .fondo-chat{position:absolute;left:0;right:0;top:72px;bottom:0;opacity:.6;background:radial-gradient(circle at 20% 30%,rgba(111,227,240,.08) 0 60px,transparent 61px),radial-gradient(circle at 80% 70%,rgba(58,123,213,.12) 0 110px,transparent 111px),radial-gradient(circle at 70% 18%,rgba(201,230,242,.06) 0 34px,transparent 35px)}
-/* guía del hueco del chat: solo se ve con ?guias=1 (vista previa del Estudio) */
-.chat-hueco{position:absolute;border:3px dashed rgba(245,243,251,.35);border-radius:18px;display:none;place-items:center;text-align:center;font-family:var(--f-hud);font-size:22px;letter-spacing:.12em;color:rgba(245,243,251,.55);text-transform:uppercase}
-.guias .chat-hueco{display:grid}
+/* guías de los huecos (chat, juego): solo se ven con ?guias=1 (vista previa del Estudio) */
+.chat-hueco,.hueco{position:absolute;border:3px dashed rgba(245,243,251,.35);border-radius:18px;display:none;place-items:center;text-align:center;font-family:var(--f-hud);font-size:22px;letter-spacing:.12em;color:rgba(245,243,251,.55);text-transform:uppercase}
+.guias .chat-hueco,.guias .hueco{display:grid}
 
 @keyframes flow{to{stroke-dashoffset:-76}}
 @keyframes rise{0%{transform:translateY(0);opacity:0}10%{opacity:.85}100%{transform:translateY(-760px);opacity:0}}

@@ -27,7 +27,7 @@
       ['s2-intro', 'Intro «Aleta al acecho»', 1], ['s2-outro', 'Outro (pantalla final)', 1], ['s2-miniaturas', 'Plantilla de miniaturas', 1],
       ['s2-agua', 'Marca de agua', 1]] },
     { n: 3, vista: 'escenas', titulo: 'Escenas de stream', desc: 'Las escenas de OBS con el estilo nuevo.', tareas: [
-      ['s3-chatting', 'Just Chatting', 1], ['s3-comenzando', 'Comenzando', 1], ['s3-gameplay', 'Gameplay', 0],
+      ['s3-chatting', 'Just Chatting', 1], ['s3-comenzando', 'Comenzando', 1], ['s3-gameplay', 'Gameplay', 1],
       ['s3-volvemos', 'Volvemos', 0], ['s3-terminando', 'Terminando', 0], ['s3-transicion', 'Transición', 0]] },
     { n: 4, vista: 'widgets', titulo: 'Widgets', desc: 'Los widgets del directo, más compactos y con el estilo nuevo.', tareas: [
       ['s4-spotify', 'Spotify: entrada y 3 estilos', 0], ['s4-anuncios', 'Anuncios', 0], ['s4-prediccion', 'Predicción compacta', 0],
