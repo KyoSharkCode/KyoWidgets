@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Just Chatting · 2027</title>
+<!-- Escena de OBS 2027 · Just Chatting · 1920×1080. Fuente de navegador de ese tamaño.
+     El chat va en otra fuente de navegador (overlays/chat.html) de 520×770, colocada en x=62, y=176.
+     La meta, la música, la cinta de anuncios y las alertas también son fuentes aparte.
+     ?guias=1 marca el hueco del chat y ?demo=1 pone el chat de ejemplo dentro (solo para la vista previa). -->
+<link rel="stylesheet" href="../../../fonts/escenas.css">
+<link rel="stylesheet" href="escena.css">
+<script src="../pausa-obs.js"></script>
+</head>
+<body>
+<div class="stage h" id="escena">
+  <div class="grid"></div><div class="rays"></div>
+  <svg class="lay" viewBox="0 0 1920 1080" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke-linecap="round"><path class="flow" d="M-40 637 C 326 594, 614 702, 979 637 S 1594 583, 1960 648" stroke="rgba(111,227,240,.35)" stroke-width="3"/><path class="flow" style="animation-duration:4.2s" d="M-40 702 C 326 659, 614 756, 979 702 S 1594 637, 1960 713" stroke="rgba(255,111,97,.28)" stroke-width="3"/><path class="flow" style="animation-duration:5s" d="M-40 259 C 326 216, 614 302, 979 259 S 1594 205, 1960 259" stroke="rgba(111,227,240,.16)" stroke-width="2"/></g></svg>
+  <canvas class="reef"></canvas>
+  <div class="bubbles"></div>
+  <img class="logo" src="../../../2027/marca/logo/kyosumi-isologo-decorado.svg" alt="KyoSumi" width="1000" height="837" style="width:250px;right:52px;top:40px">
+  <div class="chatbox" style="left:52px;top:96px;width:540px;height:860px"><div class="cab"><svg viewBox="0 0 60 36" aria-hidden="true"><path d="M6 18 C16 4 34 2 44 12 L56 4 L52 18 L56 32 L44 24 C34 34 16 32 6 18 Z" fill="#3A7BD5" stroke="#F5F3FB" stroke-width="3.5" stroke-linejoin="round"/><circle cx="16" cy="16" r="3" fill="#0A1030"/></svg><b>Chat</b></div><div class="fondo-chat"></div></div>
+  <div class="chat-hueco" style="left:62px;top:176px;width:520px;height:770px">Chat<br>520 × 770</div>
+</div>
+<script src="escena.js"></script>
+<script>
+  if (/[?&]guias=1/.test(location.search)) document.getElementById('escena').classList.add('guias');
+  // ?demo=1 (vista previa del Estudio): el chat de ejemplo dentro del hueco, como quedará en OBS
+  if (/[?&]demo=1/.test(location.search)) {
+    var h = document.querySelector('.chat-hueco'), fr = document.createElement('iframe');
+    fr.src = '../../chat.html?demo=1'; fr.title = 'Chat de ejemplo';
+    fr.style.cssText = 'position:absolute;border:0;background:transparent;left:' + h.style.left + ';top:' + h.style.top + ';width:' + h.style.width + ';height:' + h.style.height;
+    h.after(fr);
+  }
+  escena2027(document.getElementById('escena'));
+</script>
+</body>
+</html>

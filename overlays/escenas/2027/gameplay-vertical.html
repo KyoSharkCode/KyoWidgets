@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Gameplay (vertical) · 2027</title>
+<!-- Escena de OBS 2027 · Gameplay · 1080×1920. Fuente de navegador de ese tamaño, debajo de la captura del juego.
+     ?guias=1 marca dónde suele ir el juego (solo para la vista previa). -->
+<link rel="stylesheet" href="../../../fonts/escenas.css">
+<link rel="stylesheet" href="escena.css">
+<script src="../pausa-obs.js"></script>
+</head>
+<body>
+<div class="stage v" id="escena">
+  <div class="grid"></div><div class="rays"></div>
+  <svg class="lay" viewBox="0 0 1080 1920" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke-linecap="round"><path class="flow" d="M-40 1133 C 184 1056, 346 1248, 551 1133 S 896 1037, 1120 1152" stroke="rgba(111,227,240,.35)" stroke-width="3"/><path class="flow" style="animation-duration:4.2s" d="M-40 1248 C 184 1171, 346 1344, 551 1248 S 896 1133, 1120 1267" stroke="rgba(255,111,97,.28)" stroke-width="3"/><path class="flow" style="animation-duration:5s" d="M-40 461 C 184 384, 346 538, 551 461 S 896 365, 1120 461" stroke="rgba(111,227,240,.16)" stroke-width="2"/></g></svg>
+  <canvas class="reef"></canvas>
+  <div class="bubbles"></div>
+  <div class="hueco" style="left:40px;top:300px;width:1000px;height:1200px">Captura del juego<br>El recorte vertical del juego</div>
+  <img class="logo" src="../../../2027/marca/logo/kyosumi-isologo-decorado.svg" alt="KyoSumi" width="1000" height="837" style="width:200px;right:40px;top:60px">
+</div>
+<script src="escena.js"></script>
+<script>
+  if (/[?&]guias=1/.test(location.search)) document.getElementById('escena').classList.add('guias');
+  escena2027(document.getElementById('escena'));
+</script>
+</body>
+</html>

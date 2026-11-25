@@ -261,6 +261,24 @@ p{margin:0}
 .mini-prev .acciones button:disabled{opacity:.6;cursor:progress}
 @media (max-width:1100px){.mini{grid-template-columns:minmax(0,1fr)}.mini-prev{position:static;order:-1}}
 
+/* Escenas (escenas.js) */
+.escenas{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:16px;align-items:start}
+.esc{display:grid;gap:12px;padding:16px 18px;border-radius:20px;background:rgba(17,26,71,.62);border:1px solid rgba(111,227,240,.14);min-width:0}
+.esc.pronto-esc{background:transparent;border-style:dashed}
+.esc.lista{grid-column:1/-1;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px 22px;align-items:start}
+.esc-lado{display:grid;gap:12px;align-content:start;min-width:0}
+.esc.lista.anim{grid-template-columns:minmax(0,1fr)}
+@media (max-width:900px){.esc.lista{grid-template-columns:minmax(0,1fr)}}
+.esc-cab{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.esc-cab h3{font-size:18px}
+.esc-prev{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#060b24;border:1px solid rgba(111,227,240,.16)}
+.esc-prev.v{width:min(100%,300px);aspect-ratio:9/16;justify-self:center}
+.esc-prev iframe{position:absolute;left:0;top:0;width:1920px;height:1080px;border:0;transform-origin:0 0;pointer-events:none}
+.esc-prev.v iframe{width:1080px;height:1920px}
+.esc-url{display:grid;gap:4px;font-family:var(--cs-f-hud);font-weight:600;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:#9aa6d6}
+.esc-url input{font:500 13px var(--cs-f-hud);letter-spacing:0;text-transform:none;color:var(--cs-espuma);background:var(--cs-abisal);border:1px solid rgba(111,227,240,.25);border-radius:10px;padding:8px 10px;min-width:0}
+.esc-acc{display:flex;flex-wrap:wrap;gap:8px}
+
 /* Marca de agua */
 .agua{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px;align-items:center}
 .agua-demos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -438,10 +456,11 @@ footer{font-family:var(--cs-f-hud);font-size:12px;letter-spacing:.06em;color:#7f
       <header class="vhead">
         <span class="eyebrow">Stage 3 · escenas de stream</span>
         <h1 id="h-escenas" tabindex="-1">Escenas</h1>
-        <p>Just Chatting, Comenzando, Gameplay, Volvemos, Terminando y la transición, con el estilo nuevo.</p>
+        <p>Comenzando, Just Chatting, Gameplay, Ya regreso, Terminando y la transición, con el estilo nuevo. Copia el enlace de cada una en una fuente de navegador de OBS.</p>
       </header>
-      <div data-resumen="3" data-abierta></div>
-      <div class="pronto"><img src="marca/logo/kyosumi-isotipo-color.svg" alt="" width="512" height="369"><b>Próximamente</b><p>Las herramientas de este stage aparecerán aquí cuando las construyamos.</p></div>
+      <div data-resumen="3"></div>
+      <div class="escenas" id="escenas"><p class="nota">Cargando…</p></div>
+      <p class="nota">Las escenas son públicas, como las de 2026: OBS las abre sin entrar con Google. Cada una se pausa sola mientras OBS no la muestra.</p>
     </section>
 
     <!-- STAGE 4 · WIDGETS -->
@@ -503,6 +522,7 @@ footer{font-family:var(--cs-f-hud);font-size:12px;letter-spacing:.06em;color:#7f
 <div id="aviso" role="status" hidden></div>
 <script src="perfiles.js"></script>
 <script src="miniaturas.js"></script>
+<script src="escenas.js"></script>
 <script src="panel.js"></script>
 </body>
 </html>

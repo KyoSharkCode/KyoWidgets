@@ -1,5 +1,6 @@
 /* Kyo Estudio · anuncios rotativos para las escenas "Ya regreso" y "Terminando"
  * Se carga desde cada escena:  <script src="../anuncios.js" data-escena="ya-regreso" data-tema="marea"></script>
+ * (las escenas 2027 usan data-tema="2027"; su .stage lleva también la clase .scene y su personaje, .art)
  * Mientras haya anuncios activos, ocupan el sitio de la imagen de Kyo (que vuelve sola si no hay ninguno).
  * Lee los anuncios de Supabase (función "anuncios") cada 30 s: lo que guardes en el Estudio aparece solo en OBS.
  * Con ?preview=1 no lee Supabase: espera los anuncios por postMessage (vista previa del Estudio).
@@ -16,6 +17,8 @@
   var PAUSA = WIDGET ? Math.max(0, Math.min(120, Number(q.get('cada')) || 0)) * (DEMO ? 1000 : 60000) : 0;
   if (WIDGET && q.get('tema')) TEMA = q.get('tema');
   var T = {
+    // 2027: los colores de Marea, con menta en lugar de la lima (que sale de la paleta 2027)
+    '2027': { acc: '#6FE3F0', glow: 'rgba(111,227,240,.6)', ring: 'rgba(111,227,240,.6)', halo: 'rgba(111,227,240,.28)', ins: 'rgba(58,123,213,.28)', bg: 'rgba(10,16,48,.82)', bar: 'linear-gradient(90deg,#3A7BD5,#6FE3F0 70%,#5EF2B8)' },
     marea: { acc: '#6FE3F0', glow: 'rgba(111,227,240,.6)', ring: 'rgba(111,227,240,.6)', halo: 'rgba(111,227,240,.28)', ins: 'rgba(58,123,213,.28)', bg: 'rgba(10,16,48,.78)', bar: 'linear-gradient(90deg,#3A7BD5,#6FE3F0 70%,#ADF63C)' },
     octubre: { acc: '#FF8A2B', glow: 'rgba(255,138,43,.6)', ring: 'rgba(155,107,255,.75)', halo: 'rgba(155,107,255,.32)', ins: 'rgba(155,107,255,.2)', bg: 'rgba(14,10,36,.82)', bar: 'linear-gradient(90deg,#9B6BFF,#FF8A2B)' },
     navidad: { acc: '#F4C542', glow: 'rgba(244,197,66,.6)', ring: 'rgba(244,197,66,.75)', halo: 'rgba(244,197,66,.24)', ins: 'rgba(226,58,82,.2)', bg: 'rgba(10,16,48,.78)', bar: 'linear-gradient(90deg,#E23A52,#F4C542 55%,#5BD99A)' }
