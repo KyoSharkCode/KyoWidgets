@@ -30,13 +30,16 @@
 
   // ---------- ajustes ----------
   const CLAVE = 'kyo2027_miniaturas';
+  // cada versión (horizontal y vertical) tiene todo por separado: textos, categoría, episodio, arte y personaje
+  const TEXTOS = ['cat', 'l1', 'l2', 'ep'];
+  const textos = () => ({ cat: 'historia', l1: 'Nuevo vídeo', l2: '¡Ya está aquí!', ep: '', tam: 1 });
   const inicial = () => ({
-    fmt: 'h', cat: 'historia', l1: 'Nuevo vídeo', l2: '¡Ya está aquí!', ep: '', tam: 1,
-    h: { pos: 'izq', fondo: { zoom: 1, dx: 0, dy: 0 }, pers: { img: 'banner', lado: 'izq', zoom: 1, dx: 0, dy: 0 } },
-    v: { pos: 'centro', fondo: { zoom: 1, dx: 0, dy: 0 }, pers: { img: 'ninguno', lado: 'centro', zoom: 1, dx: 0, dy: 0 } }
+    fmt: 'h',
+    h: Object.assign(textos(), { pos: 'izq', fondo: { zoom: 1, dx: 0, dy: 0 }, pers: { img: 'banner', lado: 'izq', zoom: 1, dx: 0, dy: 0 } }),
+    v: Object.assign(textos(), { pos: 'centro', fondo: { zoom: 1, dx: 0, dy: 0 }, pers: { img: 'ninguno', lado: 'centro', zoom: 1, dx: 0, dy: 0 } })
   });
   let S = inicial();
-  try { const g = JSON.parse(localStorage.getItem(CLAVE) || 'null'); if (g && g.h && g.v) S = Object.assign(inicial(), g); } catch (e) {}
+  try { const g = JSON.parse(localStorage.getItem(CLAVE) || 'null'); if (g && g.h && g.v && g.h.cat && g.v.cat) S = Object.assign(inicial(), g); } catch (e) {}
   const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(S)); } catch (e) {} };
 
   // ---------- imágenes ----------
@@ -80,10 +83,10 @@
     } else ctx.drawImage(im, cx - w / 2, y, w, h);
   }
   function titulo(ctx, W, H, f) {
-    const cat = CATS[S.cat], lineas = [[S.l1, cat.l1], [S.l2, cat.l2]].filter(([t]) => t && t.trim()).map(([t, c]) => [t.trim().toUpperCase(), c]);
+    const A = S[S.fmt], cat = CATS[A.cat], lineas = [[A.l1, cat.l1], [A.l2, cat.l2]].filter(([t]) => t && t.trim()).map(([t, c]) => [t.trim().toUpperCase(), c]);
     if (!lineas.length) return;
-    const v = S.fmt === 'v', pos = S[S.fmt].pos;
-    let tam = (v ? 200 : 170) * S.tam;
+    const v = S.fmt === 'v', pos = A.pos;
+    let tam = (v ? 200 : 170) * A.tam;
     const maxW = v ? W - 150 : (pos === 'centro' ? W - 260 : W * .7);
     ctx.font = '400 ' + tam + 'px "Cherry Bomb One", sans-serif'; ctx.letterSpacing = '0px';
     const ancho = Math.max(...lineas.map(([t]) => ctx.measureText(t).width)) + tam * .7;
@@ -111,28 +114,30 @@
     ctx.restore();
   }
   function marco(ctx, W, H, f) {
-    const cat = CATS[S.cat], l = Math.round(f * .3);
-    ctx.fillStyle = cat.marco; ctx.fillRect(0, 0, W, f); ctx.fillRect(0, H - f, W, f); ctx.fillRect(0, 0, f, H); ctx.fillRect(W - f, 0, f, H);
-    ctx.lineWidth = l; ctx.strokeStyle = C.abisal; ctx.strokeRect(f + l / 2, f + l / 2, W - 2 * f - l, H - 2 * f - l);
-    // etiqueta de episodio en la esquina (triángulo del color del marco)
-    const ep = (S.ep || '').trim().toUpperCase(); if (!ep) return;
-    const s = Math.min(W, H) * .3;
-    ctx.beginPath(); ctx.moveTo(W - s, 0); ctx.lineTo(W, 0); ctx.lineTo(W, s); ctx.closePath(); ctx.fillStyle = cat.marco; ctx.fill();
-    ctx.beginPath(); ctx.moveTo(W - s - l, -l); ctx.lineTo(W + l, s + l); ctx.lineWidth = l; ctx.strokeStyle = C.abisal; ctx.stroke();
+    const A = S[S.fmt], cat = CATS[A.cat], l = Math.max(4, Math.round(f * .3)), ep = (A.ep || '').trim().toUpperCase(), s = Math.min(W, H) * .3;
+    // el marco es una sola pieza: con episodio, la esquina de arriba a la derecha se rellena en diagonal
+    // y la línea Abisal interior sigue esa diagonal, sin cortes en las uniones
+    const dentro = new Path2D(); dentro.moveTo(f, f);
+    if (ep) { dentro.lineTo(W - s + f, f); dentro.lineTo(W - f, s - f); } else dentro.lineTo(W - f, f);
+    dentro.lineTo(W - f, H - f); dentro.lineTo(f, H - f); dentro.closePath();
+    const pieza = new Path2D(); pieza.rect(0, 0, W, H); pieza.addPath(dentro);
+    ctx.fillStyle = cat.marco; ctx.fill(pieza, 'evenodd');
+    ctx.lineJoin = 'miter'; ctx.lineWidth = l; ctx.strokeStyle = C.abisal; ctx.stroke(dentro);
+    if (!ep) return;
     ctx.save(); ctx.translate(W - s * .34, s * .34); ctx.rotate(Math.PI / 4);
     let t = s * .26; ctx.font = '400 ' + t + 'px "Cherry Bomb One", sans-serif'; ctx.letterSpacing = '0px';
     const mw = s * .78, w = ctx.measureText(ep).width; if (w > mw) { t *= mw / w; ctx.font = '400 ' + t + 'px "Cherry Bomb One", sans-serif'; }
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
     ctx.lineWidth = t * .42; ctx.strokeStyle = C.abisal; ctx.strokeText(ep, 0, 0);
     ctx.lineWidth = t * .22; ctx.strokeStyle = '#fff'; ctx.strokeText(ep, 0, 0);
-    ctx.fillStyle = S.cat === 'historia' ? C.aleta : C.coral; ctx.fillText(ep, 0, 0);
+    ctx.fillStyle = A.cat === 'historia' ? C.aleta : C.coral; ctx.fillText(ep, 0, 0);
     ctx.restore();
   }
   async function dibujar(cv) {
     const F = FMT[S.fmt], W = F.W, H = F.H, A = S[S.fmt];
     cv.width = W; cv.height = H; const ctx = cv.getContext('2d');
-    const f = Math.round(Math.min(W, H) * .026);
-    if (img.fondo) cubrir(ctx, img.fondo, W, H, A.fondo); else mar(ctx, W, H);
+    const f = Math.round(Math.min(W, H) * .016), fondo = img['fondo-' + S.fmt];
+    if (fondo) cubrir(ctx, fondo, W, H, A.fondo); else mar(ctx, W, H);
     const p = await personaje(A.pers.img); if (A.pers.img === 'propio' && img.propio) dibujarPersonaje(ctx, img.propio, W, H, A.pers, false); else if (p) dibujarPersonaje(ctx, p, W, H, A.pers, PERSONAJES[A.pers.img].cortada);
     titulo(ctx, W, H, f);
     if (S.fmt === 'v' && img.logo) { const w = 250, h = w * img.logo.height / img.logo.width; ctx.drawImage(img.logo, (W - w) / 2, H - f - 70 - h, w, h); }
@@ -152,13 +157,14 @@
     caja.innerHTML =
       '<div class="mini-ctrl ctrl">' +
       '<div class="ancho"><span class="mlbl">Formato</span>' + chipsHtml('m-fmt', Object.entries(FMT).map(([k, f]) => [k, f.n]), S.fmt) + '</div>' +
-      '<div class="ancho"><span class="mlbl">Categoría (color del marco)</span>' + chipsHtml('m-cat', Object.entries(CATS).map(([k, c]) => [k, c.n]), S.cat, (k) => '<i class="mpunto" style="background:' + CATS[k].marco + '"></i>') + '</div>' +
-      '<label class="ancho">Título · línea 1<input type="text" data-k="l1" maxlength="28" value="' + esc(S.l1) + '"></label>' +
-      '<label class="ancho">Título · línea 2 (vacía para quitarla)<input type="text" data-k="l2" maxlength="28" value="' + esc(S.l2) + '"></label>' +
-      '<label>Episodio (vacío para quitarlo)<input type="text" data-k="ep" maxlength="8" placeholder="EP 13" value="' + esc(S.ep) + '"></label>' +
-      '<label>Tamaño del título<input type="range" data-k="tam" min="0.6" max="1.4" step="0.01" value="' + S.tam + '"></label>' +
+      '<div class="ancho mnota"><span class="nota">Cada versión se edita por separado.</span><button type="button" class="boton" data-copiar-textos>Traer los textos de la ' + (v ? 'horizontal' : 'vertical') + '</button></div>' +
+      '<div class="ancho"><span class="mlbl">Categoría (color del marco)</span>' + chipsHtml('m-cat', Object.entries(CATS).map(([k, c]) => [k, c.n]), A.cat, (k) => '<i class="mpunto" style="background:' + CATS[k].marco + '"></i>') + '</div>' +
+      '<label class="ancho">Título · línea 1<input type="text" data-k="l1" maxlength="28" value="' + esc(A.l1) + '"></label>' +
+      '<label class="ancho">Título · línea 2 (vacía para quitarla)<input type="text" data-k="l2" maxlength="28" value="' + esc(A.l2) + '"></label>' +
+      '<label>Episodio (vacío para quitarlo)<input type="text" data-k="ep" maxlength="8" placeholder="EP 13" value="' + esc(A.ep) + '"></label>' +
+      '<label>Tamaño del título<input type="range" data-k="tam" min="0.6" max="1.4" step="0.01" value="' + A.tam + '"></label>' +
       '<div class="ancho"><span class="mlbl">Posición del título</span>' + chipsHtml('m-pos', POS[S.fmt], A.pos) + '</div>' +
-      '<div class="ancho msep"><span class="mlbl">Arte del juego (fondo)</span><label class="boton">Subir imagen<input type="file" accept="image/*" data-subir="fondo" hidden></label>' + (img.fondo ? '' : ' <span class="nota">Sin imagen: se ve el fondo de mar.</span>') + '</div>' +
+      '<div class="ancho msep"><span class="mlbl">Arte del juego (fondo)</span><label class="boton">Subir imagen<input type="file" accept="image/*" data-subir="fondo-' + S.fmt + '" hidden></label>' + (img['fondo-' + S.fmt] ? '' : ' <span class="nota">Sin imagen: se ve el fondo de mar.</span>') + '</div>' +
       '<label>Zoom<input type="range" data-a="fondo.zoom" min="1" max="2.5" step="0.01" value="' + A.fondo.zoom + '"></label>' +
       '<label>Horizontal<input type="range" data-a="fondo.dx" min="-0.5" max="0.5" step="0.01" value="' + A.fondo.dx + '"></label>' +
       '<label>Vertical<input type="range" data-a="fondo.dy" min="-0.5" max="0.5" step="0.01" value="' + A.fondo.dy + '"></label>' +
@@ -181,7 +187,7 @@
   function enlazar() {
     caja.addEventListener('input', (e) => {
       const el = e.target;
-      if (el.dataset.k) { S[el.dataset.k] = el.type === 'range' ? Number(el.value) : el.value; }
+      if (el.dataset.k) { S[S.fmt][el.dataset.k] = el.type === 'range' ? Number(el.value) : el.value; }
       else if (el.dataset.a && el.tagName !== 'SELECT') fijar(el.dataset.a, Number(el.value));
       else return;
       guardar(); repintar();
@@ -189,7 +195,7 @@
     caja.addEventListener('change', async (e) => {
       const el = e.target;
       if (el.name === 'm-fmt') { S.fmt = el.value; guardar(); pintarUI(); return; }
-      if (el.name === 'm-cat') S.cat = el.value;
+      if (el.name === 'm-cat') S[S.fmt].cat = el.value;
       else if (el.name === 'm-pos') S[S.fmt].pos = el.value;
       else if (el.name === 'm-lado') S[S.fmt].pers.lado = el.value;
       else if (el.dataset.a === 'pers.img') fijar('pers.img', el.value);
@@ -197,13 +203,14 @@
         const f = el.files && el.files[0]; if (!f) return;
         try { img[el.dataset.subir] = await desdeBlob(f); await bdPoner('mini-' + el.dataset.subir, f); } catch (err) { return aviso('No se pudo leer esa imagen.'); }
         if (el.dataset.subir === 'propio') fijar('pers.img', 'propio');
-        guardar(); pintarUI(); aviso(el.dataset.subir === 'fondo' ? 'Arte del juego puesto de fondo.' : 'Imagen añadida al personaje.');
+        guardar(); pintarUI(); aviso(el.dataset.subir !== 'propio' ? 'Arte del juego puesto de fondo.' : 'Imagen añadida al personaje.');
         return;
       } else return;
       guardar(); repintar();
     });
     caja.addEventListener('click', async (e) => {
-      const b = e.target.closest('[data-bajar],[data-reset]'); if (!b) return;
+      const b = e.target.closest('[data-bajar],[data-reset],[data-copiar-textos]'); if (!b) return;
+      if (b.dataset.copiarTextos != null) { const otra = S[S.fmt === 'h' ? 'v' : 'h']; TEXTOS.forEach((k) => { S[S.fmt][k] = otra[k]; }); guardar(); pintarUI(); aviso('Textos traídos de la otra versión.'); return; }
       if (b.dataset.reset != null) { const fmt = S.fmt; S[fmt] = inicial()[fmt]; guardar(); pintarUI(); return; }
       b.disabled = true;
       try {
@@ -212,7 +219,7 @@
         if (tipo === 'png') blob = await new Promise((r) => out.toBlob(r, 'image/png'));
         else for (let q = .92; q >= .5; q -= .06) { blob = await new Promise((r) => out.toBlob(r, 'image/jpeg', q)); if (blob && blob.size < 2e6) break; }
         if (!blob) throw new Error('sin imagen');
-        const nombre = 'KyoSumi_miniatura_' + S.cat + '_' + (S.fmt === 'h' ? '1920x1080' : '1080x1920') + '.' + tipo;
+        const nombre = 'KyoSumi_miniatura_' + S[S.fmt].cat + '_' + (S.fmt === 'h' ? '1920x1080' : '1080x1920') + '.' + tipo;
         const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
         aviso('Descargada: ' + nombre + ' (' + (blob.size / 1048576).toFixed(1) + ' MB)');
       } catch (err) { console.error(err); aviso('No se pudo crear la imagen.'); }
@@ -227,7 +234,7 @@
       if (abierto) return; abierto = true; caja = el;
       try { await document.fonts.load('400 100px "Cherry Bomb One"'); } catch (e) {}
       try { img.logo = await cargar('marca/logo/kyosumi-isotipo-color.svg'); } catch (e) {}
-      for (const k of ['fondo', 'propio']) { const b = await bdLeer('mini-' + k); if (b) { try { img[k] = await desdeBlob(b); } catch (e) {} } }
+      for (const k of ['fondo-h', 'fondo-v', 'propio']) { const b = await bdLeer('mini-' + k); if (b) { try { img[k] = await desdeBlob(b); } catch (e) {} } }
       pintarUI(); enlazar();
     },
     // para pruebas: dibuja con unos ajustes dados sin tocar los guardados
