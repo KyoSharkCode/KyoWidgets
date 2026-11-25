@@ -1,4 +1,4 @@
-// Temporada 2027 · Perfiles y banners
+// Temporada 2027 · Perfiles y banners (sección del panel 2027: 2027/index.html#perfiles)
 // Dibuja la foto de perfil y los banners de cada plataforma con el estilo Coral Stream
 // y los descarga en PNG al tamaño exacto. Los ajustes (imagen, zoom, posición) se guardan
 // en este navegador; las imágenes subidas también (IndexedDB), así no hay que volver a subirlas.
@@ -322,5 +322,7 @@
     for (const [k, blob] of await bdTodo()) { try { await anadirPropia(k, blob); } catch (e) {} }
     PIEZAS.forEach(tarjeta);
   }
-  iniciar();
+  // El panel de 2027 lo abre la primera vez que se entra en «Perfiles y banners»
+  let abierto = false;
+  window.kyoPerfiles = { abrir() { if (abierto) return; abierto = true; iniciar(); } };
 })();

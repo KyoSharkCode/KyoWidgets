@@ -30,12 +30,14 @@ Todo tiene versión normal y ediciones de temporada (Halloween y Navidad).
 
 Lo nuevo de 2027 (estilo interno *Coral Stream*: arrecife vivo, kawaii, tech y gamer) se construye en `2027/` sin tocar lo que se usa en los directos de 2026. Se entra con el botón flotante **2027** del Estudio. El 11 de enero de 2027 esa sección pasa a ser la principal.
 
-- `2027/index.html`: portada de la temporada, con las fechas clave y el avance por stages.
+- `2027/index.html`: **panel de la temporada**, con menú lateral por secciones (Inicio, Perfiles y banners, Videos, Escenas, Widgets, Alertas y Marca). El inicio muestra las cuentas atrás a las fechas clave, el avance de cada stage con sus tareas (se marcan a mano y se guardan en el navegador), accesos directos y la marca a mano (copiar colores y descargar logos). Las herramientas de cada stage se abren dentro del panel.
+- `2027/panel.js`: la lógica del panel: navegación, fechas, plan por stages y tareas, y marca.
 - `2027/puerta.js`: la puerta de acceso de todas las páginas de 2027. Se entra con Google, con la misma sesión y la misma comprobación que el Estudio (si ya entraste en el Estudio, se abre directamente).
 - `2027/marca/coral-stream.css`: colores, fuentes y piezas comunes que comparte todo lo nuevo.
 - `2027/marca/logo/`: el logo nuevo (isologo e isotipo) en SVG.
-- `2027/perfiles.html`: **Perfiles y banners**. Foto de perfil (Twitch, YouTube, Kick y TikTok), banners de Twitch, YouTube (con su zona segura) y Kick (tamaño editable), y banner e invitación de Discord, con el estilo nuevo. Cada pieza se ajusta (imagen, zoom y posición) y se descarga en PNG al tamaño exacto. Se pueden subir imágenes propias, que se guardan en el navegador.
+- `2027/perfiles.js` (sección *Perfiles y banners* del panel; la antigua `2027/perfiles.html` lleva allí): **Perfiles y banners**. Foto de perfil (Twitch, YouTube, Kick y TikTok), banners de Twitch, YouTube (con su zona segura) y Kick (tamaño editable), y banner e invitación de Discord, con el estilo nuevo. Cada pieza se ajusta (imagen, zoom y posición) y se descarga en PNG al tamaño exacto. Se pueden subir imágenes propias, que se guardan en el navegador.
 - `2027/marca/personaje/`: las imágenes del personaje que usan esas piezas por defecto.
+- Sección *Videos* del panel: la **Intro 2027 «Aleta al acecho»**, la misma plantilla que está en Crear → Animaciones del Estudio (`animaciones/generales/intro-2027.js`, con el logo dibujado desde `2027/marca/logo-piezas.js`).
 
 ## Hecho con
 
