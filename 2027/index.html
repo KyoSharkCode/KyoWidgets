@@ -237,6 +237,30 @@ p{margin:0}
 .herr .progreso{height:10px;border-radius:999px;background:var(--panel2);overflow:hidden;box-shadow:0 0 0 1px var(--line)}
 .herr .progreso i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--cs-menta));transition:width .2s linear}
 
+/* Miniaturas (miniaturas.js) */
+.mini{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:20px;align-items:start}
+.mini-ctrl{align-content:start}
+.mini-ctrl .mlbl{display:block;margin-bottom:6px;font-family:var(--cs-f-hud);font-weight:600;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:#9aa6d6}
+.mini-ctrl .msep{padding-top:12px;border-top:1px solid rgba(111,227,240,.14);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mini-ctrl .msep .mlbl{width:100%;margin:0}
+.mini-ctrl .boton{width:fit-content}
+.mini-ctrl .mnota{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:rgba(111,227,240,.06);border:1px dashed rgba(111,227,240,.25)}
+.mchips{display:flex;flex-wrap:wrap;gap:6px}
+.mchips label{display:inline-flex!important;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:var(--cs-abisal);border:1px solid rgba(111,227,240,.2);cursor:pointer;font:600 13.5px var(--cs-f-nombre)!important;letter-spacing:0!important;text-transform:none!important;color:#c9cfee!important}
+.mchips label:has(input:checked){border-color:var(--cs-bioluz);background:rgba(111,227,240,.12);color:#fff!important}
+.mchips label:focus-within{outline:2px solid var(--cs-bioluz);outline-offset:2px}
+.mchips input{position:absolute;opacity:0;width:0;height:0}
+.mpunto{width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 2px var(--cs-abisal),0 0 0 3px rgba(255,255,255,.35)}
+.mini-prev{position:sticky;top:14px;display:grid;gap:12px;justify-items:stretch}
+.mlienzo{border-radius:12px;overflow:hidden;background:#060b24;border:1px solid rgba(111,227,240,.16)}
+.mlienzo.vert{width:min(100%,380px);justify-self:center}
+.mlienzo canvas{display:block;width:100%;height:auto}
+.mini-prev .acciones{display:flex;flex-wrap:wrap;gap:8px}
+.mini-prev .acciones button{font:700 14px var(--cs-f-nombre);border-radius:999px;padding:9px 16px;cursor:pointer;border:1px solid rgba(111,227,240,.3);background:transparent;color:var(--cs-espuma)}
+.mini-prev .acciones .bajar{background:var(--cs-coral);border-color:var(--cs-coral);color:var(--cs-abisal)}
+.mini-prev .acciones button:disabled{opacity:.6;cursor:progress}
+@media (max-width:1100px){.mini{grid-template-columns:minmax(0,1fr)}.mini-prev{position:static;order:-1}}
+
 #aviso{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:50;background:var(--cs-abisal-2);border:1px solid rgba(111,227,240,.35);border-radius:14px;padding:11px 16px;font-weight:600;max-width:calc(100% - 32px)}
 footer{font-family:var(--cs-f-hud);font-size:12px;letter-spacing:.06em;color:#7f8bc0;margin-top:40px}
 
@@ -366,11 +390,15 @@ footer{font-family:var(--cs-f-hud);font-size:12px;letter-spacing:.06em;color:#7f
       <header class="vhead">
         <span class="eyebrow">Stage 2 · videos</span>
         <h1 id="h-videos" tabindex="-1">Videos</h1>
-        <p>Las piezas para los videos de YouTube. La intro va entre el hook y el video: pon el .mov en una pista por encima del final del hook y del principio del video, y la ola tapa uno y descubre el otro.</p>
+        <p>Las piezas para los videos de YouTube: intro, outro y miniaturas. La intro va entre el hook y el video: pon el .mov en una pista por encima del final del hook y del principio del video, y la ola tapa uno y descubre el otro.</p>
       </header>
       <div data-resumen="2"></div>
-      <div class="herr" id="herrVideos"><p class="nota">Cargando la intro…</p></div>
-      <p class="nota">El outro, la plantilla de miniaturas, las plantillas verticales y la marca de agua aparecerán aquí cuando estén listos.</p>
+      <div class="herr" id="herrVideos"><p class="nota">Cargando la intro y el outro…</p></div>
+      <section class="panel" aria-labelledby="h-miniaturas">
+        <div class="ptitulo"><h2 id="h-miniaturas">Miniaturas</h2><span class="nota">El marco sigue tu regla: Historia coral, Gacha oro, LoL aleta, Multijugador bioluz y Varios perla.</span></div>
+        <div class="mini" id="miniaturas"><p class="nota">Cargando…</p></div>
+      </section>
+      <p class="nota">Las plantillas verticales y la marca de agua aparecerán aquí cuando estén listas.</p>
     </section>
 
     <!-- STAGE 3 · ESCENAS -->
@@ -442,6 +470,7 @@ footer{font-family:var(--cs-f-hud);font-size:12px;letter-spacing:.06em;color:#7f
 </div>
 <div id="aviso" role="status" hidden></div>
 <script src="perfiles.js"></script>
+<script src="miniaturas.js"></script>
 <script src="panel.js"></script>
 </body>
 </html>
