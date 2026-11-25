@@ -20,14 +20,15 @@ const esOpaco = (pl, o) => typeof pl.opaco === 'function' ? !!pl.opaco(o) : !!pl
 const textoDescarga = (pl, o) => esOpaco(pl, o) ? '⬇ Descargar .mp4' : '⬇ Descargar .mov con transparencia';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// Tipografías propias (alojadas en el repo) para que el video salga igual en cualquier compu
+// Tipografías propias (alojadas en el repo) para que el video salga igual en cualquier compu.
+// La ruta va relativa a este archivo, así funciona también desde otras páginas (p. ej. 2027/).
 const FUENTES = [
   ['Cherry Bomb One', 'fonts/cherry-bomb-one-latin-400-normal.woff2', '400'],
   ['Fredoka', 'fonts/fredoka-latin-600-normal.woff2', '600'],
   ['Fredoka', 'fonts/fredoka-latin-700-normal.woff2', '700'],
   ['Chakra Petch', 'fonts/chakra-petch-latin-700-normal.woff2', '700']
 ];
-export const fuentesListas = Promise.all(FUENTES.map(([n, u, w]) => new FontFace(n, `url(${u})`, { weight: w }).load().then(f => document.fonts.add(f)).catch(() => {})));
+export const fuentesListas = Promise.all(FUENTES.map(([n, u, w]) => new FontFace(n, `url(${new URL(u, import.meta.url).href})`, { weight: w }).load().then(f => document.fonts.add(f)).catch(() => {})));
 
 let ff = null, cargando = null, ocupado = false, abierto = false;
 
@@ -732,6 +733,11 @@ window.kyoAnim = {
     elegir(PEST.some(p => p[0] === ini) ? ini : 'general');
   },
   abrirMusica,
+  // Monta solo algunas plantillas (por id) en otro contenedor: lo usa el panel de 2027
+  montar(cont, ids) {
+    cont.innerHTML = '';
+    ids.map(id => PLANTILLAS.find(pl => pl.id === id)).filter(Boolean).forEach(pl => cont.appendChild(tarjeta(pl)));
+  },
   abrirAnuncios() {
     if (anunciosAbierto) return; anunciosAbierto = true;
     const cont = $('#anunLista'); cont.innerHTML = '';
