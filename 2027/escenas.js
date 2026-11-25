@@ -12,7 +12,8 @@
     { id: 'gameplay', n: 'Gameplay', d: 'El fondo del arrecife para poner debajo de la captura del juego, con el logo pequeño en la esquina. En la vista previa, la guía marca dónde suele ir el juego.', lista: true, guias: true },
     { id: 'ya-regreso', n: 'Ya regreso', d: 'La pausa: tu mensaje con frases que van cambiando, la cuenta atrás de 5 minutos para volver y la chibi con palomitas.', lista: true,
       extra: () => 'Los anuncios rotativos que actives en el Estudio actual (Overlays) salen en el sitio de la chibi.' },
-    { id: 'terminando', n: 'Terminando', d: 'El cierre: el agradecimiento con tus redes y tu personaje guiñando el ojo.' },
+    { id: 'terminando', n: 'Terminando', d: 'El cierre: el agradecimiento con tus redes, frases que van cambiando y tu personaje guiñando el ojo.', lista: true,
+      extra: () => 'Los anuncios rotativos que actives en el Estudio actual (Overlays) salen en el sitio de Kyo.' },
     { id: 'transicion', n: 'Transición', d: 'El stinger de OBS: la ola sube, aparece la aleta y al bajar ya estás en la otra escena.' }
   ];
   const CLAVE = 'kyo2027_escenas_fmt';
