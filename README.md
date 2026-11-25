@@ -34,6 +34,8 @@ Lo nuevo de 2027 (estilo interno *Coral Stream*: arrecife vivo, kawaii, tech y g
 - `2027/puerta.js`: la puerta de acceso de todas las páginas de 2027. Se entra con Google, con la misma sesión y la misma comprobación que el Estudio (si ya entraste en el Estudio, se abre directamente).
 - `2027/marca/coral-stream.css`: colores, fuentes y piezas comunes que comparte todo lo nuevo.
 - `2027/marca/logo/`: el logo nuevo (isologo e isotipo) en SVG.
+- `2027/perfiles.html`: **Perfiles y banners**. Foto de perfil (Twitch, YouTube, Kick y TikTok), banners de Twitch, YouTube (con su zona segura) y Kick (tamaño editable), y banner e invitación de Discord, con el estilo nuevo. Cada pieza se ajusta (imagen, zoom y posición) y se descarga en PNG al tamaño exacto. Se pueden subir imágenes propias, que se guardan en el navegador.
+- `2027/marca/personaje/`: las imágenes del personaje que usan esas piezas por defecto.
 
 ## Hecho con
 
