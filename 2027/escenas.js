@@ -1,12 +1,14 @@
 // Temporada 2027 · Escenas de OBS (sección Escenas del panel 2027)
 // Una tarjeta por escena: vista previa en vivo, horizontal o vertical, y el enlace para la fuente de navegador de OBS.
+// En la vista previa, las escenas con chat lo muestran de ejemplo (?demo=1); el enlace para OBS va limpio.
 // Las escenas viven en overlays/escenas/2027/ (públicas, sin entrar con Google, como las de 2026).
 (function () {
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const ESCENAS = [
     { id: 'comenzando', n: 'Comenzando', d: 'Antes de empezar: tu mensaje con las frases que van cambiando, la cuenta atrás de 5 minutos y tu personaje.', lista: true },
-    { id: 'just-chatting', n: 'Just Chatting', d: 'Para charlar: el chat a la izquierda, tu modelo en el centro, la meta, la música y la cinta de anuncios.' },
+    { id: 'just-chatting', n: 'Just Chatting', d: 'Para charlar: el fondo del arrecife, el logo y el marco del chat a la izquierda. El chat, la meta, la música y la cinta de anuncios van encima como fuentes aparte.', lista: true, demo: true,
+      extra: (v) => 'El chat va en otra fuente de navegador (el chat del Estudio) de ' + (v ? '960 × 570 en x 60, y 1080' : '520 × 770 en x 62, y 176') + '.' },
     { id: 'gameplay', n: 'Gameplay', d: 'El fondo del arrecife para poner encima la captura del juego, con el logo en la esquina.' },
     { id: 'ya-regreso', n: 'Ya regreso', d: 'La pausa: tu mensaje, la cuenta atrás para volver y la chibi con palomitas.' },
     { id: 'terminando', n: 'Terminando', d: 'El cierre: el agradecimiento con tus redes y tu personaje guiñando el ojo.' },
@@ -36,8 +38,8 @@
     new ResizeObserver(escala).observe(caja);
     const poner = (fmt) => {
       const v = fmt === 'v', u = url(e.id, v);
-      caja.classList.toggle('v', v); fr.src = u; inp.value = u; abrir.href = u;
-      tam.textContent = 'En OBS: fuente de navegador de ' + (v ? '1080 × 1920' : '1920 × 1080') + '.';
+      caja.classList.toggle('v', v); fr.src = u + (e.demo ? '?demo=1' : ''); inp.value = u; abrir.href = u;
+      tam.textContent = 'En OBS: fuente de navegador de ' + (v ? '1080 × 1920' : '1920 × 1080') + '.' + (e.extra ? ' ' + e.extra(v) : '');
       $$('input[type=radio]', el).forEach((r) => { r.checked = r.value === fmt; });
       fmts[e.id] = fmt; try { localStorage.setItem(CLAVE, JSON.stringify(fmts)); } catch (err) {}
       escala();
