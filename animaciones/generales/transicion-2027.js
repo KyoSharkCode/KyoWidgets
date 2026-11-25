@@ -13,9 +13,10 @@ export const PUNTO_MS = 600; // a partir de aquí la pantalla está tapada del t
 // nivel del agua: sube hasta tapar (1,15 deja las crestas fuera), se queda y baja
 const nivel = t => t < SUBE ? E.io(pr(t, 0, SUBE)) * 1.15 : t < BAJA ? 1.15 : 1.15 * (1 - E.io(pr(t, BAJA, L)));
 function ola(t, n, W, H) {
-  const y0 = H * (1 - n), p = new Path2D(); p.moveTo(-20, H + 20); p.lineTo(-20, y0);
-  for (let x = -20; x <= W + 20; x += 24) p.lineTo(x, y0 + Math.sin(x * .006 + t * 5) * H * .028 + Math.sin(x * .017 - t * 3) * H * .01);
-  p.lineTo(W + 20, H + 20); p.closePath(); return p;
+  // los lados van 60 px por fuera para que el contorno pegatina (34 px) nunca asome por los bordes
+  const y0 = H * (1 - n), p = new Path2D(); p.moveTo(-60, H + 60); p.lineTo(-60, y0);
+  for (let x = -60; x <= W + 60; x += 24) p.lineTo(x, y0 + Math.sin(x * .006 + t * 5) * H * .028 + Math.sin(x * .017 - t * 3) * H * .01);
+  p.lineTo(W + 60, H + 60); p.closePath(); return p;
 }
 const degr = new WeakMap();
 function relleno(ctx, H) {

@@ -66,9 +66,10 @@ export function pintarLetras(ctx, trs) {
 // ---------- agua ----------
 // Ola que sube desde abajo: nivel 0 = nada, 1 = cubre la pantalla (1,12 con margen para las crestas)
 export function caminoOla(t, nivel) {
-  const y0 = H * (1 - nivel), p = new Path2D(); p.moveTo(-20, H + 20); p.lineTo(-20, y0);
-  for (let x = -20; x <= W + 20; x += 24) p.lineTo(x, y0 + Math.sin(x * .006 + t * 5) * H * .028 + Math.sin(x * .017 - t * 3) * H * .01);
-  p.lineTo(W + 20, H + 20); p.closePath(); return p;
+  // los lados van 60 px por fuera para que el contorno pegatina (34 px) nunca asome por los bordes
+  const y0 = H * (1 - nivel), p = new Path2D(); p.moveTo(-60, H + 60); p.lineTo(-60, y0);
+  for (let x = -60; x <= W + 60; x += 24) p.lineTo(x, y0 + Math.sin(x * .006 + t * 5) * H * .028 + Math.sin(x * .017 - t * 3) * H * .01);
+  p.lineTo(W + 60, H + 60); p.closePath(); return p;
 }
 // Borde pegatina de la ola (contorno Abisal + borde blanco)
 export function bordeOla(ctx, ola) {
@@ -103,9 +104,9 @@ export function burbujas(ctx, t) {
 export function superficie(ctx, t, ySup, a = 1) {
   const olaEn = x => ySup + Math.sin(x * .012 + t * 4) * 12;
   if (a <= 0) return olaEn;
-  ctx.save(); ctx.globalAlpha *= a; const p = new Path2D(); p.moveTo(-20, H + 40); p.lineTo(-20, ySup);
-  for (let x = -20; x <= W + 20; x += 24) p.lineTo(x, olaEn(x));
-  p.lineTo(W + 20, H + 40); p.closePath();
+  ctx.save(); ctx.globalAlpha *= a; const p = new Path2D(); p.moveTo(-60, H + 60); p.lineTo(-60, ySup);
+  for (let x = -60; x <= W + 60; x += 24) p.lineTo(x, olaEn(x)); // 60 px por fuera: el contorno no asoma por los lados
+  p.lineTo(W + 60, H + 60); p.closePath();
   const g = ctx.createLinearGradient(0, ySup, 0, H); g.addColorStop(0, C.bioluz); g.addColorStop(1, C.aleta);
   ctx.lineJoin = 'round'; ctx.lineWidth = 30; ctx.strokeStyle = C.abisal; ctx.stroke(p); ctx.lineWidth = 14; ctx.strokeStyle = '#fff'; ctx.stroke(p);
   ctx.globalAlpha *= .92; ctx.fillStyle = g; ctx.fill(p); ctx.restore();
