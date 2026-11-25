@@ -7,7 +7,20 @@
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="marca/logo/kyosumi-isotipo-color.svg">
 <link rel="stylesheet" href="marca/coral-stream.css">
+<script src="../config.js"></script>
+<script src="../acceso.js"></script>
+<script src="puerta.js"></script>
 <style>
+[hidden]{display:none!important}
+/* Puerta: nada se ve hasta entrar con Google (misma sesión que el Estudio) */
+#puerta{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:18px;background:var(--cs-abisal)}
+#puertaCaja{width:380px;max-width:100%;display:grid;gap:14px;justify-items:center;text-align:center;padding:28px 24px;border-radius:28px;background:var(--cs-abisal-2);box-shadow:var(--cs-pegatina)}
+#puertaCaja img{width:150px;height:auto}
+#puertaCaja h1{font-family:var(--cs-f-titulo);font-weight:400;font-size:32px;line-height:1}
+#puertaCaja p{color:#c9cfee}
+#btnGoogle{font-family:var(--cs-f-nombre);font-weight:700;font-size:16px;color:var(--cs-abisal);background:var(--cs-coral);border:0;border-radius:999px;padding:11px 22px;cursor:pointer}
+#btnGoogle:disabled{opacity:.6;cursor:progress}
+#errPuerta{color:var(--cs-coral-pastel);min-height:1.3em;font-weight:600}
 /* Portada de la temporada 2027: lo nuevo se construye aquí y el 11 de enero pasa a ser el Estudio principal. */
 *{box-sizing:border-box}
 html{background:var(--cs-abisal)}
@@ -73,7 +86,17 @@ footer{font-family:var(--cs-f-hud);font-size:12px;letter-spacing:.06em;color:#9a
 </style>
 </head>
 <body>
-<div class="w">
+<div id="puerta">
+  <div id="puertaCaja">
+    <img src="marca/logo/kyosumi-isotipo-color.svg" alt="" width="512" height="369">
+    <h1>Kyo Estudio 2027</h1>
+    <p id="puertaTexto">Comprobando…</p>
+    <button type="button" id="btnGoogle" hidden>Entrar con Google</button>
+    <div id="errPuerta" role="alert"></div>
+  </div>
+</div>
+
+<main class="w" id="contenido" hidden>
   <header>
     <span class="eyebrow">Kyo Estudio · temporada 2027</span>
     <a class="volver" href="../">← Estudio actual</a>
@@ -132,6 +155,6 @@ footer{font-family:var(--cs-f-hud);font-size:12px;letter-spacing:.06em;color:#9a
   </section>
 
   <footer>KYO ESTUDIO · TEMPORADA 2027 · EN CONSTRUCCIÓN</footer>
-</div>
+</main>
 </body>
 </html>
