@@ -37,7 +37,11 @@
                  ['fs', 'Tamaño del texto', [['26', 'Normal'], ['22', 'Pequeño'], ['30', 'Grande']]],
                  ['seg', 'Los mensajes se van', [['0', 'Nunca'], ['30', 'A los 30 s'], ['60', 'Al minuto']]]],
       acciones: [['Mensaje', 'mensaje'], ['Limpiar', 'limpiar']] },
-    { id: 'contador', n: 'Contador', d: 'Píldora pegatina con icono, nombre y número que rebota.' },
+    { id: 'contador', n: 'Contador', archivo: '../contador.html', fijo: { tema: '2027' }, lista: true, tam: [440, 140],
+      nota: () => 'En OBS: fuente de navegador de 440 × 140. Sin más, muestra tu contador principal; para otro, añade &id= con el id que ves en el Estudio actual (En directo → Contadores).',
+      d: 'Tus contadores del Estudio (muertes, rage quits…) en la píldora 2027: el número rebota al subir, tiembla al bajar y el icono gira al reiniciar. Los cambios llegan al momento.',
+      opciones: [['etiqueta', 'Nombre del contador', [['si', 'Mostrar'], ['no', 'Ocultar']]]],
+      acciones: [['+1', 'sumar'], ['−1', 'restar'], ['+5', 'cinco'], ['Reiniciar', 'reiniciar']] },
     { id: 'cuenta', n: 'Cuenta atrás', d: 'El contador HUD de las escenas con tu texto final.' }
   ];
   const CLAVE = 'kyo2027_widgets';
