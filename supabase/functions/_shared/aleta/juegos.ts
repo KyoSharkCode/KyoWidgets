@@ -246,7 +246,7 @@ export async function comandoJuego(db: any, ev: any, texto: string, badges: stri
   if (!await turno(db, "empezar", 8)) return true;
   const tema = limpiarEntrada(o.texto, 100);
   const inicio = await narrar(db, ctx, est, { tema, texto: [], aportes: [] }, "empezar");
-  if (!inicio) { await ctx.decir("🫧 Ahora mismo no me sale ninguna historia. Prueba otra vez en un rato."); return true; }
+  if (!inicio) { await ctx.decir("🫧 Ahora mismo no me sale ninguna historia. Intenta otra vez en un rato."); return true; }
   const ahora = Date.now();
   const s: Juego = {
     ...JUEGO_VACIO, estado: "activo", tipo: "historia", partida: ahora, ronda: (Number(j.ronda) || 0) + 1, resuelta: false, pistaDada: true,

@@ -111,8 +111,8 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Pro
     p_tope: aj.topeDirecto, p_tope_persona: aj.topePersona,
   });
   if (error) { await apuntar(db, directo.id, "permiso", { ok: false, error: "api", detalle: "Falta ejecutar 09_ia.sql: " + error.message }); return; }
-  if (permiso === "tope") { await ctx.decir("💤 Hmph… por hoy ya he hablado bastante. Mañana más (si me apetece) 🦈"); return; }
-  if (permiso === "tope_persona") { await ctx.decir("💤 Contigo ya he hablado de sobra por hoy. Deja algo para los demás, anda. Mañana seguimos 🦈", ev.message_id); return; }
+  if (permiso === "tope") { await ctx.decir("💤 Hmph… por hoy ya hablé bastante. Mañana más (si se me antoja) 🦈"); return; }
+  if (permiso === "tope_persona") { await ctx.decir("💤 Contigo ya hablé de sobra por hoy. Deja algo para los demás, ¿sí? Mañana seguimos 🦈", ev.message_id); return; }
   if (permiso !== "ok") return;
 
   // Memoria: las notas sobre quien habla (solo las suyas) van como contexto

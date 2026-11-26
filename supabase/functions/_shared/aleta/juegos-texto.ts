@@ -160,7 +160,7 @@ export const TXT_JUEGO = {
   tiempo: (respuesta: string) => "⏰ ¡Tiempo! Era: " + respuesta,
   fin: (j: Juego) => Object.keys(j.marcador).length
     ? "🏆 ¡Se acabó! " + podio(j.marcador) + " · Tus puntos totales: !puntos"
-    : "🫧 Se acabó… y nadie acertó ninguna. Hmph, ya os vale.",
+    : "🫧 Se acabó… y nadie acertó ninguna. Hmph, qué vergüenza.",
   parado: (j: Juego) => "🛑 Juego parado." + (Object.keys(j.marcador).length ? " Así iba: " + podio(j.marcador) : ""),
   nada: () => "No hay ningún juego en marcha.",
   ocupado: (j: Juego) => "🎮 Ya hay un juego en marcha (" + NOMBRE_JUEGO[j.tipo] + "). Para pararlo: !juego parar",

@@ -321,7 +321,7 @@ console.log("5) Conversación completa (con Claude de mentira)");
   const db = baseFalsa({ topePersona: 3 }), ctx = contexto();
   igual("por defecto no hay tope general y sí por persona", [T.AJUSTES_IA.topeDirecto, T.AJUSTES_IA.topePersona], [0, 100]);
   for (let i = 0; i < 6; i++) { db.avanzar(40); await turno(db, ctx, mensaje("@AletaBot hola " + i)); }
-  igual("una persona: 3 respuestas + 1 aviso para ella, y luego silencio", [ctx.dicho.length, ctx.dicho.filter((d) => d.m.includes("Contigo ya he hablado")).length, db.t.kyo_ia_uso.length], [4, 1, 6]);
+  igual("una persona: 3 respuestas + 1 aviso para ella, y luego silencio", [ctx.dicho.length, ctx.dicho.filter((d) => d.m.includes("Contigo ya hablé")).length, db.t.kyo_ia_uso.length], [4, 1, 6]);
   await turno(db, ctx, mensaje("@AletaBot y yo qué", { id: "999", login: "otra", nombre: "Otra" }));
   igual("a otra persona le sigue contestando", ctx.dicho.length, 5);
   conReloj(db); await IA.comandoIA(db, "!ia", ["broadcaster"], ctx); Date.now = real;
@@ -530,7 +530,7 @@ for (const [nombre, aj] of [["memoria desactivada", { memoria: false }], ["salud
   await IA.comandoMemoria(db, mensaje("!olvidame", { id: "502", login: "pepa", nombre: "Pepa" }), "!olvidame", ctx);
   const v = db.t.kyo_viewer[0];
   igual("!olvidame borra todo aunque acabe de usar otro comando", [v.apodo, v.datos, v.directos, v.nombre, v.no_recordar], [null, [], 0, "", true]);
-  prueba("y lo confirma", ctx.dicho.at(-1).m.includes("he borrado todo"));
+  prueba("y lo confirma", ctx.dicho.at(-1).m.includes("borré todo"));
   Date.now = real;
 
   guion.filtro = () => ({ responder: true, motivo: "ok", avisar_mods: false, dato: "Le gusta el sushi", apodo: "Pepi" });
@@ -782,6 +782,14 @@ igual("si viniera como texto normal, es el mensaje", P.leerRespuesta("Hola, Pepa
 igual("si se cortó a medias, rescata el mensaje", P.leerRespuesta('{"mensaje":"Hola \\"Pepa\\", qué tal","sobre_'), { mensaje: 'Hola "Pepa", qué tal', sobreMi: "" });
 igual("JSON roto sin mensaje: nada", P.leerRespuesta('{"sobre_mi":"x"'), { mensaje: "", sobreMi: "" });
 igual("ajustes de iniciativa y zona", [T.limpiarAjustes({}).iniciativa, T.limpiarAjustes({ cadaMinutos: 1 }).cadaMinutos, T.limpiarAjustes({ zona: "America/Mexico_City" }).zona, T.limpiarAjustes({ zona: "<script>" }).zona], [true, 5, "America/Mexico_City", ""]);
+{
+  const todo = [P.instrucciones(""), P.instruccionesSaludo(""), P.DIARIO_SISTEMA, P.HISTORIA_SISTEMA].join("\n");
+  prueba("la regla de idioma (latino neutro, sin español de España) va en el chat, los saludos, el diario y la historia", P.instrucciones("").includes(P.IDIOMA) && P.instruccionesSaludo("").includes(P.IDIOMA) && P.DIARIO_SISTEMA.includes(P.IDIOMA) && /latinoamericano neutro/.test(P.HISTORIA_SISTEMA));
+  // lo que el bot dice con texto fijo tampoco usa "vosotros"
+  const fijos = [T.saludoDeRepuesto(["Ana", "Luis"], 0), T.saludoDeRepuesto(["Ana", "Luis"], 0.5), T.saludoDeRepuesto(["Ana", "Luis"], 0.9), T.TXT_MEMORIA.olvidado("Ana"), T.TXT_MEMORIA.apodoNo(), T.TXT_MEMORIA.recordar("Ana"), J.TXT_JUEGO.fin({ marcador: {} }), ...V.ANIMOS, P.PERSONALIDAD_BASE].join(" ");
+  const espana = fijos.match(/(?<!\p{L})(vosotr[oa]s|os|sentaos|hagáis|aparecierais|habéis|sois|vale|tío|mola|guay|pillan?|renuncio|grima|apetece)(?!\p{L})/giu);
+  igual("sin giros de España en la ficha, los ánimos ni los mensajes fijos", espana, null);
+}
 prueba("la ficha habla de vida propia, de bajar la coraza y de preguntar", /colección de cosas brillantes/.test(P.PERSONALIDAD_BASE) && /bajas la coraza/.test(P.PERSONALIDAD_BASE) && /devuelves una pregunta/.test(P.PERSONALIDAD_BASE));
 
 console.log("11) Vida: en el chat (con Claude de mentira)");

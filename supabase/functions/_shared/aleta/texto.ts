@@ -332,12 +332,12 @@ export function textoMisDatos(nombre: string, p: Perfil | null): string {
 }
 
 export const TXT_MEMORIA = {
-  olvidado: (n: string) => "🫧 Hecho, " + n + ": he borrado todo lo que recordaba de ti y no guardaré nada más. Si cambias de idea: !recuerdame",
-  recordar: (n: string) => "✨ Vale, " + n + ": a partir de ahora vuelvo a acordarme de ti.",
-  apodo: (a: string) => "📝 Apuntado: a partir de ahora te llamo " + a + ".",
+  olvidado: (n: string) => "🫧 Listo, " + n + ": borré todo lo que recordaba de ti y no voy a guardar nada más. Si cambias de idea: !recuerdame",
+  recordar: (n: string) => "✨ Listo, " + n + ": de ahora en adelante vuelvo a acordarme de ti.",
+  apodo: (a: string) => "📝 Anotado: de ahora en adelante te llamo " + a + ".",
   apodoAyuda: () => "📝 Para decirme cómo llamarte: !llamame TuApodo (hasta 20 letras).",
-  apodoNo: () => "💢 Ese apodo no me vale. Prueba con otro.",
-  apodoAhoraNo: () => "🫧 Ahora mismo no puedo cambiar apodos. Prueba más tarde.",
+  apodoNo: () => "💢 Ese apodo no me sirve. Intenta con otro.",
+  apodoAhoraNo: () => "🫧 Ahora mismo no puedo cambiar apodos. Intenta más tarde.",
   sinMemoria: (n: string) => "🫧 " + n + ": me pediste que no guardara nada de ti. Si quieres que vuelva a acordarme: !recuerdame",
 };
 
@@ -346,7 +346,7 @@ const lista = (n: string[]) => n.length <= 1 ? (n[0] || "") : n.slice(0, -1).joi
 export function saludoDeRepuesto(nombres: string[], azar = Math.random()): string {
   const quien = lista(nombres), varios = nombres.length > 1;
   const frases = varios
-    ? ["¿" + quien + "? Hmph, ya era hora de que aparecierais 🦈", "Mira quiénes llegan: " + quien + ". N-no es que os estuviera esperando 💢", "¡" + quien + "! Sentaos y no hagáis ruido… bueno, un poco sí ✨"]
+    ? ["¿" + quien + "? Hmph, ya era hora de que aparecieran 🦈", "Miren quiénes llegan: " + quien + ". N-no es que los estuviera esperando 💢", "¡" + quien + "! Siéntense y no hagan ruido… bueno, un poquito sí ✨"]
     : ["¿" + quien + "? Hmph, ya era hora de que aparecieras 🦈", "Mira quién llega: " + quien + ". N-no es que te estuviera esperando 💢", "¡" + quien + "! Llegas tarde… digo, hola ✨"];
   return frases[Math.floor(azar * frases.length) % frases.length];
 }
