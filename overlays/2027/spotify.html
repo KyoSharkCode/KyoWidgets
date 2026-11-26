@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Kyo · Música 2027</title>
+<meta name="robots" content="noindex">
+<!--
+  KyoWidgets 2027 · Música (Spotify) · «Entrada» · Fuente de navegador para OBS de 660×220 (multiplícalo por «escala»).
+  La entrada tiene los bordes en olitas, la portada como pegatina, la barra de la canción en cuadritos de píxel
+  y un código de barras que es el ecualizador. Lee la canción de la función «spotify-now-playing» (como la de 2026).
+  Parámetros:
+    estilo     normal | octubre | navidad        (Octubre y Navidad son ediciones especiales: llevan la luna)
+    modo       siempre | cambio                  segundos  cuánto se ve al cambiar de canción (modo cambio, 12)
+    etiqueta   texto de arriba ("Sonando ahora")  escala    0.5 … 2
+    demo=1     canciones de ejemplo (vista previa)
+-->
+<link rel="stylesheet" href="../../fonts/escenas.css">
+<script src="../../config.js"></script>
+<script src="../sondeo.js"></script>
+<style>
+:root{--abisal:#0A1030;--indigo:#2B2F7A;--aleta:#3A7BD5;--bioluz:#6FE3F0;--espuma:#C9E6F2;--perla:#F5F3FB}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;overflow:hidden}
+#w{position:relative;width:660px;height:220px;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;color:var(--perla);
+  --acento:var(--bioluz);--sobre:var(--abisal);transition:transform .55s cubic-bezier(.34,1.56,.64,1),opacity .4s ease}
+#w.octubre{--acento:#FF8A2B;--sobre:#1a0d05}
+#w.navidad{--acento:#E23A52;--sobre:#fff}
+#w.oculto{transform:translateY(30px) scale(.85);opacity:0}
+#w.entra{animation:entra .6s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes entra{from{transform:translateY(30px) scale(.85);opacity:0}}
+svg.tk{position:absolute;inset:0;overflow:visible}
+.portada{position:absolute;left:38px;top:40px;width:126px;height:126px;border-radius:22px;transform:rotate(-6deg);
+  background:conic-gradient(from 210deg,#2B2F7A,#3A7BD5,#6FE3F0,#5EF2B8,#2B2F7A) center/cover;box-shadow:0 0 0 5px var(--perla),0 0 0 10px var(--abisal),0 8px 0 10px var(--abisal);overflow:hidden;animation:flota 4s ease-in-out infinite}
+.portada.con{background-size:cover}
+.brillo{position:absolute;left:24px;top:26px;width:30px;height:30px}
+.txt{position:absolute;left:190px;top:36px;width:322px;display:grid;gap:3px}
+.lbl{display:flex;align-items:center;gap:8px;font-family:"Chakra Petch",monospace;font-weight:700;font-size:13px;letter-spacing:.18em;color:var(--acento);text-transform:uppercase}
+.marco{overflow:hidden;padding:2px 0}
+.t{display:inline-block;font-family:"Cherry Bomb One","Fredoka",sans-serif;font-size:30px;line-height:1.08;color:var(--perla);-webkit-text-stroke:7px var(--abisal);paint-order:stroke fill;white-space:nowrap}
+/* títulos largos: van y vienen despacio */
+.t.largo{animation:desliza var(--tt,10s) ease-in-out infinite alternate}
+@keyframes desliza{0%,15%{transform:translateX(0)}85%,100%{transform:translateX(var(--d,0))}}
+.a{font-size:18px;color:var(--espuma);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.px{display:flex;align-items:center;gap:10px;margin-top:10px}
+.cuad{display:flex;gap:3px}
+.cuad i{width:10px;height:12px;border-radius:2px;background:rgba(255,255,255,.15)}
+.cuad i.on{background:var(--acento)}
+.tm{font-family:"Chakra Petch",monospace;font-weight:600;font-size:14px;color:var(--espuma);font-variant-numeric:tabular-nums;white-space:nowrap}
+.talon{position:absolute;left:536px;top:44px;width:96px;bottom:44px;display:grid;justify-items:center;align-content:center;gap:8px;color:var(--sobre)}
+.pase{font-family:"Chakra Petch",monospace;font-weight:700;font-size:11px;letter-spacing:.16em;text-align:center;line-height:1.25}
+.barras{display:flex;align-items:flex-end;gap:3px;height:48px}
+.barras b{width:4px;height:40%;background:var(--sobre);border-radius:1px}
+.barras b:nth-child(3n){width:7px}
+#w.sonando .barras b{animation:eq 1s ease-in-out infinite}
+.num{font-family:"Chakra Petch",monospace;font-weight:700;font-size:13px;letter-spacing:.14em}
+.luna{position:absolute;right:6px;top:2px;width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 40% 38%,#fff 0,#e9f4fb 30%,#C9E6F2 62%,#9cc6e6 100%);box-shadow:0 0 22px 6px rgba(201,230,242,.45),0 0 0 4px var(--abisal);display:none}
+#w.octubre .luna,#w.navidad .luna{display:block}
+.deco{position:absolute;inset:0;pointer-events:none;display:none}
+#w.navidad .nieve,#w.octubre .murci{display:block}
+.nieve b{position:absolute;width:7px;height:7px;border-radius:50%;background:#fff;opacity:.9;animation:copo 3s ease-in-out infinite}
+.murci svg{position:absolute;width:34px;height:20px;fill:#1a0d05;animation:flota 2.4s ease-in-out infinite}
+@keyframes flota{50%{transform:translateY(-6px) rotate(-6deg)}}
+@keyframes eq{0%,100%{height:25%}50%{height:100%}}
+@keyframes copo{50%{transform:translateY(5px)}}
+@media (prefers-reduced-motion:reduce){#w *{animation:none!important}}
+</style>
+<script src="../escenas/pausa-obs.js"></script>
+</head>
+<body>
+<div id="w" class="oculto"></div>
+<script>
+(function () {
+  const q = new URLSearchParams(location.search), w = document.getElementById('w');
+  const estilo = ['octubre', 'navidad'].includes(q.get('estilo')) ? q.get('estilo') : 'normal';
+  const modo = q.get('modo') === 'cambio' ? 'cambio' : 'siempre';
+  const seg = Math.max(3, Number(q.get('segundos')) || 12);
+  const etiqueta = q.get('etiqueta') || 'Sonando ahora';
+  const esc = Math.min(2, Math.max(0.5, Number(q.get('escala')) || 1));
+  if (esc !== 1) document.documentElement.style.zoom = esc;
+  w.classList.add(estilo);
+
+  // entrada: bordes de arriba y abajo en olitas y las muescas del corte del talón
+  function entrada(x0, y0, x1, y1, xs) {
+    const r = 20, n = 14, amp = 5;
+    const ola = (desde, hasta, dir) => { const L = hasta - desde, k = Math.max(1, Math.round(Math.abs(L) / 26)), st = L / k; let p = ''; for (let i = 0; i < k; i++) p += ' q ' + (st / 2) + ' ' + (-amp * dir) + ' ' + st + ' 0'; return p; };
+    return 'M' + (x0 + r) + ' ' + y0 + ola(x0 + r, xs - n, 1) + ' a ' + n + ' ' + n + ' 0 0 0 ' + (2 * n) + ' 0' + ola(xs + n, x1 - r, 1) +
+      ' a ' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r + ' V ' + (y1 - r) + ' a ' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r +
+      ola(x1 - r, xs + n, -1) + ' a ' + n + ' ' + n + ' 0 0 0 ' + (-2 * n) + ' 0' + ola(xs - n, x0 + r, -1) +
+      ' a ' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + (-r) + ' V ' + (y0 + r) + ' a ' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + (-r) + ' Z';
+  }
+  const T = entrada(14, 24, 646, 204, 522);
+  w.innerHTML =
+    '<svg class="tk" viewBox="0 0 660 220" aria-hidden="true"><defs><clipPath id="talon"><rect x="522" y="0" width="200" height="230"/></clipPath>' +
+    '<linearGradient id="f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d2a6e"/><stop offset="1" stop-color="#0c1440"/></linearGradient>' +
+    '<pattern id="g" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M22 0H0V22" fill="none" stroke="rgba(111,227,240,.08)" stroke-width="1"/></pattern></defs>' +
+    '<path d="' + T + '" fill="#0A1030" transform="translate(0 9)"/><path d="' + T + '" fill="none" stroke="#0A1030" stroke-width="20" stroke-linejoin="round"/>' +
+    '<path d="' + T + '" fill="none" stroke="#F5F3FB" stroke-width="9" stroke-linejoin="round"/><path d="' + T + '" fill="url(#f)"/><path d="' + T + '" fill="url(#g)"/>' +
+    '<path d="M392 196 Q400 120 470 96 Q446 140 470 196 Z" fill="rgba(111,227,240,.07)"/>' +
+    '<path d="' + T + '" fill="var(--acento)" clip-path="url(#talon)"/><line x1="522" y1="44" x2="522" y2="184" stroke="#0A1030" stroke-width="4" stroke-dasharray="7 7" stroke-linecap="round"/></svg>' +
+    '<div class="deco nieve">' + [[60, 26], [150, 196], [260, 20], [420, 200], [560, 34], [620, 186], [330, 206]].map(([x, y], i) => '<b style="left:' + x + 'px;top:' + y + 'px;animation-delay:-' + i * .4 + 's"></b>').join('') + '</div>' +
+    '<div class="deco murci">' + [[300, 6], [470, 14]].map(([x, y], i) => '<svg viewBox="0 0 34 20" style="left:' + x + 'px;top:' + y + 'px;animation-delay:-' + i + 's"><path d="M17 6c1-3 3-4 4-4-1 2 0 3 1 4 2-2 5-3 8-2-2 1-3 3-3 6-2-2-4-2-6 0-1-2-2-3-4-3s-3 1-4 3c-2-2-4-2-6 0 0-3-1-5-3-6 3-1 6 0 8 2 1-1 2-2 1-4 1 0 3 1 4 4z"/></svg>').join('') + '</div>' +
+    '<div class="portada" data-portada></div><svg class="brillo" viewBox="0 0 18 18" aria-hidden="true"><g fill="#F4C542"><rect x="8" width="2" height="18"/><rect y="8" width="18" height="2"/><rect x="6" y="6" width="6" height="6"/></g></svg>' +
+    '<div class="txt"><div class="lbl" data-etq></div><div class="marco"><span class="t" data-t></span></div><div class="a" data-a></div>' +
+    '<div class="px"><div class="cuad" data-q>' + '<i></i>'.repeat(14) + '</div><div class="tm" data-tm>0:00 / 0:00</div></div></div>' +
+    '<div class="talon"><div class="pase">PASE<br>1 TIBURÓN</div><div class="barras">' + [0, .3, .6, .15, .45, .8, .25, .55, .1, .7].map(d => '<b style="animation-delay:-' + d + 's"></b>').join('') + '</div><div class="num" data-num>Nº 0001</div></div>' +
+    '<div class="luna"></div>';
+
+  const $ = s => w.querySelector('[data-' + s + ']');
+  const cuad = [...w.querySelectorAll('[data-q] i')];
+  let actual = null, base = 0, baseAt = 0, playing = false, ocultarT = null, numero = 1;
+  const fmt = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  function mostrar(v) { clearTimeout(ocultarT); w.classList.remove('oculto'); if (v === 'cambio') ocultarT = setTimeout(() => w.classList.add('oculto'), seg * 1000); }
+  function ocultarW() { clearTimeout(ocultarT); w.classList.add('oculto'); }
+
+  function pintarCancion(d) {
+    const t = $('t'); t.textContent = d.title || ''; $('a').textContent = d.artist || '';
+    const p = $('portada'); p.style.backgroundImage = d.cover ? 'url("' + d.cover + '")' : ''; p.classList.toggle('con', !!d.cover);
+    $('num').textContent = 'Nº ' + String(numero++).padStart(4, '0');
+    t.classList.remove('largo');
+    requestAnimationFrame(() => { const hueco = t.parentElement.clientWidth, ancho = t.scrollWidth;
+      if (ancho > hueco) { t.style.setProperty('--d', (hueco - ancho) + 'px'); t.style.setProperty('--tt', Math.max(8, (ancho - hueco) / 25 + 6) + 's'); t.classList.add('largo'); } });
+    w.classList.remove('entra'); void w.offsetWidth; w.classList.add('entra');
+  }
+  function recibir(d) {
+    if (!d || !d.ok) { if (d && d.error) console.warn('Kyo música:', d.error); ocultarW(); return; }
+    if (!d.title) { ocultarW(); return; }
+    const cambio = !actual || actual.id !== d.id || actual.title !== d.title;
+    playing = !!d.playing; w.classList.toggle('sonando', playing);
+    $('etq').textContent = '♪ ' + (playing ? etiqueta : 'En pausa');
+    base = d.progress_ms || 0; baseAt = Date.now(); actual = d;
+    if (cambio) { pintarCancion(d); mostrar(modo); }
+    else if (modo === 'siempre' && playing) mostrar('siempre');
+    if (!playing && modo === 'siempre') { clearTimeout(ocultarT); ocultarT = setTimeout(ocultarW, 4000); }
+  }
+  setInterval(() => {
+    if (!actual) return;
+    const dur = actual.duration_ms || 1, p = Math.min(dur, base + (playing ? Date.now() - baseAt : 0)), on = Math.round(p / dur * cuad.length);
+    $('tm').textContent = fmt(p) + ' / ' + fmt(dur);
+    cuad.forEach((c, i) => c.classList.toggle('on', i < on));
+  }, 250);
+
+  const EJ = [
+    { id: 'a', title: 'Lo-fi bajo el arrecife', artist: 'Artista de ejemplo', duration_ms: 214000 },
+    { id: 'b', title: 'Un título de canción bastante largo para ver cómo se desliza', artist: 'Otra artista', duration_ms: 187000 },
+    { id: 'c', title: 'Corriente de neón', artist: 'Banda de prueba', duration_ms: 241000 }
+  ];
+  let k = 0;
+  const ejemplo = () => { const s = EJ[k++ % EJ.length]; recibir(Object.assign({ ok: true, playing: true, progress_ms: 30000 + Math.random() * 60000, cover: null }, s)); };
+  // sonando: cada 10 s, o justo cuando debería acabar la canción si es antes; en pausa: cada 20 s
+  function cada() { if (!actual || !playing) return 20000; const queda = (actual.duration_ms || 0) - (base + Date.now() - baseAt); return Math.max(3000, Math.min(10000, queda + 1500)); }
+  window.addEventListener('message', e => { if (e.data && e.data.type === 'kyo-test' && e.data.accion === 'cancion') ejemplo(); });
+  if (q.get('demo') === '1') { ejemplo(); setInterval(ejemplo, 15000); }
+  else KyoSondeo.bucle(async () => { const d = await KyoSondeo.pedir('spotify-now-playing', null, 4000); if (d) recibir(d); }, cada);
+})();
+</script>
+</body>
+</html>
