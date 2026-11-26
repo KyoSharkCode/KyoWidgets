@@ -8,8 +8,8 @@
 import Anthropic from "npm:@anthropic-ai/sdk@1.10.0";
 import { costeDe, MODELO_CHAT, MODELO_TAREAS, usoDe, type Uso } from "./texto.ts";
 import {
-  APODO_ESQUEMA, APODO_SISTEMA, BANCO_ESQUEMA, FILTRO_ESQUEMA, FILTRO_SISTEMA, HISTORIA_SISTEMA, instruccionesBanco,
-  leerApodoVale, leerBanco, leerVeredicto, mensajeApodo, mensajeBanco, type Veredicto,
+  APODO_ESQUEMA, APODO_SISTEMA, BANCO_ESQUEMA, DIARIO_SISTEMA, FILTRO_ESQUEMA, FILTRO_SISTEMA, HISTORIA_SISTEMA, instruccionesBanco,
+  leerApodoVale, leerBanco, leerRespuesta, leerVeredicto, mensajeApodo, mensajeBanco, RESPUESTA_ESQUEMA, type Respuesta, type Veredicto,
 } from "./prompt.ts";
 
 export const hayClave = () => !!(Deno.env.get("ANTHROPIC_API_KEY") ?? "").trim();
@@ -82,25 +82,46 @@ export async function generarPreguntas(tipo: "trivia" | "adivinanza", tema: stri
 // Un trozo de la historia colectiva. valor = "" si no salió nada.
 export const escribirHistoria = (contenido: string): Promise<Llamada<string>> => haiku(HISTORIA_SISTEMA, contenido, 200);
 
-// La respuesta de AletaBot. valor = "" cuando el modelo se niega a contestar (AletaBot se calla).
-export async function conversar(sistema: string, mensajes: Anthropic.MessageParam[]): Promise<Llamada<string>> {
+// El diario del directo que acaba de terminar. valor = "" si no salió nada.
+export const escribirDiario = (contenido: string): Promise<Llamada<string>> => haiku(DIARIO_SISTEMA, contenido, 220, undefined, 45_000);
+
+// Si la API rechazó pedir la respuesta "con forma" y hubo que repetirla como texto, queda apuntado aquí
+// (quien llama lo deja a la vista del Estudio). Se lee una vez y se borra.
+let _avisoForma = "";
+export function avisoForma(): string { const a = _avisoForma; _avisoForma = ""; return a; }
+
+// Lo que dice AletaBot (Sonnet). Devuelve el mensaje y, si contó algo nuevo de sí misma, la nota para recordarlo.
+// mensaje = "" cuando el modelo se niega a contestar o decide callar (AletaBot no dice nada).
+//   sistema  las reglas + la personalidad: idénticas en todas las llamadas.
+//   memoria  lo que recuerda de sí misma (canon, diario, ánimo): cambia poco (una vez por directo, o al aprender algo).
+// Los dos bloques van a la caché por separado, así que al cambiar la memoria no se vuelve a pagar el primero.
+export async function conversar(sistema: string, memoria: string, mensajes: Anthropic.MessageParam[]): Promise<Llamada<Respuesta>> {
   const c = cliente();
   if (!c) return { ok: false, error: "sin_clave", detalle: "Falta el secreto ANTHROPIC_API_KEY" };
+  const pedir = (conForma: boolean) => c.messages.create({
+    model: MODELO_CHAT,
+    max_tokens: 280, // un mensaje de chat (y, a veces, una nota corta); lo que pase de ahí se corta
+    system: [
+      { type: "text" as const, text: sistema, cache_control: { type: "ephemeral" as const } },
+      ...(memoria ? [{ type: "text" as const, text: memoria, cache_control: { type: "ephemeral" as const } }] : []),
+    ],
+    // Sin razonamiento previo (en Sonnet 5.5 se desactiva así): el pensamiento se cobra como salida
+    // y se comería el max_tokens de un mensaje de chat.
+    thinking: { type: "between_tools" },
+    output_config: conForma ? { effort: "low", format: { type: "json_schema", schema: RESPUESTA_ESQUEMA } } : { effort: "low" },
+    messages: mensajes,
+  });
   try {
-    const m = await c.messages.create({
-      model: MODELO_CHAT,
-      max_tokens: 160, // 1-2 frases de chat; lo que pase de ahí se corta
-      // El system prompt es idéntico en todas las llamadas: con cache_control se guarda en caché
-      // y las siguientes veces cuesta una fracción.
-      system: [{ type: "text", text: sistema, cache_control: { type: "ephemeral" } }],
-      // Sin razonamiento previo (en Sonnet 5.5 se desactiva así): el pensamiento se cobra como salida
-      // y se comería el max_tokens de un mensaje de chat.
-      thinking: { type: "between_tools" },
-      output_config: { effort: "low" },
-      messages: mensajes,
-    });
+    let m: Anthropic.Message;
+    try { m = await pedir(true); }
+    catch (e) {
+      // Si la API no aceptara pedir la respuesta con forma, se pide como texto normal: AletaBot no se queda muda
+      if (!(e instanceof Anthropic.BadRequestError)) throw e;
+      _avisoForma = (e.message || "petición rechazada").slice(0, 300);
+      m = await pedir(false);
+    }
     const uso = usoDe(m.usage);
-    const valor = m.stop_reason === "refusal" ? "" : textoDe(m);
+    const valor = m.stop_reason === "refusal" ? { mensaje: "", sobreMi: "" } : leerRespuesta(textoDe(m));
     return { ok: true, valor, modelo: MODELO_CHAT, uso, coste: costeDe(MODELO_CHAT, uso) };
   } catch (e) { return fallo(e); }
 }

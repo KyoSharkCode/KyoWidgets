@@ -9,6 +9,8 @@
 //   POST {clave, accion:"probarSaludo", personalidad?}        → {ok, respuesta, coste}: cómo saludaría a un habitual de ejemplo
 //   POST {clave, accion:"viewers", buscar?}                  → {ok, viewers, total, sql}: los perfiles que recuerda (100 como mucho)
 //   POST {clave, accion:"borrarViewer", user_id}             → borra del todo el perfil de esa persona
+//   POST {clave, accion:"vida"}                              → {ok, canon, diario, animo, canal}: lo que AletaBot recuerda de sí misma
+//   POST {clave, accion:"cambiarVida", canon? | animo? | borrarDiario?} → cambia su lista de recuerdos, fija el ánimo o borra un día del diario
 //   POST {clave, accion:"juegos"}                            → {ok, preguntas, totales, ranking, historias, juego, sql}
 //   POST {clave, accion:"generarBanco", tipo, tema, n}       → pide a Claude n preguntas (quedan pendientes de aprobar). Gasta tokens
 //   POST {clave, accion:"guardarPregunta", id?, tipo, categoria, pregunta, respuestas, pista} → añade o corrige una (queda aprobada)
@@ -23,8 +25,8 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { comprobarClave, estadoAcceso } from "../_shared/acceso.ts";
 import {
-  aprobarBanco, borrarBanco, borrarViewer, generarBanco, guardarAjustes, guardarPersonalidad, guardarPregunta, listarViewers,
-  probarIA, probarSaludo, reiniciarPuntos, resumenIA, resumenJuegos,
+  aprobarBanco, borrarBanco, borrarViewer, cambiarVida, generarBanco, guardarAjustes, guardarPersonalidad, guardarPregunta, leerVida,
+  listarViewers, probarIA, probarSaludo, reiniciarPuntos, resumenIA, resumenJuegos,
 } from "../_shared/aleta/ia.ts";
 import { PERSONALIDAD_BASE } from "../_shared/aleta/prompt.ts";
 
@@ -84,6 +86,11 @@ Deno.serve(async (req) => {
     return json(r, r.ok ? 200 : 400);
   }
 
+  if (body.accion === "vida") return json({ ok: true, ...(await leerVida(db)) });
+  if (body.accion === "cambiarVida") {
+    const r = await cambiarVida(db, { canon: body.canon, animo: body.animo, borrarDiario: body.borrarDiario });
+    return json(r, r.ok ? 200 : 400);
+  }
   if (body.accion === "juegos") return json({ ok: true, ...(await resumenJuegos(db)) });
   if (["generarBanco", "guardarPregunta", "aprobarBanco", "borrarBanco", "reiniciarPuntos"].includes(body.accion)) {
     const r = body.accion === "generarBanco" ? await generarBanco(db, { tipo: body.tipo, tema: body.tema, n: body.n })

@@ -1,5 +1,5 @@
-KyoWidgets · 🧠 IA de AletaBot (fase 1: conversación · fase 2: memoria de viewers · fase 3: juegos)
-===================================================================================================
+KyoWidgets · 🧠 IA de AletaBot (fase 1: conversación · fase 2: memoria de viewers · fase 3: juegos · vida propia)
+=================================================================================================================
 
 Qué hace: cuando alguien escribe @AletaBot, su nombre ("aleta") o responde a un mensaje suyo,
 AletaBot contesta con Claude en una o dos frases, con la personalidad que tú le escribas.
@@ -37,6 +37,25 @@ Juegos con el chat (fase 3)
 - Si durante una encuesta abierta la respuesta de una trivia es un número, ese mensaje cuenta como
   voto: mejor no mezclar las dos cosas.
 
+La vida de AletaBot (para que no sea solo un personaje)
+- Ficha de personaje: de dónde viene, qué le gusta y qué no, cómo es por dentro, cuándo baja la coraza
+  y cómo conversa (pregunta de vuelta, varía el largo, no lo acaba todo en chiste). Es la personalidad
+  de ejemplo; se edita en Kyo Estudio → 🧠 IA → Personalidad.
+- Memoria de sí misma: cuando cuenta algo nuevo sobre ella (un gusto, una manía, una anécdota), lo apunta
+  y lo mantiene en los directos siguientes. Hasta 24 cosas; se ven, se borran y se añaden en el Estudio.
+- Diario: al terminar cada directo escribe 2-3 frases sobre lo que pasó (a partir del final del chat) y
+  al día siguiente se acuerda. Guarda los últimos 4 directos. Nombra a la gente solo por cosas divertidas
+  que pasaron a la vista de todos; con !olvidame se borran los días que nombran a esa persona.
+- Ánimo del día: cada directo llega con un humor distinto (con sueño, competitiva, nostálgica…). Lo elige
+  sola; desde el Estudio puedes fijarle el del próximo directo.
+- Sabe dónde está: a qué se juega y el título del directo (se lo pregunta a Twitch cada 10 minutos como
+  mucho), cuánto lleva el directo y qué hora es para ti (la zona horaria la manda el Estudio al abrirlo).
+- Iniciativa: como mucho una vez cada 12 minutos, y solo en directo, con ambiente en el chat y si no está
+  ya hablando con alguien, comenta algo por su cuenta. Si no tiene nada que decir, se calla. Se apaga en
+  el Estudio → 🧠 IA → Vida de AletaBot.
+- Coste: la memoria va en caché; lo que más suma es la iniciativa (unos 0,05 USD por directo) y el
+  diario (menos de 0,01 USD por directo).
+
 Cómo se gasta lo mínimo
 - Un mensaje normal del chat no gasta nada: solo se llama a Claude si nombran a AletaBot.
 - Haiku 5.5 decide primero si hay que contestar y si el mensaje es problemático (céntimos de céntimo).
@@ -55,6 +74,8 @@ Límites del plan gratis de Supabase
   una vez cada 15 segundos y la visita de cada persona se cuenta una sola vez por directo.
 - Los juegos tampoco añaden invocaciones. Mientras hay un juego en marcha el estado se relee cada
   2 segundos (solo si hay mensajes); un mensaje que no acierta no consulta nada más.
+- Su vida propia (memoria, ánimo, juego y título) se lee junto con los ajustes, en la misma consulta.
+  Solo se escribe al aprender algo, una vez por directo y cada 10 minutos como mucho.
 - Solo cuando AletaBot contesta o saluda hay unas pocas consultas (y son, como mucho, 150 respuestas
   por directo). La pestaña 🧠 IA del Estudio no consulta sola: solo al abrirla y al pulsar botones.
 
@@ -131,6 +152,8 @@ Dónde está cada cosa
   supabase/functions/_shared/aleta/ia.ts       el recorrido completo de un mensaje
   supabase/functions/_shared/aleta/estado.ts   ajustes, saber si hay directo y registro de gasto
   supabase/functions/_shared/aleta/memoria.ts  fichas de viewers, visitas, saludos y sus comandos
+  supabase/functions/_shared/aleta/vida.ts     su memoria propia, el diario, el ánimo, el contexto del directo y la iniciativa
+  supabase/functions/_shared/aleta/vida-texto.ts    reglas de todo eso (qué recuerda, lista de ánimos, textos que ve el modelo)
   supabase/functions/_shared/aleta/juegos.ts   el motor de los juegos (turnos, tiempos, puntos, banco)
   supabase/functions/_shared/aleta/juegos-texto.ts  reglas: comprobar respuestas, pistas, comandos y textos
   supabase/functions/aleta-ia/                 lo que usa la pestaña 🧠 IA del Estudio

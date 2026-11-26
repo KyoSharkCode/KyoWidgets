@@ -8,6 +8,8 @@
 //   4. Sonnet: la respuesta, con la personalidad en caché + los últimos mensajes + el hilo con esa persona.
 //   5. Código: se limpia la respuesta y se apuntan los tokens gastados.
 //
+// Vida (vida.ts): AletaBot recuerda lo que cuenta de sí misma, lleva un diario de cada directo, tiene un ánimo
+// distinto cada día, sabe a qué se juega y qué hora es, y de vez en cuando comenta algo por su cuenta.
 // Fase 3 (juegos.ts): si hay una trivia o una adivinanza en marcha, antes de nada se mira si el mensaje acierta.
 // Fase 2 (memoria.ts): si se conoce a quien habla, sus notas van como contexto (<perfil>) y el filtro
 // puede proponer un dato nuevo que recordar.
@@ -20,12 +22,15 @@ import {
 } from "./texto.ts";
 import { instrucciones, mensajeFiltro, mensajesChat, type Linea, type Quien, type Veredicto } from "./prompt.ts";
 import { conversar, filtrar, hayClave } from "./claude.ts";
-import { apuntar, directoActual, gastoMes, guardarAjustes, leerEstado, marcarHilo, type Contexto } from "./estado.ts";
+import { apuntar, directoActual, eventoDirecto as avisoDirecto, gastoMes, guardarAjustes, leerEstado, marcarHilo, type Contexto } from "./estado.ts";
+import { apuntarAvisoForma, contextoVivo, escribirDiarioDe, quizaIniciativa, recordarDeSi } from "./vida.ts";
+import { bloqueDirecto, memoriaPropia } from "./vida-texto.ts";
 import { guardarRecuerdo, leerPerfil, type Presencia } from "./memoria.ts";
 import { atenderJuego } from "./juegos.ts";
 import { juegoActivo } from "./juegos-texto.ts";
 
-export { eventoDirecto, guardarAjustes, guardarPersonalidad, type Contexto } from "./estado.ts";
+export { guardarAjustes, guardarPersonalidad, type Contexto } from "./estado.ts";
+export { cambiarVida, leerVida } from "./vida.ts";
 export { borrarViewer, comandoMemoria, listarViewers, presenciaIA, probarSaludo, type Presencia } from "./memoria.ts";
 export { aprobarBanco, borrarBanco, comandoJuego, generarBanco, guardarPregunta, reiniciarPuntos, resumenJuegos } from "./juegos.ts";
 
@@ -46,18 +51,23 @@ async function leerHilo(db: any, userId: string): Promise<Hilo> {
 }
 
 // ---------- Filtro + respuesta ----------
-type Pensado = { veredicto: Veredicto | null; respuesta: string; coste: number; error?: string };
-async function pensar(db: any, o: { directo: string; chat: Linea[]; hilo: Hilo; q: Quien; texto: string; disparo: Disparo; personalidad: string; perfil?: string; tarea?: string }): Promise<Pensado> {
+type Pensado = { veredicto: Veredicto | null; respuesta: string; sobreMi: string; coste: number; error?: string };
+async function pensar(db: any, o: {
+  directo: string; chat: Linea[]; hilo: Hilo; q: Quien; texto: string; disparo: Disparo; personalidad: string;
+  perfil?: string; memoria?: string; directoTxt?: string; tarea?: string;
+}): Promise<Pensado> {
   const f = await filtrar(mensajeFiltro(o.chat, o.q, o.texto, o.disparo, o.perfil));
   await apuntar(db, o.directo, "filtro", f);
-  if (!f.ok) return { veredicto: null, respuesta: "", coste: 0, error: f.error };
-  if (!f.valor?.responder) return { veredicto: f.valor, respuesta: "", coste: f.coste };
+  if (!f.ok) return { veredicto: null, respuesta: "", sobreMi: "", coste: 0, error: f.error };
+  if (!f.valor?.responder) return { veredicto: f.valor, respuesta: "", sobreMi: "", coste: f.coste };
 
   const sistema = instrucciones(o.personalidad);
-  const r = await conversar(sistema, mensajesChat(o.chat, hiloVivo(o.hilo) ? o.hilo!.turnos : [], o.q, o.texto, o.perfil));
+  const r = await conversar(sistema, o.memoria || "", mensajesChat(o.chat, hiloVivo(o.hilo) ? o.hilo!.turnos : [], o.q, o.texto, o.perfil, o.directoTxt));
   await apuntar(db, o.directo, o.tarea || "chat", r);
-  if (!r.ok) return { veredicto: f.valor, respuesta: "", coste: f.coste, error: r.error };
-  return { veredicto: f.valor, respuesta: limpiarSalida(r.valor, trozosSecretos(sistema)), coste: f.coste + r.coste };
+  await apuntarAvisoForma(db);
+  if (!r.ok) return { veredicto: f.valor, respuesta: "", sobreMi: "", coste: f.coste, error: r.error };
+  const respuesta = limpiarSalida(r.valor.mensaje, trozosSecretos(sistema), 380);
+  return { veredicto: f.valor, respuesta, sobreMi: respuesta ? r.valor.sobreMi : "", coste: f.coste + r.coste };
 }
 
 // ---------- Mensajes del chat ----------
@@ -82,7 +92,11 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Pro
   // Un mensaje normal (ni la nombra ni estaba hablando con ella) termina aquí, sin consultar nada más
   let disparo = detectar(ev, ctx.idBot, aj.nombres);
   const reciente = est.hilos[userId];
-  if (!disparo && !(reciente && Date.now() - reciente < HILO_SIGUE * 1000)) return;
+  if (!disparo && !(reciente && Date.now() - reciente < HILO_SIGUE * 1000)) {
+    // …salvo que toque un comentario por iniciativa propia (como mucho, uno cada varios minutos)
+    await quizaIniciativa(db, ctx, est).catch(() => {});
+    return;
+  }
   const hilo = await leerHilo(db, userId);
   if (!disparo) { if (!hiloSigue(hilo)) return; disparo = "hilo"; }
 
@@ -109,11 +123,14 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Pro
     else perfil = await leerPerfil(db, userId).catch(() => null);
   }
 
+  // Su vida: lo que recuerda de sí misma, el ánimo de hoy y dónde está ahora (juego, título, hora)
+  const vivo = await contextoVivo(db, est, ctx, directo);
+
   const q: Quien = { nombre: ev.chatter_user_name || login, rol };
   const texto = limpiarEntrada(bruto);
   const p = await pensar(db, {
     directo: directo.id, chat: await chatReciente(db, login, bruto), hilo, q, texto, disparo,
-    personalidad: est.personalidad, perfil: perfilTexto(perfil, nuevo),
+    personalidad: est.personalidad, perfil: perfilTexto(perfil, nuevo), memoria: vivo.memoria, directoTxt: vivo.directo,
   });
   if (aj.memoria && p.veredicto?.responder) await guardarRecuerdo(db, ev, p.veredicto).catch(() => {});
 
@@ -127,7 +144,20 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Pro
     db.rpc("kyo_ia_contar", { p_directo: directo.id, p_user: userId }),
     db.from("kyo_ia_hilo").upsert({ user_id: userId, nombre: q.nombre.slice(0, 40), ...hiloNuevo(hilo, texto, p.respuesta) }),
     marcarHilo(db, userId),
+    recordarDeSi(db, p.sobreMi), // si contó algo nuevo de sí misma, lo recordará en los próximos directos
   ]);
+}
+
+// ---------- Avisos de Twitch: empieza o termina el directo ----------
+// Además de apuntar el estado del directo, al terminar uno AletaBot escribe su diario (también al empezar
+// el siguiente, por si el aviso de fin no llegó).
+export async function eventoDirecto(db: any, tipo: string, ev: any) {
+  const antes = await leerEstado(db, true);
+  await avisoDirecto(db, tipo, ev);
+  const anterior = antes.directo?.id;
+  if (anterior && (tipo === "stream.offline" || (tipo === "stream.online" && String(ev?.id || "") !== anterior))) {
+    await escribirDiarioDe(db, anterior, antes.ajustes).catch(() => {});
+  }
 }
 
 // ---------- Comandos !ia (Kyo y sus mods) ----------
@@ -170,9 +200,12 @@ export async function probarIA(db: any, o: { texto: unknown; nombre?: unknown; p
   const texto = limpiarEntrada(o.texto);
   if (!texto) return { ok: false, error: "vacio" };
   const personalidad = typeof o.personalidad === "string" ? o.personalidad.slice(0, 4000) : est.personalidad;
+  // con su memoria de verdad (sin cambiarla: lo que diga de sí misma en una prueba no se guarda)
   const p = await pensar(db, {
     directo: "pruebas", chat: [], hilo: null, q: { nombre: String(o.nombre || "viewer_de_prueba"), rol: "viewer" },
     texto, disparo: "mencion", personalidad, tarea: "prueba",
+    memoria: memoriaPropia(est.vida, est.ajustes.zona),
+    directoTxt: bloqueDirecto({ enVivo: !!est.directo?.enVivo, inicio: est.directo?.inicio, canal: est.directo?.enVivo ? est.vida.canal : null, zona: est.ajustes.zona }),
   });
   if (p.error) return { ok: false, error: p.error };
   return { ok: true, filtro: p.veredicto, respuesta: p.respuesta, coste: p.coste };
