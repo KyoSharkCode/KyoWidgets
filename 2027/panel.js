@@ -30,8 +30,9 @@
       ['s3-chatting', 'Just Chatting', 1], ['s3-comenzando', 'Comenzando', 1], ['s3-gameplay', 'Gameplay', 1],
       ['s3-volvemos', 'Ya regreso', 1], ['s3-terminando', 'Terminando', 1], ['s3-transicion', 'Transición', 1]] },
     { n: 4, vista: 'widgets', titulo: 'Widgets', desc: 'Los widgets del directo, más compactos y con el estilo nuevo.', tareas: [
-      ['s4-spotify', 'Spotify: entrada y 3 estilos', 0], ['s4-anuncios', 'Anuncios', 0], ['s4-prediccion', 'Predicción compacta', 0],
-      ['s4-encuesta', 'Encuesta compacta', 0], ['s4-metas', 'Metas con texto y barra', 0]] },
+      ['s4-spotify', 'Spotify: entrada y 3 estilos', 1], ['s4-anuncios', 'Anuncios: tarjeta y cinta', 1], ['s4-prediccion', 'Predicción compacta', 1],
+      ['s4-encuesta', 'Encuesta compacta', 1], ['s4-sorteo', 'Sorteo compacto', 1], ['s4-metas', 'Meta de donaciones kawaii', 1],
+      ['s4-chat', 'Chat', 1], ['s4-contador', 'Contador', 1], ['s4-cuenta', 'Cuenta atrás', 1]] },
     { n: 5, vista: 'alertas', titulo: 'Alertas y animaciones', desc: 'Versión 2027 de las alertas y ensayo completo en OBS.', tareas: [
       ['s5-alertas', 'Alertas con los colores nuevos', 0], ['s5-animaciones', 'Animaciones del Estudio en versión 2027', 0],
       ['s5-ensayo', 'Ensayo en OBS (9 o 10 de enero)', 0]] },
@@ -155,6 +156,7 @@
   function abrir(v) {
     if (v === 'perfiles' && window.kyoPerfiles) window.kyoPerfiles.abrir();
     if (v === 'escenas' && window.kyoEscenas) window.kyoEscenas.abrir($('#escenas'));
+    if (v === 'widgets' && window.kyoWidgets) window.kyoWidgets.abrir($('#widgets'));
     if (v === 'videos') {
       if (window.kyoMiniaturas) window.kyoMiniaturas.abrir($('#miniaturas'));
       const caja = $('#herrVideos');

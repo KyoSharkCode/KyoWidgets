@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Kyo · Meta de donaciones 2027</title>
+<meta name="robots" content="noindex">
+<!--
+  KyoWidgets 2027 · Meta de donaciones · kawaii, solo texto y barra · Fuente de navegador para OBS de 640×200
+  (multiplícalo por «escala»). Corazón que late, el título, la cifra en una píldora y un tubito de agua con burbujas
+  donde tu aleta nada en la punta; estrellitas al 25, 50 y 75 % que se encienden al pasarlas. Al cumplirse, todo oro.
+  Los datos son los de 2026: el total vive en Supabase (función «meta»): consulta cada 15 s (tips de StreamElements)
+  y los cambios manuales llegan al momento por Supabase Realtime. Si una consulta falla no toca lo que se ve.
+  Parámetros:  ultimo  si | no (la píldora de la última donación)     escala  0.5 … 2     demo=1  datos de ejemplo
+-->
+<link rel="stylesheet" href="../../fonts/escenas.css">
+<script src="../../config.js"></script>
+<script src="../sondeo.js"></script>
+<script src="../escenas/pausa-obs.js"></script>
+<style>
+:root{--abisal:#0A1030;--indigo:#2B2F7A;--aleta:#3A7BD5;--bioluz:#6FE3F0;--espuma:#C9E6F2;--perla:#F5F3FB;--coral-p:#FFB4A8;--oro:#F4C542}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;overflow:hidden}
+#w{position:relative;width:640px;height:200px;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;color:var(--perla);transition:opacity .5s ease}
+#w.oculto{opacity:0}
+.me{position:absolute;left:16px;top:10px;right:16px;display:grid;gap:30px}
+.fila{display:flex;align-items:center;gap:12px;min-width:0}
+.cor{width:44px;height:44px;flex:none;filter:drop-shadow(0 4px 0 var(--abisal));animation:latido 1.6s ease-in-out infinite}
+.tit{margin:0;font-family:"Cherry Bomb One","Fredoka",sans-serif;font-weight:400;font-size:32px;line-height:1.1;color:var(--perla);-webkit-text-stroke:8px var(--abisal);paint-order:stroke fill;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;padding:2px 4px}
+.cifra{margin-left:auto;flex:none;font-family:"Fredoka",sans-serif;font-weight:700;font-size:24px;color:var(--abisal);background:var(--perla);padding:3px 14px;border-radius:999px;box-shadow:0 0 0 4px var(--abisal),0 5px 0 4px var(--abisal);white-space:nowrap}
+.cifra b{color:var(--aleta)}
+.cifra.pop{animation:pop .6s cubic-bezier(.34,1.56,.64,1)}
+.tubo{position:relative;height:40px;border-radius:999px;background:#0b1a4a;box-shadow:0 0 0 5px var(--perla),0 0 0 10px var(--abisal),0 9px 0 10px var(--abisal)}
+.agua{position:absolute;left:0;top:0;bottom:0;width:8%;border-radius:999px;overflow:hidden;background:linear-gradient(180deg,#a9f1f8,var(--bioluz) 35%,var(--aleta));transition:width .9s cubic-bezier(.34,1.56,.64,1)}
+.agua::before{content:"";position:absolute;left:18px;right:18px;top:4px;height:7px;border-radius:4px;background:rgba(255,255,255,.55)}
+.agua span{position:absolute;bottom:-10px;border-radius:50%;border:2px solid rgba(255,255,255,.8);animation:sube 2.6s linear infinite}
+.aleta{position:absolute;top:-24px;left:8%;width:46px;height:34px;margin-left:-28px;transition:left .9s cubic-bezier(.34,1.56,.64,1);animation:nada 1.4s ease-in-out infinite}
+.est{position:absolute;top:-13px;width:24px;height:24px;margin-left:-12px;fill:#2a3a7a;stroke:var(--abisal);stroke-width:2;transition:fill .3s}
+.est.on{fill:var(--oro);filter:drop-shadow(0 0 6px rgba(244,197,66,.8))}
+.ult{justify-self:start;display:flex;align-items:center;gap:8px;max-width:100%;font-family:"Fredoka",sans-serif;font-weight:600;font-size:17px;color:var(--abisal);background:var(--coral-p);padding:3px 14px 3px 8px;border-radius:999px;box-shadow:0 0 0 3px var(--abisal);margin-top:-4px}
+.ult svg{width:20px;height:20px;flex:none}
+.ult span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#w.sin-ult .ult{display:none}
+#w.lista .agua{background:linear-gradient(180deg,#ffe9a6,var(--oro) 40%,#e0a514)}
+#w.lista .cifra b{color:#c78f00}
+#w.lista .aleta{animation:salta .7s cubic-bezier(.34,1.56,.64,1) 3,nada 1.4s ease-in-out 2.1s infinite}
+.mas{position:absolute;font-family:"Cherry Bomb One","Fredoka",sans-serif;font-size:30px;color:var(--oro);-webkit-text-stroke:7px var(--abisal);paint-order:stroke fill;pointer-events:none;animation:flota 1.6s ease-out forwards;white-space:nowrap}
+.chispas{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.chispas i{position:absolute;width:13px;height:13px;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);animation:chispa 1.2s ease-out forwards}
+.aviso{position:absolute;left:16px;top:16px;font:600 14px "Chakra Petch",monospace;color:var(--abisal);background:var(--coral-p);padding:6px 12px;border-radius:10px}
+@keyframes sube{to{transform:translateY(-52px);opacity:0}}
+@keyframes nada{50%{transform:translateY(-4px) rotate(6deg)}}
+@keyframes salta{50%{transform:translateY(-22px) rotate(14deg)}}
+@keyframes latido{0%,100%{transform:scale(1)}15%{transform:scale(1.15)}30%{transform:scale(1)}}
+@keyframes pop{40%{transform:scale(1.18)}}
+@keyframes flota{0%{transform:translateY(10px) scale(.6);opacity:0}20%{transform:translateY(0) scale(1.1);opacity:1}100%{transform:translateY(-46px);opacity:0}}
+@keyframes chispa{to{transform:translate(var(--dx),var(--dy)) scale(.4);opacity:0}}
+@media (prefers-reduced-motion:reduce){#w *{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="w" class="oculto">
+  <div class="me">
+    <div class="fila">
+      <svg class="cor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21S3 15.2 3 8.9A4.7 4.7 0 0 1 12 6.6a4.7 4.7 0 0 1 9 2.3C21 15.2 12 21 12 21z" fill="#FFB4A8" stroke="#0A1030" stroke-width="2.2" stroke-linejoin="round"/><ellipse cx="8.2" cy="9.4" rx="1.6" ry="1.1" fill="#fff" opacity=".85"/></svg>
+      <h1 class="tit" id="tit">Meta de donaciones</h1>
+      <span class="cifra" id="cif"></span>
+    </div>
+    <div class="tubo" id="tubo" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+      <div class="agua" id="agua"><span style="left:12%;width:10px;height:10px"></span><span style="left:30%;width:7px;height:7px;animation-delay:-.8s"></span><span style="left:55%;width:9px;height:9px;animation-delay:-1.6s"></span><span style="left:75%;width:6px;height:6px;animation-delay:-.4s"></span><span style="left:88%;width:8px;height:8px;animation-delay:-2s"></span></div>
+      <svg class="est" data-h="25" style="left:25%" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>
+      <svg class="est" data-h="50" style="left:50%" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>
+      <svg class="est" data-h="75" style="left:75%" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/></svg>
+      <!-- la aleta mira hacia donde avanza el agua (la curva va delante) -->
+      <svg class="aleta" id="aleta" viewBox="0 0 46 34" aria-hidden="true"><g transform="translate(46 0) scale(-1 1)"><path d="M4 32 C10 18 20 6 38 2 C31 12 31 22 42 32 Z" fill="#2B2F7A" stroke="#F5F3FB" stroke-width="3" stroke-linejoin="round"/></g></svg>
+    </div>
+    <div class="ult" id="ult"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21S3 15.2 3 8.9A4.7 4.7 0 0 1 12 6.6a4.7 4.7 0 0 1 9 2.3C21 15.2 12 21 12 21z" fill="#F5F3FB" stroke="#0A1030" stroke-width="2.2" stroke-linejoin="round"/></svg><span id="ultT"></span></div>
+  </div>
+</div>
+<script>
+(function () {
+  const q = new URLSearchParams(location.search), $ = id => document.getElementById(id), w = $('w');
+  if (q.get('ultimo') === 'no') w.classList.add('sin-ult');
+  const esc = Math.min(2, Math.max(0.5, Number(q.get('escala')) || 1)); if (esc !== 1) document.documentElement.style.zoom = esc;
+  const DEMO = q.get('demo') === '1';
+  const K = window.KYO || {}, FN = (K.SUPABASE_URL || '') + '/functions/v1/meta', enEstudio = window !== window.top;
+  const SIMB = { EUR: '€', USD: '$', GBP: '£', MXN: '$', ARS: '$', CLP: '$', COP: '$' };
+  const dinero = (n, m) => { const v = Number(n || 0), dec = Number.isInteger(v) ? 0 : 2; return v.toLocaleString('es', { minimumFractionDigits: dec, maximumFractionDigits: 2 }) + ' ' + (SIMB[m] || m || ''); };
+  const html = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let actual = null;
+
+  function pintar(d, celebrar) {
+    const pct = d.meta > 0 ? Math.min(100, d.total / d.meta * 100) : 0, lista = d.total >= d.meta && d.meta > 0;
+    $('tit').textContent = d.titulo || 'Meta de donaciones';
+    $('cif').innerHTML = '<b>' + html(dinero(d.total, d.moneda)) + '</b> / ' + html(dinero(d.meta, d.moneda));
+    $('agua').style.width = Math.max(8, pct) + '%'; $('aleta').style.left = Math.min(95, Math.max(8, pct)) + '%';
+    $('tubo').setAttribute('aria-valuenow', Math.floor(pct));
+    document.querySelectorAll('.est').forEach(e => e.classList.toggle('on', pct >= +e.dataset.h));
+    w.classList.toggle('lista', lista);
+    $('ultT').textContent = lista ? '¡Meta cumplida! ' + (d.mensaje || 'Gracias, tiburones') : d.ultimo ? 'Última: ' + d.ultimo.donante + ' · ' + dinero(d.ultimo.monto, d.ultimo.moneda) : (d.mensaje || '¡Gracias por el apoyo!');
+    ajustar();
+    if (celebrar) fiesta(d.total - (actual ? actual.total : 0), d.moneda, pct);
+  }
+  // si el título y la cifra no caben en la fila, se encogen juntos (hasta un 60 %)
+  function ajustar() {
+    const fila = $('tit').parentNode, tit = $('tit'), cif = $('cif'); tit.style.fontSize = cif.style.fontSize = '';
+    const bt = parseFloat(getComputedStyle(tit).fontSize), bc = parseFloat(getComputedStyle(cif).fontSize);
+    const cabe = () => tit.scrollWidth <= tit.clientWidth + 1 && fila.scrollWidth <= fila.clientWidth + 1;
+    for (let k = 1; k >= 0.6 && !cabe(); k -= 0.04) { tit.style.fontSize = bt * k + 'px'; cif.style.fontSize = bc * k + 'px'; }
+  }
+  if (document.fonts) document.fonts.ready.then(() => { if (actual) ajustar(); });
+  function fiesta(delta, moneda, pct) {
+    const c = $('cif'); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop');
+    const x = 16 + (608 * Math.min(95, Math.max(8, pct)) / 100), y = 96;
+    const m = document.createElement('span'); m.className = 'mas'; m.textContent = '+' + dinero(delta, moneda).trim(); m.style.left = Math.max(10, Math.min(x - 40, 520)) + 'px'; m.style.top = (y - 70) + 'px'; w.appendChild(m); setTimeout(() => m.remove(), 1700);
+    const capa = document.createElement('div'); capa.className = 'chispas'; w.appendChild(capa); const cols = ['#F4C542', '#6FE3F0', '#FFB4A8', '#F5F3FB'];
+    for (let i = 0; i < 14; i++) { const s = document.createElement('i'), a = Math.random() * Math.PI * 2, d = 40 + Math.random() * 80; s.style.cssText = 'left:' + x + 'px;top:' + y + 'px;background:' + cols[i % 4] + ';--dx:' + Math.cos(a) * d + 'px;--dy:' + (Math.sin(a) * d - 20) + 'px'; capa.appendChild(s); }
+    setTimeout(() => capa.remove(), 1400);
+  }
+  function mostrar(d) {
+    const aviso = document.querySelector('.aviso'); if (aviso) aviso.remove();
+    if (!d) { actual = null; w.classList.add('oculto'); return; }
+    const sube = actual && d.total > actual.total;
+    pintar(d, sube);
+    if (actual && d.total < actual.total) { const c = $('cif'); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
+    actual = Object.assign({}, d); w.classList.remove('oculto');
+  }
+
+  // ---------- datos ----------
+  if (DEMO) mostrar({ titulo: 'Meta de donaciones', mensaje: '¡Gracias por el apoyo, tiburones!', meta: 100, moneda: 'EUR', total: 42, ultimo: { donante: 'KyoFan', monto: 5, moneda: 'EUR' } });
+  else {
+    // si una consulta falla (red, Supabase dormido…) no se toca lo que se ve: el total nunca vuelve a cero por error
+    let rt = false, ultima = 0, enCurso = false;
+    async function cargar() {
+      if (enCurso) return; enCurso = true; ultima = Date.now();
+      try { const r = await fetch(FN, { cache: 'no-store', signal: AbortSignal.timeout(12000) }); const d = await r.json();
+        if (d.ok) mostrar(d); else if (enEstudio && !actual) estudioAviso(d.error === 'falta_sql' ? 'Falta ejecutar 08_meta.sql en Supabase' : 'No se pudo leer la meta');
+      } catch (e) {}
+      enCurso = false;
+    }
+    function estudioAviso(t) { if (document.querySelector('.aviso')) return; const a = document.createElement('div'); a.className = 'aviso'; a.textContent = t; document.body.appendChild(a); }
+    cargar();
+    // cada 15 s (así llegan los tips nuevos); mientras OBS no la muestra no consulta, y al volver a verse consulta al momento
+    setInterval(() => { if (!KyoSondeo.oculta() && Date.now() - ultima >= 15000) cargar(); }, 1000);
+    KyoSondeo.alVolver(cargar);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) cargar(); });
+    window.addEventListener('online', cargar);
+    // tiempo real (Supabase Realtime) con reconexión: si se corta, el sondeo de arriba sigue funcionando
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+    s.onload = () => { try { const sb = window.supabase.createClient(K.SUPABASE_URL, K.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+      sb.channel('kyo-meta').on('broadcast', { event: 'cambio' }, ({ payload: p }) => { if (p && typeof p.total === 'number') mostrar(p); })
+        .subscribe(st => { const antes = rt; rt = st === 'SUBSCRIBED'; if (rt && !antes) cargar(); }); } catch (e) {} };
+    document.head.appendChild(s);
+  }
+
+  // ---------- botones «Probar» del Estudio y del panel 2027 ----------
+  window.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'kyo-test' || !actual) return;
+    const a = e.data.accion, d = Object.assign({}, actual);
+    if (a === 'donacion') d.total = actual.total + 5;
+    else if (a === 'grande') d.total = actual.total + Math.max(10, Math.round(actual.meta / 4));
+    else if (a === 'completa') d.total = actual.meta;
+    else if (a === 'reiniciar') d.total = 0;
+    else return;
+    if (a === 'donacion' || a === 'grande') d.ultimo = { donante: ['KyoFan', 'perla_pop', 'fin_y_fan'][Math.floor(Math.random() * 3)], monto: d.total - actual.total, moneda: actual.moneda };
+    mostrar(d);
+  });
+})();
+</script>
+</body>
+</html>

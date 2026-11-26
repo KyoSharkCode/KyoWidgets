@@ -27,7 +27,7 @@
   // ?demo=1 (vista previa del Estudio): el chat de ejemplo dentro del hueco, como quedará en OBS
   if (/[?&]demo=1/.test(location.search)) {
     var h = document.querySelector('.chat-hueco'), fr = document.createElement('iframe');
-    fr.src = '../../chat.html?demo=1'; fr.title = 'Chat de ejemplo';
+    fr.src = '../../chat.html?demo=1&tema=2027'; fr.title = 'Chat de ejemplo';
     fr.style.cssText = 'position:absolute;border:0;background:transparent;left:' + h.style.left + ';top:' + h.style.top + ';width:' + h.style.width + ';height:' + h.style.height;
     h.after(fr);
   }

@@ -9,7 +9,7 @@
   Tamaños base (multiplícalos por "escala"): pegatina 560x200 · chip 480x120 · texto 480x200
   Parámetros:
     id         el contador que muestra (se crea en Kyo Estudio → En directo → 🔢 Contadores)
-    diseno     pegatina | chip | texto        tema  marea | octubre | navidad
+    diseno     pegatina | chip | texto        tema  marea | octubre | navidad | 2027 (solo la píldora 2027)
     etiqueta   si | no (mostrar el nombre)    escala  0.5 … 2
     acento, borde, caja, texto   colores (hex sin #)
     demo=1     datos de ejemplo
@@ -46,6 +46,15 @@ body.b-chip{width:480px;height:120px}body.b-texto{width:480px;height:200px}
 .d-texto .ico{width:104px;height:104px}
 .d-texto .chip{background:none;color:var(--t);font:400 34px "Cherry Bomb One",sans-serif;letter-spacing:.01em;text-transform:none;-webkit-text-stroke:8px var(--o);paint-order:stroke fill;padding:0 6px;max-width:340px}
 .d-texto .num{font-size:110px;-webkit-text-stroke:13px var(--o);filter:drop-shadow(0 6px 0 var(--o))}
+/* tema 2027: píldora pegatina con el icono en un círculo índigo, el nombre en HUD y el número en Fredoka */
+body.t27{width:440px;height:140px}
+#w.cs27{--a:#6FE3F0;--a2:#3A7BD5;--c:rgba(10,16,48,.92);--t:#F5F3FB;--s:#C9E6F2;--o:#0A1030;--p:#F5F3FB;--u:#FF6F61;--g:#F4C542}
+.cs27 .caja{gap:16px;padding:12px 32px 12px 12px;border-radius:999px;transform:none;animation:none;max-width:420px;box-shadow:0 0 0 5px var(--p),0 0 0 10px var(--o),0 9px 0 10px var(--o)}
+.cs27 .ico{width:78px;height:78px;background:#2B2F7A;color:var(--t);box-shadow:0 0 0 3px var(--a)}
+.cs27 .chip{background:none;color:var(--s);font:700 16px "Chakra Petch",monospace;letter-spacing:.2em;padding:0;max-width:280px}
+.cs27 .num{font:700 62px/.95 "Fredoka",sans-serif;-webkit-text-stroke:0;color:var(--t)}
+.cs27 .caja.sacude{animation:sacude27 .45s ease-in-out}
+@keyframes sacude27{20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
 /* animaciones */
 .num.pop{animation:pop .55s cubic-bezier(.34,1.56,.64,1)}
 .num.baja{animation:baja .5s ease-out}
@@ -75,9 +84,10 @@ body.b-chip{width:480px;height:120px}body.b-texto{width:480px;height:200px}
 <script>
 (function () {
   const q = new URLSearchParams(location.search), $ = id => document.getElementById(id), w = $('w');
-  const diseno = ['pegatina', 'chip', 'texto'].includes(q.get('diseno')) ? q.get('diseno') : 'pegatina';
-  const tema = ['marea', 'octubre', 'navidad'].includes(q.get('tema')) ? q.get('tema') : 'marea';
-  w.classList.add('d-' + diseno, tema); document.body.classList.add('b-' + diseno);
+  const tema = ['marea', 'octubre', 'navidad', '2027'].includes(q.get('tema')) ? q.get('tema') : 'marea';
+  // el tema 2027 tiene un solo diseño (la píldora pegatina aprobada)
+  const diseno = tema === '2027' ? 'pegatina' : ['pegatina', 'chip', 'texto'].includes(q.get('diseno')) ? q.get('diseno') : 'pegatina';
+  w.classList.add('d-' + diseno, tema === '2027' ? 'cs27' : tema); document.body.classList.add('b-' + diseno); if (tema === '2027') document.body.classList.add('t27');
   if (q.get('etiqueta') === 'no') w.classList.add('sin-etq');
   if (diseno === 'texto') $('caja').classList.remove('pega');
   const hex = v => /^[0-9a-f]{3,8}$/i.test(v || '') ? '#' + v : null;
