@@ -21,6 +21,9 @@ export type AjustesIA = {
   saludarDesde: number;   // a partir de cuántos directos alguien cuenta como habitual
   juegos: boolean;        // trivia, adivinanzas e historia colectiva
   tiempoPregunta: number; // segundos para contestar cada pregunta de trivia (las adivinanzas, un 50 % más)
+  iniciativa: boolean;    // de vez en cuando comenta algo por su cuenta, sin que la nombren
+  cadaMinutos: number;    // como mucho un comentario por su cuenta cada tantos minutos
+  zona: string;           // la zona horaria de Kyo (la manda el Estudio), para que sepa qué hora es
 };
 
 export const AJUSTES_IA: AjustesIA = {
@@ -39,6 +42,9 @@ export const AJUSTES_IA: AjustesIA = {
   saludarDesde: 3,
   juegos: true,
   tiempoPregunta: 30,
+  iniciativa: true,
+  cadaMinutos: 12,
+  zona: "",
 };
 
 const entero = (v: unknown, min: number, max: number, def: number) => {
@@ -72,6 +78,9 @@ export function limpiarAjustes(a: any): AjustesIA {
     saludarDesde: entero(a?.saludarDesde, 2, 100, d.saludarDesde),
     juegos: a?.juegos !== false,
     tiempoPregunta: entero(a?.tiempoPregunta, 15, 60, d.tiempoPregunta),
+    iniciativa: a?.iniciativa !== false,
+    cadaMinutos: entero(a?.cadaMinutos, 5, 120, d.cadaMinutos),
+    zona: typeof a?.zona === "string" && /^[A-Za-z_]+(?:\/[A-Za-z0-9_+-]+){1,2}$/.test(a.zona) ? a.zona : "",
   };
 }
 

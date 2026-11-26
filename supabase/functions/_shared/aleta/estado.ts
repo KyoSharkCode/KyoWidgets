@@ -8,6 +8,7 @@
 
 import { AJUSTES_IA, HILO_SIGUE, limpiarAjustes, type AjustesIA, type Uso } from "./texto.ts";
 import { aJuego, juegoActivo, type Juego } from "./juegos-texto.ts";
+import { aVida, type Vida } from "./vida-texto.ts";
 import type { Llamada } from "./claude.ts";
 
 // Lo que twitch-bot-events le presta a la IA para hablar con Twitch
@@ -17,6 +18,8 @@ export type Contexto = {
   decir: (mensaje: string, responderA?: string) => Promise<boolean>;
   // pregunta a Twitch si el canal está en directo: {id, inicio}, null si no, undefined si Twitch no contestó
   enVivo: () => Promise<{ id: string; inicio: string } | null | undefined>;
+  // pregunta a Twitch a qué se está jugando y el título del directo (undefined si Twitch no contestó)
+  canal?: () => Promise<{ juego: string; titulo: string } | undefined>;
   // esperar unos milisegundos (los juegos lo usan para los tiempos; las pruebas lo sustituyen por un reloj de mentira)
   dormir?: (ms: number) => Promise<void>;
 };
@@ -24,7 +27,8 @@ export type Contexto = {
 export type Directo = { id: string; inicio: string; enVivo: boolean; fuente: "eventsub" | "helix"; visto: string };
 // hilos: con quién acaba de hablar AletaBot (id de Twitch → cuándo le contestó, en milisegundos)
 // juego: el juego en marcha (trivia, adivinanzas o historia), si lo hay
-export type Estado = { ajustes: AjustesIA; personalidad: string; directo: Directo | null; hilos: Record<string, number>; juego: Juego };
+// vida: lo que AletaBot recuerda de sí misma, su ánimo de hoy y lo que sabe del canal
+export type Estado = { ajustes: AjustesIA; personalidad: string; directo: Directo | null; hilos: Record<string, number>; juego: Juego; vida: Vida };
 
 export const ahoraISO = () => new Date(Date.now()).toISOString();
 const hace = (iso: string | undefined) => (iso ? Date.now() - Date.parse(iso) : Infinity);
@@ -34,7 +38,8 @@ const hace = (iso: string | undefined) => (iso ? Date.now() - Date.parse(iso) : 
 let _estado: { ts: number; e: Estado } | null = null;
 export async function leerEstado(db: any, fresco = false): Promise<Estado> {
   if (!fresco && _estado && Date.now() - _estado.ts < (juegoActivo(_estado.e.juego) ? 2000 : 15_000)) return _estado.e;
-  const { data } = await db.from("kyo_ajustes").select("id, datos").in("id", ["ia", "ia_personalidad", "directo", "ia_hilos", "juego"]);
+  const { data } = await db.from("kyo_ajustes").select("id, datos")
+    .in("id", ["ia", "ia_personalidad", "directo", "ia_hilos", "juego", "aleta_canon", "aleta_diario", "aleta_animo", "canal"]);
   const fila = (id: string) => (data || []).find((r: any) => r.id === id)?.datos;
   const d = fila("directo");
   const e: Estado = {
@@ -43,6 +48,7 @@ export async function leerEstado(db: any, fresco = false): Promise<Estado> {
     directo: d?.id ? d : null,
     hilos: fila("ia_hilos") || {},
     juego: aJuego(fila("juego")),
+    vida: aVida(fila("aleta_canon"), fila("aleta_diario"), fila("aleta_animo"), fila("canal")),
   };
   _estado = { ts: Date.now(), e };
   return e;
@@ -54,6 +60,30 @@ async function guardarFila(db: any, id: string, datos: unknown) {
 export const guardarAjustes = (db: any, a: unknown) => guardarFila(db, "ia", limpiarAjustes(a));
 export const guardarPersonalidad = (db: any, texto: unknown) =>
   guardarFila(db, "ia_personalidad", { texto: String(texto ?? "").replace(/\r/g, "").trim().slice(0, 4000) });
+
+// Una parte de la vida de AletaBot (canon, diario, ánimo o datos del canal): se guarda y se actualiza
+// lo recordado en memoria, sin obligar a releer los ajustes.
+export async function guardarVida(db: any, parte: "canon" | "diario" | "animo" | "canal", valor: unknown) {
+  const id = parte === "canal" ? "canal" : "aleta_" + parte;
+  const datos = parte === "canon" || parte === "diario" ? { lista: valor } : (valor ?? {});
+  const r = await db.from("kyo_ajustes").upsert({ id, datos, updated_at: ahoraISO() });
+  if (_estado) {
+    const v = _estado.e.vida;
+    _estado.e.vida = aVida(
+      parte === "canon" ? datos : { lista: v.canon }, parte === "diario" ? datos : { lista: v.diario },
+      parte === "animo" ? datos : v.animo, parte === "canal" ? datos : v.canal,
+    );
+  }
+  return r;
+}
+// Lo último guardado de una parte (antes de añadirle algo, por si otro mensaje la cambió hace un momento)
+export async function leerVidaFresca(db: any): Promise<Vida> {
+  const { data } = await db.from("kyo_ajustes").select("id, datos").in("id", ["aleta_canon", "aleta_diario", "aleta_animo", "canal"]);
+  const fila = (id: string) => (data || []).find((r: any) => r.id === id)?.datos;
+  const v = aVida(fila("aleta_canon"), fila("aleta_diario"), fila("aleta_animo"), fila("canal"));
+  if (_estado) _estado.e.vida = v;
+  return v;
+}
 
 // El juego en marcha: se guarda y se actualiza lo recordado en memoria
 export async function guardarJuego(db: any, j: Juego) {

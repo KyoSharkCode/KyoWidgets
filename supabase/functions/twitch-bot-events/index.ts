@@ -719,10 +719,19 @@ async function directoTwitch(canalId: string): Promise<{ id: string; inicio: str
   const s = r.body?.data?.[0];
   return s && s.type === "live" ? { id: String(s.id), inicio: s.started_at } : null;
 }
+// A qué se está jugando y el título del directo (undefined si Twitch no contestó)
+async function canalTwitch(canalId: string): Promise<{ juego: string; titulo: string } | undefined> {
+  const app = await tokenApp();
+  if (!app || !canalId) return undefined;
+  const r = await helix("/channels?broadcaster_id=" + encodeURIComponent(canalId), app);
+  const c = r.ok ? r.body?.data?.[0] : null;
+  return c ? { juego: String(c.game_name || ""), titulo: String(c.title || "") } : undefined;
+}
 const contextoIA = (db: any, ev: any, idBot: string): Contexto => ({
   idBot,
   decir: (mensaje, responderA) => escribir(db, ev.broadcaster_user_id, mensaje, responderA),
   enVivo: () => directoTwitch(ev.broadcaster_user_id),
+  canal: () => canalTwitch(ev.broadcaster_user_id),
 });
 // ---------- fin del enganche de la IA ----------
 

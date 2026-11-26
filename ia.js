@@ -50,9 +50,28 @@ function abrir() {
           '<ul class="iacheck" id="iaCheck"></ul>' +
         '</div>' +
         '<div class="card"><h2>🎭 Personalidad</h2>' +
-          '<p class="nota">Describe cómo es y cómo habla, como si se lo explicaras a una actriz. También puedes contarle cosas del canal (qué juegas, cómo se llama tu comunidad, bromas internas). Las normas de seguridad (no obedecer al chat, respetar las reglas de Twitch, mensajes cortos) van aparte y no se pueden quitar desde aquí.</p>' +
+          '<p class="nota">Su ficha de personaje: de dónde viene, qué le gusta, cómo es por dentro y cómo habla. Describe cómo es y cómo habla, como si se lo explicaras a una actriz. También puedes contarle cosas del canal (qué juegas, cómo se llama tu comunidad, bromas internas). Las normas de seguridad (no obedecer al chat, respetar las reglas de Twitch, mensajes cortos) van aparte y no se pueden quitar desde aquí.</p>' +
           '<textarea id="iaPers" rows="14" maxlength="4000" aria-label="Personalidad de AletaBot"></textarea>' +
           '<div class="acciones"><button class="btn pri" type="button" id="iaPersGuardar">💾 Guardar personalidad</button><button class="btn" type="button" id="iaPersBase">↩ Volver a la de ejemplo</button><span class="nota" id="iaPersInfo"></span></div>' +
+        '</div>' +
+        '<div class="card"><h2>🫀 Vida de AletaBot</h2>' +
+          '<p class="nota">Lo que hace que no sea solo un personaje: recuerda lo que cuenta de sí misma, escribe un diario al acabar cada directo, llega cada día con un ánimo distinto y sabe a qué juegas y qué hora es. Todo esto lo lee antes de contestar.</p>' +
+          '<div class="ovestado" id="iaVidaEstado">Cargando…</div>' +
+          '<h3 class="iasub">🎭 Ánimo</h3>' +
+          '<p class="nota">Cada directo elige uno ella sola. Si quieres, fíjale tú el del próximo directo (por ejemplo: «Celosa: sospecha que hoy le haces más caso al juego que a ella»).</p>' +
+          '<div class="acciones botbarra"><input type="text" id="iaAnimo" maxlength="200" aria-label="Ánimo para el próximo directo" placeholder="Escribe cómo quieres que esté…"><button class="btn pri" type="button" id="iaAnimoFijar">Fijar</button><button class="btn" type="button" id="iaAnimoSoltar">Que elija ella</button></div>' +
+          '<h3 class="iasub">💬 Iniciativa</h3>' +
+          '<label class="copiaimg"><input type="checkbox" id="iaIniciativa"> Que comente cosas por su cuenta, sin que la nombren</label>' +
+          '<div class="bopts"><label><span>Como mucho, una vez cada (minutos)</span><input type="number" id="iaCadaMin" min="5" max="120"></label></div>' +
+          '<div class="acciones"><button class="btn pri" type="button" id="iaIniGuardar">💾 Guardar iniciativa</button></div>' +
+          '<p class="nota">Solo en directo, cuando hay ambiente en el chat y no está ya hablando con alguien. Si no tiene nada que decir, se calla.</p>' +
+          '<h3 class="iasub">🧠 Lo que ha contado de sí misma</h3>' +
+          '<p class="nota">Cuando dice algo nuevo sobre ella (un gusto, una manía, una anécdota), lo apunta aquí y lo mantiene en los siguientes directos. Borra lo que no te guste o añade cosas tú.</p>' +
+          '<div class="iatabla iabanco" id="iaCanon"></div>' +
+          '<div class="acciones botbarra"><input type="text" id="iaCanonNuevo" maxlength="90" aria-label="Añadir algo sobre AletaBot" placeholder="Le dan miedo los truenos, aunque lo niega"><button class="btn" type="button" id="iaCanonAnadir">Añadir</button></div>' +
+          '<h3 class="iasub">📔 Su diario</h3>' +
+          '<p class="nota">Unas líneas que escribe al terminar cada directo. Guarda los últimos 4.</p>' +
+          '<div id="iaDiario"></div>' +
         '</div>' +
         '<div class="card"><h2>⚙️ Límites</h2>' +
           '<div class="bopts">' +
@@ -179,6 +198,10 @@ function abrir() {
     $('#iaSoloDirecto', app).checked = a.soloEnDirecto !== false;
     $('#iaNombres', app).value = (a.nombres || []).join(', '); $('#iaIgnorar', app).value = (a.ignorar || []).join(', ');
     $('#iaJuegos', app).checked = a.juegos !== false; $('#iaTiempo', app).value = a.tiempoPregunta;
+    $('#iaIniciativa', app).checked = a.iniciativa !== false; $('#iaCadaMin', app).value = a.cadaMinutos;
+    // La zona horaria de este navegador, para que AletaBot sepa qué hora es para ti (se guarda sola la primera vez)
+    let zona = ''; try { zona = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+    if (zona && a.zona !== zona && !st.zonaEnviada) { st.zonaEnviada = true; pedir({ accion: 'guardar', ajustes: Object.assign({}, a, { zona }) }).then(x => { if (x.ok) st.d = x; }).catch(() => {}); }
     $('#iaMemoria', app).checked = a.memoria !== false; $('#iaSaludos', app).checked = a.saludos !== false; $('#iaSaludarDesde', app).value = a.saludarDesde;
 
     const r = d.resumen || { mes: 0, directos: [] };
@@ -268,6 +291,56 @@ function abrir() {
     catch (er) { aviso('No encuentro la función aleta-ia.', 5000); b.disabled = false; }
   });
   leerViewers();
+
+  // ---------- Vida de AletaBot ----------
+  let vida = null;
+  function pintarVida(d) {
+    vida = d;
+    const ve = $('#iaVidaEstado', app), an = d.animo, c = d.canal;
+    ve.className = 'ovestado ok';
+    ve.textContent = (an && an.texto ? (an.manual && !an.directo ? 'Ánimo fijado para el próximo directo: ' : 'Ánimo de ahora: ') + an.texto : 'Elegirá su ánimo al empezar el próximo directo.') +
+      (c && c.juego ? ' · Lo último que sabe del canal: ' + c.juego + (c.titulo ? ' («' + c.titulo + '»)' : '') + '.' : '');
+    $('#iaCanon', app).innerHTML = (d.canon || []).length
+      ? '<table><tbody>' + d.canon.map((t, i) => '<tr><td>' + esc(t) + '</td><td><button class="btn" type="button" data-canon="' + i + '" aria-label="Borrar este recuerdo">🗑</button></td></tr>').join('') + '</tbody></table>'
+      : '<p class="nota">Todavía no ha contado nada nuevo de sí misma. Lo básico (calamares crujientes, grima a las medusas…) está en su ficha de personalidad.</p>';
+    $('#iaDiario', app).innerHTML = (d.diario || []).length
+      ? d.diario.slice().reverse().map(x => '<div class="iadia"><p class="nota iahistoria"><b>' + esc(fecha(x.fecha)) + '</b> · ' + esc(x.texto) + '</p><button class="btn" type="button" data-dia="' + esc(x.directo) + '" aria-label="Borrar este día del diario">🗑</button></div>').join('')
+      : '<p class="nota">Aún no ha escrito nada. La primera entrada llegará al terminar tu próximo directo.</p>';
+  }
+  async function pedirVida(cuerpo, hecho, boton) {
+    if (boton) boton.disabled = true;
+    try {
+      const d = await pedir(cuerpo);
+      if (d.ok) { pintarVida(d); if (hecho) aviso(hecho); }
+      else if (cuerpo.accion === 'vida') { const ve = $('#iaVidaEstado', app); ve.className = 'ovestado mal'; ve.textContent = errTexto(d); }
+      else aviso(errTexto(d), 5000);
+    } catch (e) { aviso('No encuentro la función aleta-ia.', 5000); }
+    if (boton) boton.disabled = false;
+  }
+  $('#iaAnimoFijar', app).addEventListener('click', e => {
+    const t = $('#iaAnimo', app).value.trim(); if (!t) { aviso('Escribe primero cómo quieres que esté.'); return; }
+    pedirVida({ accion: 'cambiarVida', animo: t }, 'Ánimo fijado para el próximo directo 🎭', e.currentTarget).then(() => { $('#iaAnimo', app).value = ''; });
+  });
+  $('#iaAnimoSoltar', app).addEventListener('click', e => pedirVida({ accion: 'cambiarVida', animo: '' }, 'Vuelve a elegir ella ✓', e.currentTarget));
+  $('#iaIniGuardar', app).addEventListener('click', e => {
+    if (!st.d) return;
+    guardar({ ajustes: Object.assign({}, st.d.ajustes, { iniciativa: $('#iaIniciativa', app).checked, cadaMinutos: $('#iaCadaMin', app).value }) }, 'Iniciativa guardada ✓', e.currentTarget);
+  });
+  $('#iaCanonAnadir', app).addEventListener('click', e => {
+    const t = $('#iaCanonNuevo', app).value.trim(); if (!t || !vida) return;
+    pedirVida({ accion: 'cambiarVida', canon: (vida.canon || []).concat([t]) }, 'Apuntado ✓', e.currentTarget).then(() => { $('#iaCanonNuevo', app).value = ''; });
+  });
+  $('#iaCanon', app).addEventListener('click', e => {
+    const b = e.target.closest('[data-canon]'); if (!b || !vida) return;
+    if (!b.dataset.seguro) { b.dataset.seguro = '1'; b.textContent = '¿Borrar?'; setTimeout(() => { if (b.dataset.seguro) { delete b.dataset.seguro; b.textContent = '🗑'; } }, 3000); return; }
+    pedirVida({ accion: 'cambiarVida', canon: vida.canon.filter((_, i) => i !== Number(b.dataset.canon)) }, 'Borrado 🫧', b);
+  });
+  $('#iaDiario', app).addEventListener('click', e => {
+    const b = e.target.closest('[data-dia]'); if (!b) return;
+    if (!b.dataset.seguro) { b.dataset.seguro = '1'; b.textContent = '¿Borrar?'; setTimeout(() => { if (b.dataset.seguro) { delete b.dataset.seguro; b.textContent = '🗑'; } }, 3000); return; }
+    pedirVida({ accion: 'cambiarVida', borrarDiario: b.dataset.dia }, 'Día borrado 🫧', b);
+  });
+  pedirVida({ accion: 'vida' });
 
   // ---------- Juegos ----------
   const NOMBRE_JUEGO = { trivia: 'una trivia', adivinanza: 'una ronda de adivinanzas', historia: 'una historia colectiva' };

@@ -18,6 +18,8 @@ const base = "../../supabase/functions/_shared/aleta/";
 const T = await import(base + "texto.ts");
 const P = await import(base + "prompt.ts");
 const J = await import(base + "juegos-texto.ts");
+const V = await import(base + "vida-texto.ts");
+const VIDA = await import(base + "vida.ts");
 const IA = await import(base + "ia.ts");
 const { guion } = await import("./claude-falso.ts");
 
@@ -407,7 +409,7 @@ console.log("5b) Límites de Supabase: un mensaje normal no consulta la base de 
   igual("con la IA apagada: 1 consulta para 10 mensajes", db.consultas, 1);
 }
 {
-  const db = baseFalsa(), ctx = contexto({ id: "dir-Y", inicio: new Date().toISOString() });
+  const db = baseFalsa({ iniciativa: false }), ctx = contexto({ id: "dir-Y", inicio: new Date().toISOString() });
   const ev = () => mensaje("sigo aquí", { id: "950", login: "fiel", nombre: "Fiel" });
   conReloj(db); await IA.presenciaIA(db, ev(), ctx);
   const tras1 = db.consultas;
@@ -743,6 +745,144 @@ for (const [nombre, aj] of [["juegos desactivados", { juegos: false }], ["IA en 
   igual("y apunta el gasto", db.t.kyo_ia_uso.at(-1).tarea, "banco");
   await IA.aprobarBanco(db, { todas: true });
   igual("aprobar todas", db.t.kyo_banco.map((p) => p.estado), ["activa", "activa"]);
+  Date.now = real;
+}
+
+console.log("10) Vida: reglas");
+igual("lo que cuenta de sí misma se guarda", V.sumarCanon(["Le dan grima las medusas"], "Su comida favorita son los calamares crujientes."), ["Le dan grima las medusas", "Su comida favorita son los calamares crujientes"]);
+{ const c = ["Su comida favorita son los calamares"]; prueba("si ya lo sabía, no cambia nada", V.sumarCanon(c, "su comida favorita son los calamares") === c && V.sumarCanon(c, "  ") === c); }
+igual("una versión más completa sustituye a la corta", V.sumarCanon(["Le gustan los calamares"], "Le gustan los calamares crujientes y calientes"), ["Le gustan los calamares crujientes y calientes"]);
+igual("como mucho " + V.CANON_MAX + " recuerdos propios", V.sumarCanon(Array.from({ length: V.CANON_MAX }, (_, i) => "Recuerdo propio número " + i), "Uno nuevo de verdad").length, V.CANON_MAX);
+prueba("el mismo directo da siempre el mismo ánimo, y hay variedad entre directos", V.elegirAnimo("318409294946") === V.elegirAnimo("318409294946") && new Set(["a1", "b2", "c3", "d4", "e5", "f6", "g7", "h8"].map(V.elegirAnimo)).size >= 4);
+igual("ánimo nuevo en cada directo", [V.animoPara(null, "d1").cambia, V.animoPara({ texto: "x", manual: false, directo: "d1" }, "d1").cambia, V.animoPara({ texto: "x", manual: false, directo: "d1" }, "d2").cambia], [true, false, true]);
+igual("el ánimo que fija Kyo vale para el siguiente directo", V.animoPara({ texto: "Celosa de otro bot", manual: true, directo: null }, "d5").animo, { texto: "Celosa de otro bot", manual: true, directo: "d5" });
+igual("y probarlo fuera de directo no lo gasta", V.animoPara({ texto: "Celosa de otro bot", manual: true, directo: null }, "fuera-2026-11-26", false).cambia, false);
+prueba("después vuelve a elegir ella", V.animoPara({ texto: "Celosa de otro bot", manual: true, directo: "d5" }, "d6").animo.manual === false);
+igual("duraciones", [V.duracion(4 * 60000), V.duracion(60 * 60000), V.duracion(80 * 60000)], ["4 min", "1 h", "1 h 20 min"]);
+{
+  const t = V.bloqueDirecto({ enVivo: true, inicio: "2026-11-24T20:10:00Z", canal: { juego: "Grand Theft Auto VI", titulo: "Robando coches con el chat", visto: "" }, zona: "America/Mexico_City", ahora: Date.parse("2026-11-24T21:30:00Z") });
+  prueba("sabe cuánto lleva el directo, a qué se juega y qué hora es", /desde hace 1 h 20 min/.test(t) && /Grand Theft Auto VI/.test(t) && /Robando coches/.test(t) && /martes, 15:30/.test(t), t);
+  const f = V.bloqueDirecto({ enVivo: false, canal: { juego: "X", titulo: "Y", visto: "" }, zona: "" });
+  prueba("fuera de directo lo dice y no habla del juego", /no está en directo/.test(f) && !/X/.test(f), f);
+}
+{
+  const m = V.memoriaPropia({ canon: ["Su comida favorita son los calamares crujientes"], diario: [{ directo: "d1", fecha: "2026-11-24T22:40:00Z", texto: "Hoy Kyo se estrelló dos veces." }], animo: { texto: "Con sueño: vas a medio gas.", manual: false, directo: "d2" }, canal: null }, "America/Mexico_City");
+  prueba("su memoria lleva lo que contó, el diario con su día y el ánimo", /calamares crujientes/.test(m) && /\(martes, 24 de noviembre\) Hoy Kyo/.test(m) && /Cómo estás hoy: Con sueño/.test(m), m);
+  igual("sin nada que recordar, no hay bloque", V.memoriaPropia({ canon: [], diario: [], animo: null, canal: null }), "");
+}
+igual("el diario guarda los últimos " + V.DIARIO_MAX + " directos, uno por directo", V.sumarDiario([1, 2, 3, 4].map((i) => ({ directo: "d" + i, fecha: "", texto: "día " + i })), { directo: "d4", fecha: "", texto: "día 4 bis" }).map((d) => d.texto), ["día 1", "día 2", "día 3", "día 4 bis"]);
+igual("!olvidame quita del diario los días que nombran a esa persona", V.quitarDeDiario([{ directo: "d1", fecha: "", texto: "Nero me prometió calamares." }, { directo: "d2", fecha: "", texto: "Día tranquilo." }], ["nero", "Nero"]).map((d) => d.directo), ["d2"]);
+{
+  const ahora = Date.parse("2026-11-24T21:00:00Z"), hace = (min) => new Date(ahora - min * 60000).toISOString();
+  const vivo = [1, 2, 3, 4, 5].map((i) => ({ usuario: i % 2 ? "ana" : "luis", texto: "mensaje " + i, ts: hace(i) }));
+  igual("ambiente en el chat: varios mensajes recientes de más de una persona", [V.chatConAmbiente(vivo, ["aletabot"], ahora), V.chatConAmbiente(vivo.map((m) => ({ ...m, usuario: "ana" })), ["aletabot"], ahora), V.chatConAmbiente(vivo.map((m) => ({ ...m, ts: hace(20) })), ["aletabot"], ahora), V.chatConAmbiente(vivo.map((m) => ({ ...m, usuario: "aletabot" })), ["aletabot"], ahora)], [true, false, false, false]);
+}
+igual("lee lo que devuelve Sonnet", P.leerRespuesta('{"mensaje":"Calamar, obvio.","sobre_mi":"Le gustan los calamares"}'), { mensaje: "Calamar, obvio.", sobreMi: "Le gustan los calamares" });
+igual("si viniera como texto normal, es el mensaje", P.leerRespuesta("Hola, Pepa."), { mensaje: "Hola, Pepa.", sobreMi: "" });
+igual("si se cortó a medias, rescata el mensaje", P.leerRespuesta('{"mensaje":"Hola \\"Pepa\\", qué tal","sobre_'), { mensaje: 'Hola "Pepa", qué tal', sobreMi: "" });
+igual("JSON roto sin mensaje: nada", P.leerRespuesta('{"sobre_mi":"x"'), { mensaje: "", sobreMi: "" });
+igual("ajustes de iniciativa y zona", [T.limpiarAjustes({}).iniciativa, T.limpiarAjustes({ cadaMinutos: 1 }).cadaMinutos, T.limpiarAjustes({ zona: "America/Mexico_City" }).zona, T.limpiarAjustes({ zona: "<script>" }).zona], [true, 5, "America/Mexico_City", ""]);
+prueba("la ficha habla de vida propia, de bajar la coraza y de preguntar", /colección de cosas brillantes/.test(P.PERSONALIDAD_BASE) && /bajas la coraza/.test(P.PERSONALIDAD_BASE) && /devuelves una pregunta/.test(P.PERSONALIDAD_BASE));
+
+console.log("11) Vida: en el chat (con Claude de mentira)");
+const fila = (db, id) => db.t.kyo_ajustes.find((f) => f.id === id)?.datos;
+const enDirecto = (db, min = 30) => db.t.kyo_ajustes.push({ id: "directo", datos: { id: "dir-V", inicio: new Date(db.ahora() - min * 60000).toISOString(), enVivo: true, fuente: "eventsub", visto: new Date(db.ahora()).toISOString() } });
+{
+  // Lo que cuenta de sí misma se recuerda, y sabe dónde está
+  const db = baseFalsa({ memoria: false, iniciativa: false, zona: "America/Mexico_City" }), ctx = contexto();
+  let preguntas = 0;
+  ctx.canal = async () => { preguntas++; return { juego: "Grand Theft Auto VI", titulo: "Robando <coches> con el chat" }; };
+  enDirecto(db);
+  guion.chat = () => ({ mensaje: "Calamar crujiente, y no admito debate.", sobreMi: "Su comida favorita son los calamares crujientes" });
+  await turno(db, ctx, mensaje("@AletaBot ¿cuál es tu comida favorita?"));
+  igual("contesta y guarda lo que dijo de sí misma", [ctx.dicho.at(-1).m, fila(db, "aleta_canon").lista], ["Calamar crujiente, y no admito debate.", ["Su comida favorita son los calamares crujientes"]]);
+  const primera = guion.llamadas.at(-1);
+  prueba("sabe a qué se juega, el título y cuánto lleva", /<directo>[\s\S]*desde hace 30 min[\s\S]*Grand Theft Auto VI[\s\S]*Robando ‹coches›[\s\S]*<\/directo>/.test(primera.contenido.at(-1).content), primera.contenido.at(-1).content);
+  prueba("y tiene ánimo para este directo", /Cómo estás hoy/.test(primera.memoria) && fila(db, "aleta_animo").directo === "dir-V", primera.memoria);
+  guion.chat = () => "Ya te lo dije.";
+  db.avanzar(40);
+  await turno(db, ctx, mensaje("@AletaBot ¿y a ti qué te gusta comer?", { id: "777", login: "otra", nombre: "Otra" }));
+  prueba("a la siguiente persona ya le contesta sabiendo lo que contó", guion.llamadas.at(-1).memoria.includes("calamares crujientes"), guion.llamadas.at(-1).memoria);
+  igual("el juego y el título se preguntan a Twitch una vez, no en cada respuesta", preguntas, 1);
+  prueba("el ánimo no cambia dentro del mismo directo", guion.llamadas.at(-1).memoria.includes(fila(db, "aleta_animo").texto));
+  prueba("las instrucciones fijas no cambian al aprender algo (siguen en caché)", guion.llamadas.at(-1).sistema === primera.sistema && !primera.sistema.includes("calamares crujientes y no admito"));
+  // lo que diga en una prueba del Estudio no se guarda
+  guion.chat = () => ({ mensaje: "Odio los lunes.", sobreMi: "Odia los lunes" });
+  conReloj(db); const pr = await IA.probarIA(db, { texto: "aleta, ¿qué odias?" }); Date.now = real;
+  igual("una prueba del Estudio no cambia su memoria", [pr.ok, fila(db, "aleta_canon").lista.length], [true, 1]);
+  guion.chat = () => "H-hola… no es que me alegre de verte ni nada 🦈";
+}
+{
+  // El ánimo que fija Kyo
+  const db = baseFalsa({ memoria: false, iniciativa: false }), ctx = contexto();
+  enDirecto(db);
+  conReloj(db); await IA.cambiarVida(db, { animo: "Celosa: hoy sospecha que Kyo prefiere a otro bot." }); Date.now = real;
+  await turno(db, ctx, mensaje("@AletaBot hola"));
+  prueba("usa el ánimo fijado desde el Estudio", guion.llamadas.at(-1).memoria.includes("Celosa: hoy sospecha"), guion.llamadas.at(-1).memoria);
+  conReloj(db); const v = await IA.cambiarVida(db, { animo: "" }); Date.now = real;
+  igual("y Kyo puede devolverle la elección", v.animo, null);
+}
+{
+  // Iniciativa: comenta por su cuenta, pero poco
+  const db = baseFalsa({ memoria: false, cadaMinutos: 12 }), ctx = contexto();
+  const normal = (txt, quien) => { conReloj(db); db.avanzar(2); return IA.atenderIA(db, mensaje(txt, quien), ctx).finally(() => { Date.now = real; }); };
+  const ana = { id: "601", login: "ana", nombre: "Ana" }, luis = { id: "602", login: "luis", nombre: "Luis" };
+  const charla = () => { for (let i = 0; i < 6; i++) db.t.kyo_chat.push({ id: db.t.kyo_chat.length + 1, usuario: i % 2 ? "ana" : "luis", texto: "Kyo se ha vuelto a estrellar " + i, ts: new Date(db.ahora() - i * 20000).toISOString() }); };
+  VIDA.reiniciarIniciativa(); enDirecto(db, 3); charla();
+  guion.chat = () => "¿Otra vez contra la misma farola? Yo ya le habría puesto nombre.";
+  await normal("jajaja", ana);
+  igual("en los primeros minutos del directo no interrumpe", ctx.dicho.length, 0);
+  VIDA.reiniciarIniciativa(); db.t.kyo_ajustes = db.t.kyo_ajustes.filter((f) => f.id !== "directo"); enDirecto(db, 40); db.avanzar(20); charla();
+  const antes = db.consultas;
+  await normal("jajaja otra vez", ana);
+  igual("con el directo en marcha y ambiente en el chat, comenta algo por su cuenta", ctx.dicho.map((d) => [d.m, d.r]), [["¿Otra vez contra la misma farola? Yo ya le habría puesto nombre.", undefined]]);
+  prueba("le llega el chat y la tarea de decidir si habla", /<chat_reciente>[\s\S]*se ha vuelto a estrellar[\s\S]*<tarea>Nadie te ha hablado/.test(guion.llamadas.at(-1).contenido.at(-1).content));
+  igual("queda apuntado como iniciativa", db.t.kyo_ia_uso.at(-1).tarea, "iniciativa");
+  const tras = db.consultas;
+  for (let i = 0; i < 15; i++) await normal("mensaje " + i, i % 2 ? ana : luis);
+  prueba("los siguientes mensajes normales no le hacen hablar otra vez ni consultan nada (salvo releer los ajustes cada 15 s)", ctx.dicho.length === 1 && db.consultas - tras <= 2, [ctx.dicho.length, db.consultas - tras]);
+  db.avanzar(13 * 60); charla(); guion.chat = () => "";
+  await normal("y ahora qué", luis);
+  igual("si no tiene nada que decir, calla", ctx.dicho.length, 1);
+  db.avanzar(13 * 60); VIDA.reiniciarIniciativa(); guion.chat = () => "Hola, chat.";
+  await normal("hay alguien", luis);
+  igual("sin ambiente en el chat no habla sola", ctx.dicho.length, 1);
+  db.avanzar(13 * 60); charla(); VIDA.reiniciarIniciativa();
+  fila(db, "ia").iniciativa = false; db.avanzar(20);
+  await normal("probando", ana);
+  igual("y se puede apagar", ctx.dicho.length, 1);
+  guion.chat = () => "H-hola… no es que me alegre de verte ni nada 🦈";
+}
+{
+  // Diario: al acabar el directo escribe lo que vivió, una sola vez
+  const db = baseFalsa({ memoria: false, iniciativa: false }), ctx = contexto();
+  enDirecto(db, 120);
+  for (let i = 0; i < 20; i++) db.t.kyo_chat.push({ id: i + 1, usuario: i % 3 ? "nero" : "ana", texto: i === 5 ? "!comando" : "mensaje del directo " + i, ts: "" });
+  conReloj(db);
+  await IA.eventoDirecto(db, "stream.offline", {});
+  await IA.eventoDirecto(db, "stream.offline", {});
+  igual("al terminar el directo escribe su diario, una sola vez", [fila(db, "aleta_diario").lista.map((d) => d.directo), guion.llamadas.filter((l) => l.tarea === "diario").length], [["dir-V"], 1]);
+  prueba("lee el chat sin los comandos", !guion.llamadas.findLast((l) => l.tarea === "diario").contenido.includes("!comando"));
+  igual("el directo queda cerrado", fila(db, "directo").enVivo, false);
+  Date.now = real;
+  await turno(db, ctx, mensaje("@AletaBot qué tal ayer", { id: "100", login: "kyosumivt", badges: ["broadcaster"] }));
+  prueba("al día siguiente se acuerda", guion.llamadas.at(-1).memoria.includes("Kyo se estrelló dos veces"), guion.llamadas.at(-1).memoria);
+  guion.diario = () => "Nero me prometió calamares y Ana se rió de mí.";
+  conReloj(db);
+  fila(db, "directo").id = "dir-W"; fila(db, "directo").enVivo = true;
+  await IA.eventoDirecto(db, "stream.online", { id: "dir-X", started_at: new Date(db.ahora()).toISOString() });
+  igual("si el aviso de fin no llegó, lo escribe al empezar el siguiente", fila(db, "aleta_diario").lista.map((d) => d.directo), ["dir-V", "dir-W"]);
+  db.t.kyo_viewer.push({ user_id: "700", login: "nero", nombre: "Nero", apodo: null, primera: "", ultima: 0, directos: 4, ultimo_directo: "x", saludado: "x", saludo_pendiente: null, datos: [], no_recordar: false, ultimo_comando: null });
+  await IA.comandoMemoria(db, mensaje("!olvidame", { id: "700", login: "nero", nombre: "Nero" }), "!olvidame", ctx);
+  igual("!olvidame también borra los días del diario que nombran a esa persona", fila(db, "aleta_diario").lista.map((d) => d.directo), ["dir-V"]);
+  Date.now = real;
+  guion.diario = () => "Hoy el chat estuvo imparable y Kyo se estrelló dos veces. Me lo pasé bien, aunque no pienso decírselo.";
+}
+{
+  // Desde el Estudio: corregir lo que recuerda de sí misma
+  const db = baseFalsa(); conReloj(db);
+  const v = await IA.cambiarVida(db, { canon: ["Le dan grima las medusas", "le dan grima las medusas", "<b>Colecciona cosas brillantes</b>", ""] });
+  igual("Kyo puede editar la lista (limpia y sin repetidos)", v.canon, ["Le dan grima las medusas", "‹b›Colecciona cosas brillantes‹/b›"]);
   Date.now = real;
 }
 

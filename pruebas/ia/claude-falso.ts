@@ -10,7 +10,8 @@ export const guion: {
   apodo: (apodo: string) => any;
   historia: (contenido: string) => any;
   banco: (tipo: string, tema: string, n: number) => any;
-  llamadas: { tarea: string; contenido: any; sistema?: string }[];
+  diario: (contenido: string) => any;
+  llamadas: { tarea: string; contenido: any; sistema?: string; memoria?: string }[];
 } = {
   clave: true,
   filtro: () => ({ responder: true, motivo: "ok", avisar_mods: false, dato: "", apodo: "" }),
@@ -19,6 +20,7 @@ export const guion: {
   apodo: () => true,
   historia: (c) => (c.includes("<tarea>terminar") ? "Y al final todos merendaron juntos." : c.includes("<tarea>empezar") ? "Había una vez una tiburona con una cafetería." : "Entonces entró un pulpo pidiendo ocho cafés."),
   banco: () => [],
+  diario: () => "Hoy el chat estuvo imparable y Kyo se estrelló dos veces. Me lo pasé bien, aunque no pienso decírselo.",
   llamadas: [],
 };
 
@@ -34,12 +36,23 @@ export async function filtrar(contenido: string) {
   return { ok: true, valor: v, modelo: MODELO_TAREAS, uso: u, coste: costeDe(MODELO_TAREAS, u) };
 }
 
-export async function conversar(sistema: string, mensajes: any[]) {
-  guion.llamadas.push({ tarea: "chat", contenido: mensajes, sistema });
+// guion.chat puede devolver un texto (el mensaje) o { mensaje, sobreMi }
+export async function conversar(sistema: string, memoria: string, mensajes: any[]) {
+  guion.llamadas.push({ tarea: "chat", contenido: mensajes, sistema, memoria });
   const v = guion.chat(sistema, mensajes);
   if (v?.error) return { ok: false, error: v.error, detalle: "fallo de prueba" };
   const u = uso(900, 60);
-  return { ok: true, valor: v, modelo: MODELO_CHAT, uso: u, coste: costeDe(MODELO_CHAT, u) };
+  const valor = typeof v === "string" ? { mensaje: v, sobreMi: "" } : { mensaje: String(v?.mensaje ?? ""), sobreMi: String(v?.sobreMi ?? "") };
+  return { ok: true, valor, modelo: MODELO_CHAT, uso: u, coste: costeDe(MODELO_CHAT, u) };
+}
+export const avisoForma = () => "";
+
+export async function escribirDiario(contenido: string) {
+  guion.llamadas.push({ tarea: "diario", contenido });
+  const v = guion.diario(contenido);
+  if (v?.error) return { ok: false, error: v.error, detalle: "fallo de prueba" };
+  const u = uso(4000, 80);
+  return { ok: true, valor: v, modelo: MODELO_TAREAS, uso: u, coste: costeDe(MODELO_TAREAS, u) };
 }
 
 export async function escribirSaludo(sistema: string, contenido: string) {

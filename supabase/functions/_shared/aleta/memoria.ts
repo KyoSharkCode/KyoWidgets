@@ -18,6 +18,7 @@ import {
 import { instruccionesSaludo, mensajeSaludo } from "./prompt.ts";
 import { escribirSaludo, hayClave, revisarApodo } from "./claude.ts";
 import { apuntar, directoActual, gastoMes, leerEstado, type Contexto } from "./estado.ts";
+import { olvidarEnDiario } from "./vida.ts";
 
 const ESPERA_SALUDO = 30;   // segundos como mínimo entre dos saludos
 const SALUDOS_DIRECTO = 60; // saludos como máximo en un directo
@@ -130,6 +131,7 @@ export async function comandoMemoria(db: any, ev: any, texto: string, ctx: Conte
   if (o.orden === "olvidar") {
     _resueltos.ids.add(userId);
     await db.from("kyo_puntos").delete().eq("user_id", userId); // también sus puntos de los juegos (si existe la tabla)
+    await olvidarEnDiario(db, [login, nombre]).catch(() => {}); // y lo que el diario de AletaBot diga de esa persona
     await responder(TXT_MEMORIA.olvidado(nombre));
   }
   else if (o.orden === "recordar") await responder(TXT_MEMORIA.recordar(nombre));
