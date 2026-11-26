@@ -17,9 +17,9 @@ export const CAMPOS_MUSICA_2027 = [
 // c/fr/bl = centro del icono, frase y cajas; +dc = cuánto bajan si hay etiqueta de evento debajo del título;
 // +hd = cuánto bajan el enlace y el texto de abajo cuando hay hora debajo de las cajas. En horizontal: icono a la izquierda (cxI), lo demás a la derecha (cxC)
 const LX = {
-  vertical: { iso: [540, 150, 150], tY: 330, tF: 118, chip: 450, c: 640, R: 124, S: 320, fr: 860, bl: 1045, dc: 40, bh: 230, F: 150, url: 1390, pie: 1500, hd: 0, sup: 1650, fin: 120, cxI: 540, cxC: 540, anchoC: 980 },
+  vertical: { iso: [540, 150, 150], tY: 330, tF: 118, chip: 450, c: 640, R: 124, S: 320, fr: 860, bl: 1045, dc: 40, bh: 230, F: 150, url: 1390, pie: 1500, hd: 30, sup: 1650, fin: 120, cxI: 540, cxC: 540, anchoC: 980 },
   retrato: { iso: [540, 88, 110], tY: 215, tF: 100, chip: 312, c: 465, R: 96, S: 250, fr: 632, bl: 780, dc: 30, bh: 180, F: 118, url: 1010, pie: 1098, hd: 40, sup: 1185, fin: 64, cxI: 540, cxC: 540, anchoC: 980 },
-  cuadrado: { iso: [540, 62, 80], tY: 150, tF: 88, chip: 226, c: 335, R: 74, S: 170, fr: 460, bl: 572, dc: 22, bh: 150, F: 98, url: 760, pie: 836, hd: 36, sup: 935, fin: 54, cxI: 540, cxC: 540, anchoC: 980 },
+  cuadrado: { iso: [540, 62, 80], tY: 150, tF: 88, chip: 226, c: 335, R: 74, S: 170, fr: 460, bl: 572, dc: 22, bh: 150, F: 98, url: 760, pie: 836, hd: 46, sup: 935, fin: 44, cxI: 540, cxC: 540, anchoC: 980 },
   horizontal: { iso: [150, 120, 150], tY: 125, tF: 104, chip: 222, c: 540, R: 150, S: 400, fr: 330, bl: 495, dc: 0, bh: 230, F: 150, url: 815, pie: 908, hd: 0, sup: 990, fin: 60, cxI: 500, cxC: 1260, anchoC: 960 }
 };
 
@@ -147,11 +147,12 @@ export const anuncioCuenta2027 = {
     const cxI = lx.cxI * k, cyI = (lx.c + d) * k, ic = E.back(pr(t, 1.1, 1.5));
     if (ic > 0) {
       const flota = Math.sin(t * 2.4) * 10 * k;
-      ctx.save(); const R = (img ? lx.S * .62 : lx.R) * k;
+      const S = lx.S * (evento ? .88 : 1); // con etiqueta de evento la imagen es algo menor para no tocarla
+      ctx.save(); const R = (img ? S * .62 : lx.R) * k;
       for (let j = 0; j < 2; j++) { const dd = (t * .7 + j * .5) % 1; ctx.globalAlpha = (1 - dd) * .6 * clamp(ic, 0, 1); ctx.strokeStyle = C.bioluz; ctx.lineWidth = 5 * k; ctx.beginPath(); ctx.arc(cxI, cyI + flota, R + 6 * k + dd * 90 * k, 0, 7); ctx.stroke(); }
       ctx.restore();
       ctx.save(); ctx.translate(cxI, cyI + flota); ctx.scale(ic, ic);
-      if (img) this._imagen(ctx, img, o, lx.S * k, t, k);
+      if (img) this._imagen(ctx, img, o, S * k, t, k);
       else { const p = new Path2D(); p.arc(0, 0, lx.R * k, 0, 7); pega(ctx, p, { ring: 9 * k, out: 8 * k, drop: 14 * k, fill: C.bioluz }); icono(ctx, V.icono, -lx.R * .5 * k, -lx.R * .5 * k, lx.R * k, C.abisal, 2.4); }
       ctx.restore();
     }

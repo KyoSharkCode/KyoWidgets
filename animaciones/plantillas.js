@@ -44,6 +44,7 @@ import { anuncioCuenta } from './anuncios/cuenta-atras.js';
 import { anuncioDirecto } from './anuncios/directo-especial.js';
 import { anuncioHoy } from './anuncios/hoy-hay-directo.js';
 import { anuncioCuenta2027 } from './anuncios/cuenta-atras-2027.js';
+import { anuncioDirecto2027 } from './anuncios/directo-especial-2027.js';
 
 // Campos que vienen de la Guía de mejora (se eligen una vez arriba de la pestaña ZZZ)
 [[guiaDiscos, ['personaje', 'agente', 'imagen', 'elemento', 'especialidad']], [habilidadesZZZ, ['personaje', 'agente', 'imagen']], [amplisZZZ, ['personaje', 'agente', 'imagen']], [guiaFrameo, ['personaje', 'agente', 'imagen']]]
@@ -54,7 +55,7 @@ export const PLANTILLAS = [intro2027, outro2027, transicion2027, sigueme2027, su
 // Anuncios (pestaña propia)
 // todos los anuncios aceptan el acabado dibujado
 [anuncioHoy, anuncioMerch, anuncioCuenta, anuncioDirecto].forEach(conAcabado);
-export const ANUNCIOS = [anuncioCuenta2027, anuncioHoy, anuncioMerch, anuncioCuenta, anuncioDirecto];
+export const ANUNCIOS = [anuncioCuenta2027, anuncioDirecto2027, anuncioHoy, anuncioMerch, anuncioCuenta, anuncioDirecto];
 // Utilidades de dibujo para otras pestañas (paneles de Twitch)
 export const UT = { TEMAS, paleta, pegatina, rr, fuente, ancho, destello, icono, azar, rad,
   ICONOS: { estrella: [ESTRELLA], corazon: [CORAZON], calendario: [CALENDARIO, CAL_LINEAS], check: [CHECK], camiseta: [CAMISETA], bolsa: [BOLSA, ASA], chat: [CHAT], regalo: [REGALO], mando: [MANDO], nota: [NOTA], play: [PLAY], campana: [CAMPANA, BADAJO], aleta: [ALETA], mundo: [MUNDO] } };
