@@ -42,7 +42,19 @@
       d: 'Tus contadores del Estudio (muertes, rage quits…) en la píldora 2027: el número rebota al subir, tiembla al bajar y el icono gira al reiniciar. Los cambios llegan al momento.',
       opciones: [['etiqueta', 'Nombre del contador', [['si', 'Mostrar'], ['no', 'Ocultar']]]],
       acciones: [['+1', 'sumar'], ['−1', 'restar'], ['+5', 'cinco'], ['Reiniciar', 'reiniciar']] },
-    { id: 'cuenta', n: 'Cuenta atrás', d: 'El contador HUD de las escenas con tu texto final.' }
+    { id: 'cuenta', n: 'Cuenta atrás', archivo: '../cuenta.html', fijo: { tema: '2027' }, lista: true, tam: [640, 230],
+      d: 'El mismo contador HUD de las escenas: hasta una fecha y hora, o una duración que empieza al abrirse en OBS (con su barra de progreso). Los últimos 10 segundos van en coral y al llegar a cero muestra tu texto final.',
+      opciones: [{ k: 'titulo', l: 'Título', tipo: 'texto', def: 'REVELACIÓN EN' },
+                 ['modo', 'Hasta cuándo', [['hasta', 'Una fecha y hora'], ['duracion', 'Una duración']]],
+                 { k: 'hasta', l: 'Fecha y hora', tipo: 'fecha', def: '', si: (v) => v.modo !== 'duracion' },
+                 { k: 'h', l: 'Horas', tipo: 'numero', def: '0', min: 0, max: 99, siempre: true, si: (v) => v.modo === 'duracion' },
+                 { k: 'm', l: 'Minutos', tipo: 'numero', def: '5', min: 0, max: 59, siempre: true, si: (v) => v.modo === 'duracion' },
+                 { k: 's', l: 'Segundos', tipo: 'numero', def: '0', min: 0, max: 59, siempre: true, si: (v) => v.modo === 'duracion' },
+                 { k: 'sesion', l: 'Sesión (cámbiala para reiniciar la duración)', tipo: 'numero', def: '0', min: 0, si: (v) => v.modo === 'duracion' },
+                 { k: 'final', l: 'Texto final', tipo: 'texto', def: '¡YA!' },
+                 ['alfinal', 'Al llegar a cero', [['final', 'Muestra el texto final'], ['ocultar', 'Se oculta'], ['cero', 'Se queda en cero']]],
+                 ['etiquetas', 'Horas / Min / Seg debajo', [['si', 'Mostrar'], ['no', 'Ocultar']]]],
+      acciones: [['Últimos segundos', 'urgente'], ['Ver el final', 'final'], ['Volver', 'reset']] }
   ];
   const CLAVE = 'kyo2027_widgets';
   let elegido = {}; try { elegido = JSON.parse(localStorage.getItem(CLAVE) || '{}') || {}; } catch (e) {}
@@ -50,10 +62,16 @@
   const aviso = (t) => { const el = $('#aviso'); if (!el) return; el.textContent = t; el.hidden = false; clearTimeout(aviso.t); aviso.t = setTimeout(() => { el.hidden = true; }, 2600); };
 
   const tamDe = (w) => typeof w.tam === 'function' ? w.tam(elegido[w.id] || {}) : w.tam;
+  // opciones: [clave, etiqueta, [[valor, texto], …], si] (botones; la primera no va en el enlace)
+  //        o { k, l, tipo: 'texto' | 'fecha' | 'numero', def, si, siempre, min, max } (campos)
+  const campo = (o) => !Array.isArray(o);
   function enlace(w) {
     const v = elegido[w.id] || {}, p = new URLSearchParams();
     Object.entries(w.fijo || {}).forEach(([k, val]) => p.set(k, val));
-    (w.opciones || []).forEach(([k, , vals, si]) => { if (si && !si(v)) return; if (v[k] && v[k] !== vals[0][0]) p.set(k, v[k]); });
+    (w.opciones || []).forEach((o) => {
+      if (campo(o)) { if (o.si && !o.si(v)) return; const val = v[o.k] ?? o.def; if (val !== '' && val != null && (o.siempre || val !== o.def)) p.set(o.k, val); return; }
+      const [k, , vals, si] = o; if (si && !si(v)) return; if (v[k] && v[k] !== vals[0][0]) p.set(k, v[k]);
+    });
     const qs = p.toString();
     return new URL('../overlays/2027/' + w.archivo + (qs ? '?' + qs : ''), location.href).href;
   }
@@ -66,8 +84,11 @@
     el.innerHTML =
       '<div class="wid-prev"><iframe title="Vista previa de ' + esc(w.n) + '" tabindex="-1"></iframe></div>' +
       '<div class="esc-lado"><div class="esc-cab"><h3>' + esc(w.n) + '</h3><span class="estado listo">Listo</span></div><p class="nota">' + esc(w.d) + '</p>' +
-      (w.opciones || []).map(([k, l, vals]) => '<div class="wid-op" data-op="' + k + '"><span class="mlbl">' + esc(l) + '</span><div class="mchips" role="radiogroup" aria-label="' + esc(l) + '">' +
-        vals.map(([val, txt]) => '<label><input type="radio" name="' + w.id + '-' + k + '" value="' + val + '"' + ((v[k] || vals[0][0]) === val ? ' checked' : '') + '>' + esc(txt) + '</label>').join('') + '</div></div>').join('') +
+      (w.opciones || []).map((o) => campo(o)
+        ? '<label class="wid-op wid-campo" data-op="' + o.k + '"><span class="mlbl">' + esc(o.l) + '</span><input type="' + ({ fecha: 'datetime-local', numero: 'number' }[o.tipo] || 'text') + '" name="' + w.id + '-' + o.k + '"' +
+          (o.min != null ? ' min="' + o.min + '"' : '') + (o.max != null ? ' max="' + o.max + '"' : '') + ' value="' + esc(v[o.k] ?? o.def ?? '') + '"></label>'
+        : '<div class="wid-op" data-op="' + o[0] + '"><span class="mlbl">' + esc(o[1]) + '</span><div class="mchips" role="radiogroup" aria-label="' + esc(o[1]) + '">' +
+          o[2].map(([val, txt]) => '<label><input type="radio" name="' + w.id + '-' + o[0] + '" value="' + val + '"' + ((v[o[0]] || o[2][0][0]) === val ? ' checked' : '') + '>' + esc(txt) + '</label>').join('') + '</div></div>').join('') +
       (w.acciones ? '<div class="wid-op"><span class="mlbl">Probar en la vista previa</span><div class="esc-acc">' + w.acciones.map(([l, a]) => '<button type="button" class="boton" data-probar="' + a + '">' + esc(l) + '</button>').join('') + '</div></div>' : '') +
       '<label class="esc-url">Enlace para OBS (fuente de navegador)<input type="text" readonly></label>' +
       '<p class="nota"><span data-tam></span> Para hacerlo más grande o más pequeño, añade <b>&amp;escala=1.5</b> (de 0.5 a 2) y multiplica el tamaño.</p>' +
@@ -81,10 +102,13 @@
       caja.style.aspectRatio = tw + '/' + th; fr.style.width = tw + 'px'; fr.style.height = th + 'px';
       const src = u + (u.includes('?') ? '&' : '?') + 'demo=1'; if (fr.src !== src) fr.src = src;
       $('[data-tam]', el).textContent = w.nota ? w.nota(v) : 'En OBS: fuente de navegador de ' + tw + ' × ' + th + '.';
-      (w.opciones || []).forEach(([k, , , si]) => { const op = $('[data-op="' + k + '"]', el); if (op) op.hidden = !!si && !si(v); });
+      (w.opciones || []).forEach((o) => { const k = campo(o) ? o.k : o[0], si = campo(o) ? o.si : o[3], op = $('[data-op="' + k + '"]', el); if (op) op.hidden = !!si && !si(v); });
       escala();
     };
     el.addEventListener('change', (e) => { const m = e.target.name && e.target.name.match(new RegExp('^' + w.id + '-(.+)$')); if (!m) return; v[m[1]] = e.target.value; guardar(); poner(); });
+    // los campos de texto actualizan el enlace mientras escribes (la vista previa, al dejar de escribir)
+    let tEscribe = null;
+    el.addEventListener('input', (e) => { const m = e.target.matches('.wid-campo input') && e.target.name.match(new RegExp('^' + w.id + '-(.+)$')); if (!m) return; v[m[1]] = e.target.value; guardar(); clearTimeout(tEscribe); tEscribe = setTimeout(poner, 500); });
     el.addEventListener('click', (e) => { const b = e.target.closest('[data-probar]'); if (b && fr.contentWindow) fr.contentWindow.postMessage({ type: 'kyo-test', accion: b.dataset.probar }, '*'); });
     $('[data-copiar]', el).addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(inp.value); aviso('Enlace de ' + w.n + ' copiado'); } catch (err) { inp.select(); aviso('Selecciona el enlace y cópialo'); }

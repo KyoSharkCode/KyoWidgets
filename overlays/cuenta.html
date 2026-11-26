@@ -13,7 +13,7 @@
     hasta      fecha y hora local, formato 2026-10-31T20:00   (modo hasta)
     h, m, s    horas, minutos, segundos                        (modo duracion; empieza al abrirse en OBS)
     sesion     cambia este valor para reiniciar una cuenta de "duracion"
-    diseno     pegatina | barra | texto        tema  marea | octubre | navidad
+    diseno     pegatina | barra | texto        tema  marea | octubre | navidad | 2027 (recuadro HUD con barra en «duración»)
     acento, borde, caja, texto   colores (hex sin #)          escala  0.5 … 2
     etiquetas  si | no     alfinal  final | ocultar | cero     final  texto al llegar a cero
 -->
@@ -54,6 +54,24 @@ body.b-barra{height:150px}body.b-texto{height:240px}
 .d-texto .pares{gap:0}
 .d-texto .sep{font:400 90px/1 "Cherry Bomb One",sans-serif;color:var(--a);-webkit-text-stroke:10px var(--o);paint-order:stroke fill;line-height:1}
 .d-texto .lbl{color:var(--t);-webkit-text-stroke:5px var(--o);paint-order:stroke fill}
+/* tema 2027: recuadro HUD con esquinas bioluz, números en Chakra Petch, barra de progreso en menta (en «duración») */
+body.t27{width:640px;height:230px}
+#w.cs27{--a:#6FE3F0;--a2:#3A7BD5;--c:rgba(10,16,48,.86);--t:#F5F3FB;--s:#C9E6F2;--o:#0A1030;--p:#F5F3FB;--u:#FF6F61}
+.cs27 .caja{justify-items:start;gap:4px;padding:16px 28px 20px;border-radius:20px;transform:none;animation:none;box-shadow:inset 0 0 0 2px rgba(111,227,240,.22)!important;min-width:420px}
+.cs27 .caja::before,.cs27 .caja::after{content:"";position:absolute;width:30px;height:30px;border:4px solid var(--a)}
+.cs27 .caja::before{left:-4px;top:-4px;border-right:0;border-bottom:0;border-radius:16px 0 0 0}
+.cs27 .caja::after{right:-4px;bottom:-4px;border-left:0;border-top:0;border-radius:0 0 16px 0}
+.cs27 .chip{background:none;color:var(--s);font:700 18px "Chakra Petch",monospace;letter-spacing:.22em;padding:0}
+.cs27 .digs{gap:4px}
+.cs27 .pares{gap:0}
+.cs27 .d{background:none;box-shadow:none;width:auto;min-width:46px;height:auto;font:700 84px/1 "Chakra Petch",monospace;color:var(--t)}
+.cs27 .d::after{display:none}
+.cs27 .sep{font:700 70px/84px "Chakra Petch",monospace;color:var(--a)}
+.cs27 .lbl{font-size:12px;color:#9aa6d6}
+.b27{display:none;justify-self:stretch;width:100%;box-sizing:border-box;height:10px;border-radius:5px;background:#060b24;box-shadow:inset 0 0 0 2px rgba(94,242,184,.3);overflow:hidden;margin-top:10px}
+.b27 i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2fd197,#5EF2B8);transition:width .3s linear}
+.cs27.con-barra .b27{display:block}
+.cs27 .fin{color:var(--t);font-size:70px}
 /* últimos 10 segundos */
 .urgente .d{color:var(--u);animation:latido 1s ease-in-out infinite}
 .d-texto.urgente .d{color:var(--u)}
@@ -74,13 +92,14 @@ body.b-barra{height:150px}body.b-texto{height:240px}
 </style>
 </head>
 <body>
-<div id="w"><div class="caja pega"><span class="chip" id="tit"></span><div class="digs" id="digs"></div></div><div class="fin" id="fin"></div></div>
+<div id="w"><div class="caja pega"><span class="chip" id="tit"></span><div class="digs" id="digs"></div><div class="b27"><i id="b27"></i></div></div><div class="fin" id="fin"></div></div>
 <script>
 (function () {
   const q = new URLSearchParams(location.search), $ = id => document.getElementById(id), w = $('w');
-  const diseno = ['pegatina', 'barra', 'texto'].includes(q.get('diseno')) ? q.get('diseno') : 'pegatina';
-  const tema = ['marea', 'octubre', 'navidad'].includes(q.get('tema')) ? q.get('tema') : 'marea';
-  w.classList.add('d-' + diseno, tema); document.body.classList.add('b-' + diseno);
+  const tema = ['marea', 'octubre', 'navidad', '2027'].includes(q.get('tema')) ? q.get('tema') : 'marea';
+  // el tema 2027 tiene un solo diseño (el recuadro HUD de las escenas)
+  const diseno = tema === '2027' ? 'pegatina' : ['pegatina', 'barra', 'texto'].includes(q.get('diseno')) ? q.get('diseno') : 'pegatina';
+  w.classList.add('d-' + diseno, tema === '2027' ? 'cs27' : tema); document.body.classList.add('b-' + diseno); if (tema === '2027') document.body.classList.add('t27');
   if (q.get('etiquetas') === 'no') w.classList.add('sin-lbl');
   const hex = v => /^[0-9a-f]{3,8}$/i.test(v || '') ? '#' + v : null;
   [['acento', '--a'], ['borde', '--p'], ['caja', '--c'], ['texto', '--t']].forEach(([k, v]) => { const c = hex(q.get(k)); if (c) w.style.setProperty(v, c); });
@@ -91,13 +110,14 @@ body.b-barra{height:150px}body.b-texto{height:240px}
   $('fin').textContent = textoFinal;
 
   // ---- momento objetivo ----
-  let objetivo;
+  let objetivo, duracion = 0;
   if (q.get('modo') === 'duracion') {
     const dur = ((Number(q.get('h')) || 0) * 3600 + (Number(q.get('m')) || 0) * 60 + (Number(q.get('s')) || 0)) * 1000 || 3600000;
     const clave = 'kyo_cuenta_' + (q.get('sesion') || '0') + '_' + dur;
     let ini = null; try { ini = Number(localStorage.getItem(clave)) || null; } catch (e) {}
     if (!ini) { ini = Date.now(); try { localStorage.setItem(clave, String(ini)); } catch (e) {} }
-    objetivo = ini + dur;
+    objetivo = ini + dur; duracion = dur;
+    if (tema === '2027') w.classList.add('con-barra');
   } else {
     const v = q.get('hasta'); const d = v ? new Date(v) : null;
     objetivo = d && !isNaN(d) ? d.getTime() : Date.now() + 3600000;
@@ -129,6 +149,7 @@ body.b-barra{height:150px}body.b-texto{height:240px}
     let txt = '';
     unidades.forEach(u => { const s = dos(v[u]); txt += s; [0, 1].forEach(i => { const el = w.querySelector('[data-u="' + u + i + '"]'); if (el.textContent !== s[i]) { el.textContent = s[i]; el.classList.remove('cambia'); void el.offsetWidth; el.classList.add('cambia'); } }); });
     w.classList.toggle('urgente', rest > 0 && rest <= 10);
+    if (duracion) $('b27').style.width = Math.min(100, Math.max(0, 100 - rest * 1000 / duracion * 100)) + '%';
     if (rest === 0 && !terminado) {
       terminado = true;
       if (alfinal === 'final') { w.classList.add('terminado', 'con-final'); destellos(); }
