@@ -35,7 +35,7 @@
       ['s4-chat', 'Chat', 1], ['s4-contador', 'Contador', 1], ['s4-cuenta', 'Cuenta atrás', 1]] },
     { n: 5, vista: 'animaciones', titulo: 'Animaciones', desc: 'Las animaciones del Estudio en versión 2027 y ensayo completo en OBS.', tareas: [
       ['s5-sigueme', '¡Sígueme!', 1], ['s5-sub-barra', '¡Suscríbete! en barra', 1], ['s5-barra-codigo', 'Barra del código', 1], ['s5-pegatina-codigo', 'Pegatina del código', 1],
-      ['s5-merch', '¡Nueva merch!', 1], ['s5-anuncio-cuenta', 'Anuncio con cuenta atrás', 1], ['s5-anuncio-directo', '¡Directo especial!', 1], ['s5-anuncio-hoy', '¡Hoy hay directo!', 0],
+      ['s5-merch', '¡Nueva merch!', 1], ['s5-anuncio-cuenta', 'Anuncio con cuenta atrás', 1], ['s5-anuncio-directo', '¡Directo especial!', 1], ['s5-anuncio-hoy', '¡Hoy hay directo!', 1],
       ['s5-ensayo', 'Ensayo en OBS (9 o 10 de enero)', 0]] },
     { n: 6, titulo: 'El cambio', desc: 'El 11 de enero esta sección pasa a ser el Estudio principal.', tareas: [
       ['s6-principal', 'El Estudio 2027 pasa a ser el principal', 0], ['s6-archivar', 'Archivar la sección de 2026', 0]] },
@@ -168,9 +168,9 @@
     }
     if (v === 'animaciones') {
       const caja = $('#herrAnim');
-      // las animaciones 2027 del Stage 5 (se añaden aquí según se terminan)
+      // las animaciones y anuncios 2027 del Stage 5
       import('../animaciones.js')
-        .then(() => window.kyoAnim.montar(caja, ['sigueme-2027', 'suscribete-barra-2027', 'barra-codigo-2027', 'pegatina-codigo-2027', 'merch-2027', 'anuncio-cuenta-2027', 'anuncio-directo-2027']))
+        .then(() => window.kyoAnim.montar(caja, ['sigueme-2027', 'suscribete-barra-2027', 'barra-codigo-2027', 'pegatina-codigo-2027', 'merch-2027', 'anuncio-cuenta-2027', 'anuncio-directo-2027', 'anuncio-hoy-2027']))
         .catch((e) => { console.error(e); caja.innerHTML = '<p class="nota">No se pudo cargar la herramienta de animaciones. Recarga la página.</p>'; });
     }
   }
