@@ -30,7 +30,7 @@
       ['s3-chatting', 'Just Chatting', 1], ['s3-comenzando', 'Comenzando', 1], ['s3-gameplay', 'Gameplay', 1],
       ['s3-volvemos', 'Ya regreso', 1], ['s3-terminando', 'Terminando', 1], ['s3-transicion', 'Transición', 1]] },
     { n: 4, vista: 'widgets', titulo: 'Widgets', desc: 'Los widgets del directo, más compactos y con el estilo nuevo.', tareas: [
-      ['s4-spotify', 'Spotify: entrada y 3 estilos', 1], ['s4-anuncios', 'Anuncios: tarjeta y cinta', 0], ['s4-prediccion', 'Predicción compacta', 0],
+      ['s4-spotify', 'Spotify: entrada y 3 estilos', 1], ['s4-anuncios', 'Anuncios: tarjeta y cinta', 1], ['s4-prediccion', 'Predicción compacta', 0],
       ['s4-encuesta', 'Encuesta compacta', 0], ['s4-sorteo', 'Sorteo compacto', 0], ['s4-metas', 'Meta de donaciones kawaii', 0],
       ['s4-chat', 'Chat', 0], ['s4-contador', 'Contador', 0], ['s4-cuenta', 'Cuenta atrás', 0]] },
     { n: 5, vista: 'alertas', titulo: 'Alertas y animaciones', desc: 'Versión 2027 de las alertas y ensayo completo en OBS.', tareas: [

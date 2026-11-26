@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Kyo · Anuncios 2027</title>
+<meta name="robots" content="noindex">
+<!--
+  KyoWidgets 2027 · Anuncios · Fuente de navegador para OBS. Son los mismos anuncios que se editan en el Estudio
+  (Overlays → Anuncios); aquí salen todos los activos. Se leen de Supabase cada 2 minutos (como en 2026).
+  Diseños:
+    tarjeta  (por defecto) 640×190 · sobre el juego: un anuncio cada vez, con la barra de lo que falta para el siguiente
+    cinta    alto 74 · el ancho lo pone OBS (1816 en Just Chatting horizontal, 1000 en vertical): todos los anuncios
+             en bucle continuo, sin saltos. Sin anuncios activos muestra tus redes.
+  Parámetros:
+    diseno   tarjeta | cinta         escala  0.5 … 2
+    cada     (tarjeta) minutos de descanso entre vuelta y vuelta (0 = siempre en pantalla)
+    redes    (cinta) texto cuando no hay anuncios (por defecto «Twitch · Kick · TikTok · YouTube»)
+    demo=1   anuncios de ejemplo (vista previa)
+-->
+<link rel="stylesheet" href="../../fonts/escenas.css">
+<script src="../../config.js"></script>
+<script src="../sondeo.js"></script>
+<script src="../escenas/pausa-obs.js"></script>
+<style>
+:root{--abisal:#0A1030;--indigo:#2B2F7A;--aleta:#3A7BD5;--bioluz:#6FE3F0;--espuma:#C9E6F2;--perla:#F5F3FB;--coral-p:#FFB4A8;--oro:#F4C542;
+  --sticker:0 0 0 5px var(--perla),0 0 0 10px var(--abisal),0 9px 0 10px var(--abisal)}
+*{box-sizing:border-box}
+html,body{margin:0;background:transparent;overflow:hidden}
+body{font-family:"M PLUS Rounded 1c",system-ui,sans-serif;color:var(--perla)}
+[hidden]{display:none!important}
+
+/* ---------- tarjeta ---------- */
+#t{position:relative;width:640px;height:190px;transition:transform .5s cubic-bezier(.34,1.56,.64,1),opacity .35s ease}
+#t.fuera{transform:translateY(24px) scale(.9);opacity:0}
+#t .caja{position:absolute;inset:10px 10px 18px 10px;border-radius:28px;background:rgba(10,16,48,.9);box-shadow:var(--sticker)}
+#t .an{position:absolute;left:10px;top:10px;right:10px;bottom:16px;display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;padding:18px 26px 22px 20px}
+#t .ic{width:108px;height:108px;border-radius:50%;display:grid;place-items:center;background:rgba(111,227,240,.08);box-shadow:0 0 0 4px var(--bioluz),0 0 26px rgba(111,227,240,.3);color:var(--bioluz)}
+#t .ic svg{width:60px;height:60px;fill:currentColor}
+#t .img{display:none;width:116px;height:116px;border-radius:22px;background:#fff center/cover;box-shadow:0 0 0 4px var(--abisal),0 7px 0 4px var(--abisal);transform:rotate(-3deg)}
+#t.con-img .img{display:block}
+#t.con-img .ic{display:none}
+#t .cuerpo{display:grid;gap:2px;min-width:0}
+#t .k{font-family:"Chakra Petch",monospace;font-weight:700;font-size:16px;letter-spacing:.2em;text-transform:uppercase;color:var(--espuma)}
+#t .m{font-family:"Cherry Bomb One","Fredoka",sans-serif;font-size:52px;line-height:1.05;color:var(--perla);-webkit-text-stroke:10px var(--abisal);paint-order:stroke fill;white-space:nowrap}
+#t .m.num{font-family:"Chakra Petch",monospace;font-weight:700;-webkit-text-stroke:0;color:var(--bioluz);font-variant-numeric:tabular-nums;text-shadow:0 0 18px rgba(111,227,240,.5)}
+#t .m.fecha{font-family:"Fredoka",sans-serif;font-weight:700;font-size:40px;-webkit-text-stroke:0;color:var(--bioluz)}
+#t .s{justify-self:start;font-family:"Chakra Petch",monospace;font-weight:600;font-size:20px;color:var(--perla);border:3px solid var(--bioluz);border-radius:999px;padding:2px 16px;margin-top:4px;white-space:nowrap}
+#t .barra{position:absolute;left:30px;right:30px;bottom:12px;height:6px;border-radius:3px;background:rgba(201,230,242,.14);overflow:hidden}
+#t .barra i{display:block;height:100%;width:100%;transform:translateX(-100%);background:linear-gradient(90deg,var(--aleta),var(--bioluz))}
+#t .cuerpo.entra{animation:entra .55s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes entra{from{transform:translateY(14px) scale(.92);opacity:0}}
+
+/* ---------- cinta ---------- */
+#c{position:relative;height:74px;padding:8px 9px 8px;width:100vw}
+#c .marco{position:relative;height:58px;border-radius:999px;background:rgba(10,16,48,.92);box-shadow:0 0 0 4px var(--perla),0 0 0 8px var(--abisal);display:flex;align-items:center;overflow:hidden}
+#c .tag{flex:none;height:100%;display:flex;align-items:center;gap:10px;padding:0 24px;background:var(--bioluz);color:var(--abisal);font-family:"Chakra Petch",monospace;font-weight:700;font-size:19px;letter-spacing:.14em;border-radius:999px 0 0 999px}
+#c .tag svg{width:28px;height:22px}
+#c .ventana{overflow:hidden;flex:1;min-width:0;height:100%;display:flex;align-items:center}
+/* el contenido va dos veces y se mueve exactamente la mitad: el bucle no tiene salto */
+#c .pista{display:flex;width:max-content;will-change:transform}
+#c .item{display:flex;align-items:center;gap:12px;white-space:nowrap;padding-left:42px;font-family:"Fredoka",sans-serif;font-weight:600;font-size:23px;color:var(--perla)}
+#c .item svg{width:24px;height:24px;fill:var(--bioluz);flex:none}
+#c .item img{width:32px;height:32px;border-radius:8px;object-fit:cover;box-shadow:0 0 0 2px var(--perla)}
+#c .item .et{font-family:"Chakra Petch",monospace;font-weight:700;font-size:16px;letter-spacing:.14em;text-transform:uppercase;color:var(--espuma)}
+#c .item .tx.num{font-family:"Chakra Petch",monospace;font-weight:700;color:var(--bioluz);font-variant-numeric:tabular-nums}
+#c .item .en{color:var(--coral-p)}
+#c .item::after{content:"";width:12px;height:12px;background:var(--oro);clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);margin-left:30px}
+@media (prefers-reduced-motion:reduce){#c .pista{animation:none!important}}
+</style>
+</head>
+<body>
+<div id="t" class="fuera" hidden>
+  <div class="caja"></div>
+  <div class="an"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"></svg></div><div class="img"></div>
+    <div class="cuerpo"><div class="k"></div><div class="m"></div><div class="s"></div></div>
+    <div class="barra"><i></i></div></div>
+</div>
+<div id="c" hidden><div class="marco"><div class="tag"><svg viewBox="0 0 60 44" aria-hidden="true"><path d="M8 40 Q16 12 44 4 Q34 22 46 40 Z" fill="#0A1030"/></svg>@KYOSUMIVT</div><div class="ventana"><div class="pista"></div></div></div></div>
+<script>
+(function () {
+  const q = new URLSearchParams(location.search);
+  const CINTA = q.get('diseno') === 'cinta', DEMO = q.get('demo') === '1', PREVIEW = q.get('preview') === '1';
+  const PAUSA = Math.max(0, Math.min(120, Number(q.get('cada')) || 0)) * (DEMO ? 1000 : 60000);
+  const REDES = q.get('redes') || 'Twitch · Kick · TikTok · YouTube';
+  const esc = Math.min(2, Math.max(0.5, Number(q.get('escala')) || 1)); if (esc !== 1) document.documentElement.style.zoom = esc;
+  const oculta = () => document.documentElement.classList.contains('obs-oculta');
+  const ICON = {
+    bolsa: '<path d="M5 8h14l-1.2 12.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8L5 8z"/><path d="M9 10V7a3 3 0 0 1 6 0v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    reloj: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.6 2" fill="none" stroke="#0a1030" stroke-width="2.2" stroke-linecap="round"/><path d="M9 2.5h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+    aleta: '<path d="M3 20c5-1 8-7 9-17 2 7 5 13 9 17z"/>',
+    estrella: '<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z"/>',
+    corazon: '<path d="M12 20.5S3 15 3 8.8A4.6 4.6 0 0 1 12 6.6a4.6 4.6 0 0 1 9 2.2C21 15 12 20.5 12 20.5z"/>',
+    chat: '<path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H10l-5 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>',
+    regalo: '<rect x="3.5" y="9" width="17" height="11.5" rx="1.5"/><rect x="2.5" y="6.5" width="19" height="4" rx="1"/><path d="M12 6.5v14" stroke="#0a1030" stroke-width="2"/>',
+    play: '<path d="M8 4.5v15l12-7.5z"/>',
+    camiseta: '<path d="M8 3l-5 3 2 5 2.5-1V21h9V10l2.5 1 2-5-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z"/>',
+    mando: '<path d="M7 7h10a5 5 0 0 1 4.9 6l-.8 4a2.5 2.5 0 0 1-4.4 1.1L15 16H9l-1.7 2.1a2.5 2.5 0 0 1-4.4-1.1l-.8-4A5 5 0 0 1 7 7z"/>',
+    campana: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><circle cx="12" cy="20.5" r="2"/>'
+  };
+  const dos = n => (n < 10 ? '0' : '') + n;
+  // texto principal de un anuncio (las cuentas atrás se recalculan cada segundo)
+  function principal(a) {
+    if (a.tipo !== 'cuenta') return { t: a.texto || '', cls: '' };
+    const fin = Date.parse(a.objetivo || ''); if (isNaN(fin)) return { t: a.textoFin || '¡Ya disponible!', cls: '' };
+    if (a.modo === 'fecha') { const d = new Date(fin), dia = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '');
+      return { t: dia.charAt(0).toUpperCase() + dia.slice(1) + ' · ' + dos(d.getHours()) + ':' + dos(d.getMinutes()) + ' h', cls: 'fecha' }; }
+    const s = Math.floor((fin - Date.now()) / 1000); if (s <= 0) return { t: a.textoFin || '¡Ya disponible!', cls: '' };
+    const dd = Math.floor(s / 86400), hh = Math.floor(s % 86400 / 3600), mm = Math.floor(s % 3600 / 60), ss = s % 60;
+    return { t: (dd ? dd + 'd ' : '') + dos(hh) + ':' + dos(mm) + ':' + dos(ss), cls: 'num' };
+  }
+  const imagen = a => /^https:\/\//.test(a.imagen || '') ? a.imagen : '';
+  let lista = [], firma = '';
+
+  // ---------- tarjeta: uno cada vez ----------
+  const T = document.getElementById('t'), cu = T.querySelector('.cuerpo'), ic = T.querySelector('.ic svg'), im = T.querySelector('.img'),
+    k = T.querySelector('.k'), m = T.querySelector('.m'), s = T.querySelector('.s'), barra = T.querySelector('.barra'), bi = T.querySelector('.barra i');
+  let idx = -1, tRot = null;
+  function refrescar(a) {
+    const r = principal(a); if (m.textContent !== r.t) m.textContent = r.t; m.className = 'm' + (r.cls ? ' ' + r.cls : '');
+    m.style.fontSize = ''; const maxW = cu.clientWidth || 440, w = m.scrollWidth;
+    if (w > maxW) m.style.fontSize = Math.max(20, parseFloat(getComputedStyle(m).fontSize) * maxW / w) + 'px';
+  }
+  function pintar(a) {
+    ic.innerHTML = ICON[a.icono] || ICON.estrella;
+    const u = imagen(a); T.classList.toggle('con-img', !!u); im.style.backgroundImage = u ? 'url("' + u + '")' : '';
+    k.textContent = a.etiqueta || ''; k.hidden = !a.etiqueta; s.textContent = a.enlace || ''; s.hidden = !a.enlace;
+    refrescar(a);
+  }
+  function mostrar(i) {
+    clearTimeout(tRot);
+    if (!lista.length) { T.classList.add('fuera'); return; }
+    T.hidden = false; requestAnimationFrame(() => T.classList.remove('fuera'));
+    const a = lista[i % lista.length], dur = Math.max(4, Math.min(120, +a.seg || 10)) * 1000;
+    pintar(a); cu.classList.remove('entra'); void cu.offsetWidth; cu.classList.add('entra');
+    barra.hidden = lista.length < 2 && !PAUSA;
+    bi.style.transition = 'none'; bi.style.transform = 'translateX(-100%)'; void bi.offsetWidth; bi.style.transition = 'transform ' + dur + 'ms linear'; bi.style.transform = 'none';
+    idx = i % lista.length;
+    tRot = setTimeout(() => { const sig = (idx + 1) % lista.length;
+      if (PAUSA && sig === 0) { T.classList.add('fuera'); tRot = setTimeout(() => mostrar(0), PAUSA); } else mostrar(sig); }, dur);
+  }
+
+  // ---------- cinta: todos en bucle continuo ----------
+  const C = document.getElementById('c'), pista = C.querySelector('.pista');
+  let anim = null;
+  function itemHtml(a) {
+    const u = imagen(a), r = principal(a);
+    return '<span class="item">' + (u ? '<img src="' + u.replace(/"/g, '&quot;') + '" alt="">' : '<svg viewBox="0 0 24 24" aria-hidden="true">' + (ICON[a.icono] || ICON.estrella) + '</svg>') +
+      (a.etiqueta ? '<span class="et"></span>' : '') + '<span class="tx' + (r.cls === 'num' ? ' num' : '') + '"></span>' + (a.enlace ? '<span class="en"></span>' : '') + '</span>';
+  }
+  function cinta() {
+    const items = lista.length ? lista : [{ icono: 'aleta', texto: REDES }];
+    pista.innerHTML = items.map(itemHtml).join('') + items.map(itemHtml).join('');
+    // los textos se ponen con textContent (nunca como HTML)
+    [...pista.children].forEach((el, i) => { const a = items[i % items.length], r = principal(a);
+      const et = el.querySelector('.et'), tx = el.querySelector('.tx'), en = el.querySelector('.en');
+      if (et) et.textContent = a.etiqueta; tx.textContent = r.t; if (en) en.textContent = a.enlace; });
+    if (anim) anim.cancel();
+    requestAnimationFrame(() => {
+      const mitad = pista.scrollWidth / 2, vel = 90; // px por segundo, siempre la misma velocidad
+      anim = pista.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-' + mitad + 'px)' }], { duration: mitad / vel * 1000, iterations: Infinity });
+    });
+    C.hidden = false;
+  }
+  // las cuentas atrás de la cinta se actualizan cada segundo, sin rehacer la cinta
+  function refrescarCinta() {
+    const items = lista.length ? lista : null; if (!items) return;
+    [...pista.children].forEach((el, i) => { const a = items[i % items.length]; if (a.tipo !== 'cuenta') return; const tx = el.querySelector('.tx'), r = principal(a); if (tx.textContent !== r.t) tx.textContent = r.t; });
+  }
+
+  function usar(datos) {
+    const todos = (datos && Array.isArray(datos.anuncios)) ? datos.anuncios : [];
+    const nuevos = todos.filter(a => a && a.activo !== false);
+    const f = JSON.stringify(nuevos); if (f === firma) return; firma = f; lista = nuevos;
+    if (CINTA) cinta(); else { idx = -1; mostrar(0); }
+  }
+  setInterval(() => {
+    if (oculta()) { if (anim) anim.pause(); return; } if (anim && anim.playState === 'paused') anim.play();
+    if (CINTA) refrescarCinta(); else if (!T.classList.contains('fuera') && lista[idx] && lista[idx].tipo === 'cuenta') refrescar(lista[idx]);
+  }, 1000);
+
+  // Datos: Supabase (OBS), postMessage (vista previa del Estudio) o ejemplos
+  const CACHE = 'kyo_anuncios_cache';
+  if (DEMO) {
+    usar({ anuncios: [
+      { tipo: 'merch', icono: 'bolsa', etiqueta: '¡Nueva merch!', texto: 'Ya disponible', enlace: 'kyomerch.shop', seg: 6 },
+      { tipo: 'codigo', icono: 'aleta', etiqueta: 'Código de creador', texto: 'KYOSUMI', enlace: 'Tienda de Fortnite', seg: 6 },
+      { tipo: 'cuenta', icono: 'reloj', etiqueta: 'Directo especial en', modo: 'cuenta', objetivo: new Date(Date.now() + 2 * 864e5 + 3723e3).toISOString(), enlace: 'twitch.tv/kyosumivt', seg: 6 }
+    ] });
+  } else if (PREVIEW) {
+    window.addEventListener('message', e => { if (e.data && e.data.tipo === 'kyo-anuncios') usar(e.data.datos); });
+  } else {
+    try { const c = JSON.parse(localStorage.getItem(CACHE) || 'null'); if (c) usar(c); } catch (e) {}
+    if (CINTA && !lista.length) cinta();
+    // Los anuncios solo cambian cuando los editas en el Estudio: cada 2 min basta. Las escenas comparten la respuesta.
+    KyoSondeo.bucle(() => KyoSondeo.pedir('anuncios', null, 90000).then(d => {
+      if (d && d.ok && d.datos) { usar(d.datos); try { localStorage.setItem(CACHE, JSON.stringify(d.datos)); } catch (e) {} }
+    }), () => 120000);
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (CINTA) { firma = ''; usar({ anuncios: lista }); } else if (lista[idx]) refrescar(lista[idx]); });
+})();
+</script>
+</body>
+</html>
