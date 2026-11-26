@@ -302,7 +302,7 @@ function abrir() {
       (c && c.juego ? ' · Lo último que sabe del canal: ' + c.juego + (c.titulo ? ' («' + c.titulo + '»)' : '') + '.' : '');
     $('#iaCanon', app).innerHTML = (d.canon || []).length
       ? '<table><tbody>' + d.canon.map((t, i) => '<tr><td>' + esc(t) + '</td><td><button class="btn" type="button" data-canon="' + i + '" aria-label="Borrar este recuerdo">🗑</button></td></tr>').join('') + '</tbody></table>'
-      : '<p class="nota">Todavía no ha contado nada nuevo de sí misma. Lo básico (calamares crujientes, grima a las medusas…) está en su ficha de personalidad.</p>';
+      : '<p class="nota">Todavía no ha contado nada nuevo de sí misma. Lo básico (calamares crocantes, escalofríos con las medusas…) está en su ficha de personalidad.</p>';
     $('#iaDiario', app).innerHTML = (d.diario || []).length
       ? d.diario.slice().reverse().map(x => '<div class="iadia"><p class="nota iahistoria"><b>' + esc(fecha(x.fecha)) + '</b> · ' + esc(x.texto) + '</p><button class="btn" type="button" data-dia="' + esc(x.directo) + '" aria-label="Borrar este día del diario">🗑</button></div>').join('')
       : '<p class="nota">Aún no ha escrito nada. La primera entrada llegará al terminar tu próximo directo.</p>';
@@ -377,7 +377,7 @@ function abrir() {
       d = await pedir(cuerpo);
       if (d.ok) { pintarJuegos(d); if (hecho) aviso(typeof hecho === 'function' ? hecho(d) : hecho); }
       else if (cuerpo.accion === 'juegos') { const je = $('#iaJgEstado', app); je.className = 'ovestado mal'; je.textContent = errTexto(d); }
-      else aviso(d.error === 'pregunta' ? 'Esa pregunta no vale: necesita un texto de al menos 8 letras, una respuesta, y que la respuesta no esté dentro de la pregunta.' : errTexto(d, true), 6000);
+      else aviso(d.error === 'pregunta' ? 'Esa pregunta no sirve: necesita un texto de al menos 8 letras, una respuesta, y que la respuesta no esté dentro de la pregunta.' : errTexto(d, true), 6000);
     } catch (e) { aviso('No encuentro la función aleta-ia.', 5000); }
     if (boton) boton.disabled = false;
     return d;
