@@ -18,7 +18,10 @@
       d: 'Los anuncios que editas en el Estudio actual (Overlays → Anuncios), todos los activos. La tarjeta los muestra de uno en uno sobre el juego; la cinta los recorre en bucle continuo abajo en Just Chatting.',
       opciones: [['diseno', 'Diseño', [['tarjeta', 'Tarjeta compacta'], ['cinta', 'Cinta de Just Chatting']]],
                  ['cada', 'Descanso entre vueltas', [['0', 'Siempre en pantalla'], ['5', '5 min'], ['10', '10 min'], ['15', '15 min']], (v) => v.diseno !== 'cinta']] },
-    { id: 'prediccion', n: 'Predicción compacta', d: 'Se encoge a una píldora al cerrar las apuestas y la ganadora brilla en oro.' },
+    { id: 'prediccion', n: 'Predicción compacta', archivo: 'prediccion.html', lista: true, tam: [540, 330],
+      d: 'La predicción de Twitch con tus puntos del canal: entra por su lado, se encoge a una píldora al cerrar las apuestas y la ganadora brilla en oro. Solo se ve mientras hay una predicción.',
+      opciones: [['lado', 'Lado', [['izq', 'Izquierda'], ['der', 'Derecha']]]],
+      acciones: [['Abrir', 'abrir'], ['Apuestas', 'apuestas'], ['Cerrar apuestas', 'bloquear'], ['Resultado', 'resolver'], ['Cancelar', 'cancelar'], ['Seis opciones', 'muchas']] },
     { id: 'encuesta', n: 'Encuesta compacta', d: 'Las opciones se llenan con los votos y la ganadora pasa a oro.' },
     { id: 'sorteo', n: 'Sorteo compacto', d: 'El premio, la gente como burbujas y el nombre ganador en oro.' },
     { id: 'meta', n: 'Meta de donaciones', d: 'Kawaii, solo texto y barra: el tubito de agua y tu aleta nadando.' },
@@ -49,6 +52,7 @@
       '<div class="esc-lado"><div class="esc-cab"><h3>' + esc(w.n) + '</h3><span class="estado listo">Listo</span></div><p class="nota">' + esc(w.d) + '</p>' +
       (w.opciones || []).map(([k, l, vals]) => '<div class="wid-op" data-op="' + k + '"><span class="mlbl">' + esc(l) + '</span><div class="mchips" role="radiogroup" aria-label="' + esc(l) + '">' +
         vals.map(([val, txt]) => '<label><input type="radio" name="' + w.id + '-' + k + '" value="' + val + '"' + ((v[k] || vals[0][0]) === val ? ' checked' : '') + '>' + esc(txt) + '</label>').join('') + '</div></div>').join('') +
+      (w.acciones ? '<div class="wid-op"><span class="mlbl">Probar en la vista previa</span><div class="esc-acc">' + w.acciones.map(([l, a]) => '<button type="button" class="boton" data-probar="' + a + '">' + esc(l) + '</button>').join('') + '</div></div>' : '') +
       '<label class="esc-url">Enlace para OBS (fuente de navegador)<input type="text" readonly></label>' +
       '<p class="nota"><span data-tam></span> Para hacerlo más grande o más pequeño, añade <b>&amp;escala=1.5</b> (de 0.5 a 2) y multiplica el tamaño.</p>' +
       '<div class="esc-acc"><button type="button" class="boton coral" data-copiar>Copiar enlace</button><a class="boton" target="_blank" rel="noopener" data-abrir>Abrir</a></div></div>';
@@ -65,6 +69,7 @@
       escala();
     };
     el.addEventListener('change', (e) => { const m = e.target.name && e.target.name.match(new RegExp('^' + w.id + '-(.+)$')); if (!m) return; v[m[1]] = e.target.value; guardar(); poner(); });
+    el.addEventListener('click', (e) => { const b = e.target.closest('[data-probar]'); if (b && fr.contentWindow) fr.contentWindow.postMessage({ type: 'kyo-test', accion: b.dataset.probar }, '*'); });
     $('[data-copiar]', el).addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(inp.value); aviso('Enlace de ' + w.n + ' copiado'); } catch (err) { inp.select(); aviso('Selecciona el enlace y cópialo'); }
     });
