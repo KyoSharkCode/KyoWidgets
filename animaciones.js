@@ -733,10 +733,10 @@ window.kyoAnim = {
     elegir(PEST.some(p => p[0] === ini) ? ini : 'general');
   },
   abrirMusica,
-  // Monta solo algunas plantillas (por id) en otro contenedor: lo usa el panel de 2027
+  // Monta solo algunas plantillas o anuncios (por id) en otro contenedor: lo usa el panel de 2027
   montar(cont, ids) {
     cont.innerHTML = '';
-    ids.map(id => PLANTILLAS.find(pl => pl.id === id)).filter(Boolean).forEach(pl => cont.appendChild(tarjeta(pl)));
+    ids.map(id => PLANTILLAS.find(pl => pl.id === id) || ANUNCIOS.find(pl => pl.id === id)).filter(Boolean).forEach(pl => cont.appendChild(tarjeta(pl)));
   },
   abrirAnuncios() {
     if (anunciosAbierto) return; anunciosAbierto = true;

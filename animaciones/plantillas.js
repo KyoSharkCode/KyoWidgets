@@ -25,6 +25,11 @@ import { intro } from './generales/intro.js';
 import { intro2027 } from './generales/intro-2027.js';
 import { outro2027 } from './generales/outro-2027.js';
 import { transicion2027 } from './generales/transicion-2027.js';
+import { sigueme2027 } from './generales/sigueme-2027.js';
+import { suscribeteBarra2027 } from './generales/suscribete-barra-2027.js';
+import { barraCodigo2027 } from './generales/codigo-barra-2027.js';
+import { pegatinaCodigo2027 } from './generales/codigo-pegatina-2027.js';
+import { merch2027 } from './generales/merch-2027.js';
 import { outro } from './generales/outro.js';
 import { rotulo } from './generales/rotulo.js';
 import { presentacion } from './generales/presentacion.js';
@@ -38,17 +43,20 @@ import { anuncioMerch } from './anuncios/merch.js';
 import { anuncioCuenta } from './anuncios/cuenta-atras.js';
 import { anuncioDirecto } from './anuncios/directo-especial.js';
 import { anuncioHoy } from './anuncios/hoy-hay-directo.js';
+import { anuncioCuenta2027 } from './anuncios/cuenta-atras-2027.js';
+import { anuncioDirecto2027 } from './anuncios/directo-especial-2027.js';
+import { anuncioHoy2027 } from './anuncios/hoy-hay-directo-2027.js';
 
 // Campos que vienen de la Guía de mejora (se eligen una vez arriba de la pestaña ZZZ)
 [[guiaDiscos, ['personaje', 'agente', 'imagen', 'elemento', 'especialidad']], [habilidadesZZZ, ['personaje', 'agente', 'imagen']], [amplisZZZ, ['personaje', 'agente', 'imagen']], [guiaFrameo, ['personaje', 'agente', 'imagen']]]
   .forEach(([pl, ks]) => pl.campos.forEach(c => { if (ks.includes(c.k)) c.guia = true; }));
 // todas las animaciones aceptan el acabado dibujado
 [intro, outro, presentacion, rotulo, guiaDiscos, equipoZZZ, habilidadesZZZ, amplisZZZ, explicaAmpli, guiaFrameo, pegatinaCodigo, barraCodigo, sigueme, suscribete, suscribeteBarra, directo, merch, transicion, nota, momentazo].forEach(conAcabado);
-export const PLANTILLAS = [intro2027, outro2027, transicion2027, intro, outro, presentacion, rotulo, guiaDiscos, equipoZZZ, habilidadesZZZ, amplisZZZ, explicaAmpli, guiaFrameo, pegatinaCodigo, barraCodigo, sigueme, suscribete, suscribeteBarra, directo, merch, transicion, nota, momentazo];
+export const PLANTILLAS = [intro2027, outro2027, transicion2027, sigueme2027, suscribeteBarra2027, barraCodigo2027, pegatinaCodigo2027, merch2027, intro, outro, presentacion, rotulo, guiaDiscos, equipoZZZ, habilidadesZZZ, amplisZZZ, explicaAmpli, guiaFrameo, pegatinaCodigo, barraCodigo, sigueme, suscribete, suscribeteBarra, directo, merch, transicion, nota, momentazo];
 // Anuncios (pestaña propia)
 // todos los anuncios aceptan el acabado dibujado
 [anuncioHoy, anuncioMerch, anuncioCuenta, anuncioDirecto].forEach(conAcabado);
-export const ANUNCIOS = [anuncioHoy, anuncioMerch, anuncioCuenta, anuncioDirecto];
+export const ANUNCIOS = [anuncioCuenta2027, anuncioDirecto2027, anuncioHoy2027, anuncioHoy, anuncioMerch, anuncioCuenta, anuncioDirecto];
 // Utilidades de dibujo para otras pestañas (paneles de Twitch)
 export const UT = { TEMAS, paleta, pegatina, rr, fuente, ancho, destello, icono, azar, rad,
   ICONOS: { estrella: [ESTRELLA], corazon: [CORAZON], calendario: [CALENDARIO, CAL_LINEAS], check: [CHECK], camiseta: [CAMISETA], bolsa: [BOLSA, ASA], chat: [CHAT], regalo: [REGALO], mando: [MANDO], nota: [NOTA], play: [PLAY], campana: [CAMPANA, BADAJO], aleta: [ALETA], mundo: [MUNDO] } };
