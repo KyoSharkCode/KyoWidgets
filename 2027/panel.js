@@ -33,8 +33,9 @@
       ['s4-spotify', 'Spotify: entrada y 3 estilos', 1], ['s4-anuncios', 'Anuncios: tarjeta y cinta', 1], ['s4-prediccion', 'Predicción compacta', 1],
       ['s4-encuesta', 'Encuesta compacta', 1], ['s4-sorteo', 'Sorteo compacto', 1], ['s4-metas', 'Meta de donaciones kawaii', 1],
       ['s4-chat', 'Chat', 1], ['s4-contador', 'Contador', 1], ['s4-cuenta', 'Cuenta atrás', 1]] },
-    { n: 5, vista: 'alertas', titulo: 'Alertas y animaciones', desc: 'Versión 2027 de las alertas y ensayo completo en OBS.', tareas: [
-      ['s5-alertas', 'Alertas con los colores nuevos', 0], ['s5-animaciones', 'Animaciones del Estudio en versión 2027', 0],
+    { n: 5, vista: 'animaciones', titulo: 'Animaciones', desc: 'Las animaciones del Estudio en versión 2027 y ensayo completo en OBS.', tareas: [
+      ['s5-sigueme', '¡Sígueme!', 1], ['s5-sub-barra', '¡Suscríbete! en barra', 0], ['s5-barra-codigo', 'Barra del código', 0], ['s5-pegatina-codigo', 'Pegatina del código', 0],
+      ['s5-merch', '¡Nueva merch!', 0], ['s5-anuncio-cuenta', 'Anuncio con cuenta atrás', 0], ['s5-anuncio-directo', '¡Directo especial!', 0], ['s5-anuncio-hoy', '¡Hoy hay directo!', 0],
       ['s5-ensayo', 'Ensayo en OBS (9 o 10 de enero)', 0]] },
     { n: 6, titulo: 'El cambio', desc: 'El 11 de enero esta sección pasa a ser el Estudio principal.', tareas: [
       ['s6-principal', 'El Estudio 2027 pasa a ser el principal', 0], ['s6-archivar', 'Archivar la sección de 2026', 0]] },
@@ -48,7 +49,7 @@
     ['Perla', '#F5F3FB', 'Texto principal y borde pegatina'], ['Coral', '#FF6F61', 'Lo importante (5% como máximo)'], ['Coral Pastel', '#FFB4A8', 'Coral suave'],
     ['Menta Byte', '#5EF2B8', 'Datos de juego, progreso y mods'], ['Oro Premio', '#F4C542', 'VIP, metas cumplidas y combos']
   ];
-  const VISTAS = ['inicio', 'perfiles', 'videos', 'escenas', 'widgets', 'alertas', 'marca'];
+  const VISTAS = ['inicio', 'perfiles', 'videos', 'escenas', 'widgets', 'animaciones', 'marca'];
 
   // ---------- tareas hechas ----------
   const CLAVE = 'kyo2027_plan';
@@ -163,6 +164,13 @@
       // el motor de animaciones del Estudio: monta aquí solo las tarjetas 2027 (intro y outro)
       import('../animaciones.js')
         .then(() => window.kyoAnim.montar(caja, ['intro-2027', 'outro-2027']))
+        .catch((e) => { console.error(e); caja.innerHTML = '<p class="nota">No se pudo cargar la herramienta de animaciones. Recarga la página.</p>'; });
+    }
+    if (v === 'animaciones') {
+      const caja = $('#herrAnim');
+      // las animaciones 2027 del Stage 5 (se añaden aquí según se terminan)
+      import('../animaciones.js')
+        .then(() => window.kyoAnim.montar(caja, ['sigueme-2027']))
         .catch((e) => { console.error(e); caja.innerHTML = '<p class="nota">No se pudo cargar la herramienta de animaciones. Recarga la página.</p>'; });
     }
   }
