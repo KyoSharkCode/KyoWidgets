@@ -27,6 +27,7 @@ import { outro2027 } from './generales/outro-2027.js';
 import { transicion2027 } from './generales/transicion-2027.js';
 import { sigueme2027 } from './generales/sigueme-2027.js';
 import { suscribeteBarra2027 } from './generales/suscribete-barra-2027.js';
+import { barraCodigo2027 } from './generales/codigo-barra-2027.js';
 import { outro } from './generales/outro.js';
 import { rotulo } from './generales/rotulo.js';
 import { presentacion } from './generales/presentacion.js';
@@ -46,7 +47,7 @@ import { anuncioHoy } from './anuncios/hoy-hay-directo.js';
   .forEach(([pl, ks]) => pl.campos.forEach(c => { if (ks.includes(c.k)) c.guia = true; }));
 // todas las animaciones aceptan el acabado dibujado
 [intro, outro, presentacion, rotulo, guiaDiscos, equipoZZZ, habilidadesZZZ, amplisZZZ, explicaAmpli, guiaFrameo, pegatinaCodigo, barraCodigo, sigueme, suscribete, suscribeteBarra, directo, merch, transicion, nota, momentazo].forEach(conAcabado);
-export const PLANTILLAS = [intro2027, outro2027, transicion2027, sigueme2027, suscribeteBarra2027, intro, outro, presentacion, rotulo, guiaDiscos, equipoZZZ, habilidadesZZZ, amplisZZZ, explicaAmpli, guiaFrameo, pegatinaCodigo, barraCodigo, sigueme, suscribete, suscribeteBarra, directo, merch, transicion, nota, momentazo];
+export const PLANTILLAS = [intro2027, outro2027, transicion2027, sigueme2027, suscribeteBarra2027, barraCodigo2027, intro, outro, presentacion, rotulo, guiaDiscos, equipoZZZ, habilidadesZZZ, amplisZZZ, explicaAmpli, guiaFrameo, pegatinaCodigo, barraCodigo, sigueme, suscribete, suscribeteBarra, directo, merch, transicion, nota, momentazo];
 // Anuncios (pestaña propia)
 // todos los anuncios aceptan el acabado dibujado
 [anuncioHoy, anuncioMerch, anuncioCuenta, anuncioDirecto].forEach(conAcabado);
