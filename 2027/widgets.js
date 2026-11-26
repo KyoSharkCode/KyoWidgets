@@ -29,7 +29,14 @@
       d: 'Kawaii, solo texto y barra: el tubito se llena de agua con burbujas, tu aleta nada en la punta y las estrellitas se encienden al pasarlas. Usa el mismo total, título y meta que configuras en el Estudio actual.',
       opciones: [['ultimo', 'Píldora de la última donación', [['si', 'Mostrar'], ['no', 'Ocultar']]]],
       acciones: [['+5 €', 'donacion'], ['Donación grande', 'grande'], ['Completar', 'completa'], ['Reiniciar', 'reiniciar']] },
-    { id: 'chat', n: 'Chat', d: 'Burbujas con el color de cada rol, para el marco de Just Chatting.' },
+    { id: 'chat', n: 'Chat', archivo: '../chat.html', fijo: { tema: '2027' }, lista: true, tam: [520, 560],
+      nota: () => 'En OBS: dentro del marco de Just Chatting, fuente de 520 × 770 en x 62, y 176 (en la vertical, 960 × 570 en x 60, y 1080).',
+      d: 'Tu chat de Twitch con el tema 2027: burbujas pegatina con el color de cada rol (tú en coral, mods en menta, VIP en oro, subs en aleta) e insignias KYO, MOD, VIP y SUB. Es el mismo chat del Estudio (emotes de 7TV, BTTV y FFZ, comandos y usuarios ocultos), con su tema nuevo.',
+      opciones: [['insignias', 'Insignias', [['kyo', 'Las de Kyo (KYO, MOD…)'], ['twitch', 'Las de Twitch'], ['ninguna', 'Sin insignias']]],
+                 ['nombres', 'Color de los nombres', [['rol', 'Según el rol'], ['twitch', 'El de Twitch de cada persona']]],
+                 ['fs', 'Tamaño del texto', [['26', 'Normal'], ['22', 'Pequeño'], ['30', 'Grande']]],
+                 ['seg', 'Los mensajes se van', [['0', 'Nunca'], ['30', 'A los 30 s'], ['60', 'Al minuto']]]],
+      acciones: [['Mensaje', 'mensaje'], ['Limpiar', 'limpiar']] },
     { id: 'contador', n: 'Contador', d: 'Píldora pegatina con icono, nombre y número que rebota.' },
     { id: 'cuenta', n: 'Cuenta atrás', d: 'El contador HUD de las escenas con tu texto final.' }
   ];
@@ -41,6 +48,7 @@
   const tamDe = (w) => typeof w.tam === 'function' ? w.tam(elegido[w.id] || {}) : w.tam;
   function enlace(w) {
     const v = elegido[w.id] || {}, p = new URLSearchParams();
+    Object.entries(w.fijo || {}).forEach(([k, val]) => p.set(k, val));
     (w.opciones || []).forEach(([k, , vals, si]) => { if (si && !si(v)) return; if (v[k] && v[k] !== vals[0][0]) p.set(k, v[k]); });
     const qs = p.toString();
     return new URL('../overlays/2027/' + w.archivo + (qs ? '?' + qs : ''), location.href).href;

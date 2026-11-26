@@ -11,7 +11,7 @@
   Tamaños recomendados: horizontal 580x840 · vertical 900x740
   Parámetros:
     canal      tu canal de Twitch (por defecto kyosumivt)
-    tema       marea | octubre | navidad          anim  rebote | burbuja | deslizar
+    tema       marea | octubre | navidad | 2027   anim  rebote | burbuja | deslizar
     insignias  kyo | twitch | ninguna              nombres  rol | twitch (color de Twitch de cada persona)
                (las de Twitch las da la función twitch-insignias de Supabase; si falla, salen las de Kyo)
     fs         tamaño del texto en px (26)         max   mensajes en pantalla (12)
@@ -77,6 +77,16 @@ html,body{margin:0;background:transparent!important;overflow:hidden;width:100%;h
 .navidad .msg{box-shadow:0 calc(var(--fs)*.18) 0 var(--sombra),0 0 0 2px rgba(244,197,66,.35)}
 .navidad .msg.streamer::after,.navidad .msg.sub::after{opacity:1;right:calc(var(--fs)*-.4);top:calc(var(--fs)*-.4);width:calc(var(--fs)*1.2);height:calc(var(--fs)*1.2);
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 30 C22 14 8 16 4 22 C12 24 12 32 8 36 C18 40 26 38 32 30Z' fill='%235BD99A' stroke='%231f6b45' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M32 30 C42 14 56 16 60 22 C52 24 52 32 56 36 C46 40 38 38 32 30Z' fill='%235BD99A' stroke='%231f6b45' stroke-width='3' stroke-linejoin='round'/%3E%3Ccircle cx='26' cy='36' r='7' fill='%23E23A52'/%3E%3Ccircle cx='38' cy='36' r='7' fill='%23E23A52'/%3E%3Ccircle cx='32' cy='44' r='7' fill='%23FF5A6E'/%3E%3Ccircle cx='30' cy='42' r='2' fill='%23fff' opacity='.7'/%3E%3C/svg%3E") center/contain no-repeat}
+/* Tema 2027: burbuja pegatina (contorno Abisal y sombra sólida), colores por rol de la paleta 2027,
+   nombres en tonos que se leen sobre blanco e insignias de palabra (KYO, MOD, VIP, SUB) */
+#chat.cs27{--burbuja:rgba(245,243,251,.97);--texto:#1b1f4a;--c-streamer:#FF6F61;--c-mod:#1fbf86;--c-vip:#d9a514;--c-sub:#3A7BD5;--c-normal:#9aa6d6;--sombra:#0A1030}
+.cs27 .msg{--rn:#4a5590;box-shadow:0 0 0 calc(var(--fs)*.12) #0A1030,0 calc(var(--fs)*.24) 0 calc(var(--fs)*.12) #0A1030;margin-bottom:calc(var(--fs)*.12)}
+.cs27 .msg.streamer{--rn:#d9473a} .cs27 .msg.mod{--rn:#0f8f63} .cs27 .msg.vip{--rn:#a67a00} .cs27 .msg.sub{--rn:#3A7BD5}
+.cs27 .who{color:var(--nc,var(--rn))}
+.cs27 .txt.action{color:var(--nc,var(--rn))}
+.cs27 .chip{width:auto;padding:0 calc(var(--fs)*.28);height:calc(var(--fs)*.78);border-radius:calc(var(--fs)*.26);font-size:calc(var(--fs)*.46);letter-spacing:.06em}
+.cs27 .msg.streamer::after{opacity:1;right:calc(var(--fs)*-.3);top:calc(var(--fs)*-.35);width:var(--fs);height:var(--fs);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cg fill='%23F4C542'%3E%3Crect x='8' width='2' height='18'/%3E%3Crect y='8' width='18' height='2'/%3E%3Crect x='6' y='6' width='6' height='6'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
 /* Animaciones */
 .a-rebote .msg.in{animation:rebote .5s cubic-bezier(.34,1.56,.64,1) both}
 .a-deslizar .msg.in{animation:deslizar .4s ease-out both}
@@ -95,7 +105,7 @@ html,body{margin:0;background:transparent!important;overflow:hidden;width:100%;h
 (function () {
   const q = new URLSearchParams(location.search);
   const chat = document.getElementById('chat');
-  const tema = ['marea', 'octubre', 'navidad'].includes(q.get('tema')) ? q.get('tema') : 'marea';
+  const tema = ['marea', 'octubre', 'navidad', '2027'].includes(q.get('tema')) ? q.get('tema') : 'marea';
   const anim = ['rebote', 'burbuja', 'deslizar'].includes(q.get('anim')) ? q.get('anim') : 'rebote';
   const canal = (q.get('canal') || 'kyosumivt').toLowerCase().replace(/[^a-z0-9_]/g, '');
   const fs = Math.max(12, Math.min(64, Number(q.get('fs')) || 26));
@@ -108,7 +118,7 @@ html,body{margin:0;background:transparent!important;overflow:hidden;width:100%;h
   const ocultos = (q.get('ocultos') ?? 'streamelements,nightbot,streamlabs,moobot,fossabot').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
   const MODO_INS = ['kyo', 'twitch', 'ninguna'].includes(q.get('insignias')) ? q.get('insignias') : 'kyo';
-  chat.className = tema + ' a-' + anim + (MODO_INS === 'ninguna' ? ' sin-insignias' : '');
+  chat.className = (tema === '2027' ? 'cs27' : tema) + ' a-' + anim + (MODO_INS === 'ninguna' ? ' sin-insignias' : '');
   chat.style.setProperty('--fs', fs + 'px');
   const hex = k => { const v = (q.get(k) || '').replace(/[^0-9a-f]/gi, ''); return /^([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v) ? '#' + v : null; };
   [['caja', '--burbuja'], ['texto', '--texto'], ['acento', '--c-streamer'], ['borde', '--c-normal']].forEach(([k, v]) => { const c = hex(k); if (c) chat.style.setProperty(v, c); });
@@ -190,7 +200,7 @@ html,body{margin:0;background:transparent!important;overflow:hidden;width:100%;h
       const imgs = (m.lista || []).map(b => ins[b] || ins[b.split('/')[0] + '/1'] || ins[b.split('/')[0] + '/0']).filter(Boolean);
       return imgs.map(u => '<img class="badge" alt="" src="' + esc(u) + '">').join('');
     }
-    const letra = { streamer: '★', mod: 'M', vip: 'V', sub: 'S' }[rol];
+    const letra = (tema === '2027' ? { streamer: 'KYO', mod: 'MOD', vip: 'VIP', sub: 'SUB' } : { streamer: '★', mod: 'M', vip: 'V', sub: 'S' })[rol];
     return letra ? '<i class="chip">' + letra + '</i>' : '';
   }
   const borrar = sel => chat.querySelectorAll(sel).forEach(quitar);
