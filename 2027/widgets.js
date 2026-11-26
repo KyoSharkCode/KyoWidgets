@@ -25,7 +25,10 @@
     { id: 'sorteo', n: 'Sorteo y encuesta', archivo: 'sorteo.html', lista: true, tam: [540, 340],
       d: 'Los sorteos y encuestas que haces desde el Estudio, compactos. Sorteo: el premio, la gente como burbujas y el ganador en oro tras la ola. Encuesta: las opciones se llenan con los votos y la ganadora pasa a oro. Si hay los dos a la vez se turnan cada 10 s. Solo se ve mientras hay alguno.',
       acciones: [['Entra gente', 'participantes'], ['Elegir ganador', 'ganador'], ['Encuesta', 'encuesta'], ['Votos', 'votos'], ['Cerrar encuesta', 'cerrarEnc'], ['Los dos a la vez', 'ambos'], ['Reiniciar', 'reiniciar']] },
-    { id: 'meta', n: 'Meta de donaciones', d: 'Kawaii, solo texto y barra: el tubito de agua y tu aleta nadando.' },
+    { id: 'meta', n: 'Meta de donaciones', archivo: 'meta.html', lista: true, tam: [640, 200],
+      d: 'Kawaii, solo texto y barra: el tubito se llena de agua con burbujas, tu aleta nada en la punta y las estrellitas se encienden al pasarlas. Usa el mismo total, título y meta que configuras en el Estudio actual.',
+      opciones: [['ultimo', 'Píldora de la última donación', [['si', 'Mostrar'], ['no', 'Ocultar']]]],
+      acciones: [['+5 €', 'donacion'], ['Donación grande', 'grande'], ['Completar', 'completa'], ['Reiniciar', 'reiniciar']] },
     { id: 'chat', n: 'Chat', d: 'Burbujas con el color de cada rol, para el marco de Just Chatting.' },
     { id: 'contador', n: 'Contador', d: 'Píldora pegatina con icono, nombre y número que rebota.' },
     { id: 'cuenta', n: 'Cuenta atrás', d: 'El contador HUD de las escenas con tu texto final.' }
