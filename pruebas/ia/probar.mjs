@@ -952,6 +952,7 @@ const E = await import(base + "estado.ts");
     const m = V.memoriaPropia({ canon: [], diario: [], animo: { texto: V.ANIMOS[0], manual: false, directo: "x" }, canal: null });
     prueba("el ánimo no se anuncia, pero puede contarlo si le preguntan", m.includes("no lo anuncies por tu cuenta") && m.includes("Si alguien te pregunta cómo estás"), m);
   }
+  prueba("sabe que su chat vive en otro huso horario que Kyo", V.bloqueDirecto({ enVivo: true, canal: null, zona: "Europe/Paris" }).includes("sobre todo de Latinoamérica") && !V.bloqueDirecto({ enVivo: true, canal: null, zona: "" }).includes("Latinoamérica"));
   prueba("de entrada ignora a SoundAlerts y a otros bots conocidos", ["soundalerts", "streamelements", "nightbot"].every((b) => T.AJUSTES_IA.ignorar.includes(b)) && T.AJUSTES_IA.ignorar.length <= 30);
 }
 {

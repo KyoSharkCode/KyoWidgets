@@ -118,7 +118,8 @@ export function bloqueDirecto(o: { enVivo: boolean; inicio?: string; canal: Cana
   } else {
     l.push("Ahora mismo Kyo no está en directo.");
   }
-  if (hora) l.push("Para Kyo ahora es " + hora + ".");
+  // Kyo transmite desde España, pero su chat es sobre todo de Latinoamérica
+  if (hora) l.push("Para Kyo ahora es " + hora + ". La gente del chat es sobre todo de Latinoamérica, donde es varias horas más temprano: no des por hecho que para quien te habla es la misma hora (si para Kyo es de noche, para el chat puede ser por la tarde).");
   return "<directo>\n" + l.join(" ") + "\n</directo>\n";
 }
 
