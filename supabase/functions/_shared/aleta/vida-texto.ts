@@ -5,7 +5,7 @@
 //   - noción de dónde está: a qué se juega, cuánto lleva el directo y qué hora es.
 // Todo se guarda en kyo_ajustes (filas "aleta_canon", "aleta_diario", "aleta_animo" y "canal").
 
-import { limpiarDato, limpiarEntrada, normalizar } from "./texto.ts";
+import { claves, limpiarDato, limpiarEntrada, normalizar } from "./texto.ts";
 
 export type Diario = { directo: string; fecha: string; texto: string };
 export type Animo = { texto: string; manual: boolean; directo: string | null };
@@ -28,14 +28,18 @@ export function aVida(canon: any, diario: any, animo: any, canal: any): Vida {
 }
 
 // ---------- Canon: lo que ha dicho de sí misma ----------
-// Añade una cosa nueva. Si repite algo que ya estaba, lo sustituye por la versión nueva.
+// Añade una cosa nueva. Si repite algo que ya estaba, o es otra variante del mismo tema (comparten dos
+// palabras con contenido: "calamares crocantes con salsita" / "calamares crocantes calientes"), sustituye
+// la anterior por la nueva: así la lista no se llena de versiones de lo mismo.
 // Devuelve la misma lista (el mismo objeto) si no cambia nada.
-export function sumarCanon(canon: string[], nuevo: string): string[] {
+export function sumarCanon(canon: string[], nuevo: string, juntarTema = true): string[] {
   const dato = limpiarDato(nuevo);
   if (!dato) return canon;
   const n = normalizar(dato);
   if (canon.some((c) => normalizar(c) === n)) return canon;
-  const resto = canon.filter((c) => { const v = normalizar(c); return !(v.includes(n) || n.includes(v)); });
+  const tema = new Set(claves(dato));
+  const mismoTema = (c: string) => juntarTema && new Set(claves(c).filter((w) => tema.has(w))).size >= 2;
+  const resto = canon.filter((c) => { const v = normalizar(c); return !(v.includes(n) || n.includes(v) || mismoTema(c)); });
   return [...resto, dato].slice(-CANON_MAX);
 }
 
@@ -96,7 +100,7 @@ export function memoriaPropia(v: Vida, zona = ""): string {
       return "- " + (cuando ? "(" + cuando + ") " : "") + d.texto;
     }).join("\n"));
   }
-  if (v.animo?.texto) partes.push("Cómo estás hoy: " + v.animo.texto + " Que se note de fondo en cómo hablas, sin anunciarlo.");
+  if (v.animo?.texto) partes.push("Cómo estás hoy: " + v.animo.texto + " Que se note de fondo en cómo hablas; no lo anuncies por tu cuenta. Si alguien te pregunta cómo estás o cómo te sientes hoy, ahí sí puedes contarlo con tus palabras, si quieres: como cualquier persona, a veces lo dices y a veces te haces la dura.");
   if (!partes.length) return "";
   return "# Tu memoria\nEsto es tuyo: lo que has contado de ti y lo que has vivido. Úsalo como quien se acuerda de su propia vida, cuando venga a cuento; no lo recites ni lo saques en cada mensaje.\n\n" + partes.join("\n\n");
 }
@@ -114,7 +118,8 @@ export function bloqueDirecto(o: { enVivo: boolean; inicio?: string; canal: Cana
   } else {
     l.push("Ahora mismo Kyo no está en directo.");
   }
-  if (hora) l.push("Para Kyo ahora es " + hora + ".");
+  // Kyo transmite desde España, pero su chat es sobre todo de Latinoamérica
+  if (hora) l.push("Para Kyo ahora es " + hora + ". La gente del chat es sobre todo de Latinoamérica, donde es varias horas más temprano: no des por hecho que para quien te habla es la misma hora (si para Kyo es de noche, para el chat puede ser por la tarde).");
   return "<directo>\n" + l.join(" ") + "\n</directo>\n";
 }
 

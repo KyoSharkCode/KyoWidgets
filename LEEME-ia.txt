@@ -3,7 +3,9 @@ KyoWidgets · 🧠 IA de AletaBot (fase 1: conversación · fase 2: memoria de v
 
 Qué hace: cuando alguien escribe @AletaBot, su nombre ("aleta") o responde a un mensaje suyo,
 AletaBot contesta con Claude en una o dos frases, con la personalidad que tú le escribas.
-Puede seguir una conversación corta con esa persona (recuerda los últimos turnos unos minutos).
+Puede seguir una conversación corta con esa persona (recuerda los últimos turnos unos minutos), pero
+si esa persona pasa a hablarle a Kyo o a otra persona, no se mete: sin nombrarla solo contesta cuando
+el mensaje sigue claramente lo que ella dijo.
 No puede hacer nada más que hablar. Funciona 24/7 en Supabase, igual que los comandos.
 
 Memoria de viewers (fase 2)
@@ -43,9 +45,14 @@ La vida de AletaBot (para que no sea solo un personaje)
   de ejemplo; se edita en Kyo Estudio → 🧠 IA → Personalidad.
 - Memoria de sí misma: cuando cuenta algo nuevo sobre ella (un gusto, una manía, una anécdota), lo apunta
   y lo mantiene en los directos siguientes. Hasta 24 cosas; se ven, se borran y se añaden en el Estudio.
+  Si cuenta otra variante de algo que ya tenía apuntado, la nota nueva sustituye a la anterior. Y si lleva
+  varios mensajes nombrando lo mismo (un recuerdo suyo o de quien le habla), el bot se lo avisa para que
+  cambie de tema, salvo que le pregunten justo por eso.
 - Diario: al terminar cada directo escribe 2-3 frases sobre lo que pasó (a partir del final del chat) y
   al día siguiente se acuerda. Guarda los últimos 4 directos. Nombra a la gente solo por cosas divertidas
   que pasaron a la vista de todos; con !olvidame se borran los días que nombran a esa persona.
+- Si el directo se cae y vuelves antes de una hora, para AletaBot es el mismo directo: no saluda otra
+  vez, mantiene el ánimo y al terminar escribe un solo diario.
 - Ánimo del día: cada directo llega con un humor distinto (con sueño, competitiva, nostálgica…). Lo elige
   sola; desde el Estudio puedes fijarle el del próximo directo.
 - Sabe dónde está: a qué se juega y el título del directo (se lo pregunta a Twitch cada 10 minutos como
