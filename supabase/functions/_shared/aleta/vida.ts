@@ -100,12 +100,15 @@ export function reiniciarIniciativa() { _proxima = 0; }
 // ---------- Diario ----------
 // Al terminar un directo: unas líneas con lo que vivió, a partir del final del chat (los últimos mensajes guardados).
 // Una sola vez por directo, aunque el aviso de Twitch llegue repetido.
-export async function escribirDiarioDe(db: any, directoId: string, aj: AjustesIA): Promise<void> {
+// Si el directo se cortó y volvió ("reanudado"), la entrada que escribió al cortarse se rehace para que cubra todo.
+export async function escribirDiarioDe(db: any, directoId: string, aj: AjustesIA, reanudado = ""): Promise<void> {
   if (!directoId || directoId === "ninguno" || directoId.startsWith("fuera-")) return;
   if (aj.estado === "apagada" || !hayClave()) return;
   const v = await leerVidaFresca(db);
-  if (v.diario.some((x) => x.directo === directoId)) return;
-  const { data: turno, error } = await db.rpc("kyo_juego_turno", { p_clave: "diario:" + directoId, p_seg: 6 * 3600 });
+  const previo = v.diario.find((x) => x.directo === directoId);
+  const rehacer = !!(previo && reanudado && previo.fecha < reanudado);
+  if (previo && !rehacer) return;
+  const { data: turno, error } = await db.rpc("kyo_juego_turno", { p_clave: "diario:" + directoId + (rehacer ? ":" + reanudado : ""), p_seg: 6 * 3600 });
   if (error || turno !== true) return;
   if (await gastoMes(db) >= aj.topeMes) return;
 
@@ -114,7 +117,7 @@ export async function escribirDiarioDe(db: any, directoId: string, aj: AjustesIA
     .filter((m: any) => !String(m.texto).trim().startsWith("!"))
     .map((m: any) => ({ usuario: m.usuario, texto: limpiarEntrada(m.texto, 160) })).filter((m: Linea) => m.texto);
   if (chat.length < 15) return; // casi no hubo chat: no hay nada que contar
-  const r = await escribirDiario(mensajeDiario(chat));
+  const r = await escribirDiario(mensajeDiario(chat, rehacer ? previo!.texto : ""));
   await apuntar(db, directoId, "diario", r);
   if (!r.ok) return;
   const texto = limpiarSalida(r.valor, [], 400);
@@ -140,7 +143,7 @@ export async function leerVida(db: any) {
 // Cambios desde el Estudio: la lista entera de cosas que recuerda de sí misma, el ánimo, o borrar una entrada del diario
 export async function cambiarVida(db: any, o: { canon?: unknown; animo?: unknown; borrarDiario?: unknown }) {
   if (o.canon !== undefined) {
-    const lista = (Array.isArray(o.canon) ? o.canon : []).reduce((l: string[], x: unknown) => sumarCanon(l, String(x ?? "")), [] as string[]);
+    const lista = (Array.isArray(o.canon) ? o.canon : []).reduce((l: string[], x: unknown) => sumarCanon(l, String(x ?? ""), false), [] as string[]);
     const { error } = await guardarVida(db, "canon", lista);
     if (error) return { ok: false, error: "tabla" };
   }

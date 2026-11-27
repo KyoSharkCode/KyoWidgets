@@ -24,7 +24,27 @@ export type Contexto = {
   dormir?: (ms: number) => Promise<void>;
 };
 
-export type Directo = { id: string; inicio: string; enVivo: boolean; fuente: "eventsub" | "helix"; visto: string };
+// fin: cuándo terminó. alias: el id que le da Twitch cuando el directo se cortó y volvió (aquí sigue siendo
+// el mismo directo). reanudado: cuándo volvió.
+export type Directo = { id: string; inicio: string; enVivo: boolean; fuente: "eventsub" | "helix"; visto: string; fin?: string; alias?: string; reanudado?: string };
+
+// Si Kyo vuelve a emitir menos de una hora después de terminar, el directo se cayó y lo retomó: es el mismo
+// (mismos saludos, mismo ánimo, un solo diario), aunque Twitch le dé otro identificador.
+export const REANUDA_MS = 60 * 60_000;
+export function filaOnline(fila: Directo | null, twitchId: string, inicio: string, fuente: "eventsub" | "helix", ahora = Date.now()): Directo {
+  const vivo = { enVivo: true, fuente, visto: new Date(ahora).toISOString() };
+  if (fila?.id && fila.id !== "ninguno") {
+    if (fila.id === twitchId || fila.alias === twitchId) return { ...fila, ...vivo, fin: undefined };
+    if (!fila.enVivo && fila.fin && ahora - Date.parse(fila.fin) < REANUDA_MS) {
+      return { ...fila, ...vivo, fin: undefined, alias: twitchId, reanudado: vivo.visto };
+    }
+  }
+  return { id: twitchId, inicio, ...vivo };
+}
+const filaOffline = (fila: Directo | null, fuente: "eventsub" | "helix"): Directo => ({
+  ...(fila || {}), id: fila?.id || "ninguno", inicio: fila?.inicio || ahoraISO(), enVivo: false, fuente, visto: ahoraISO(),
+  fin: fila && !fila.enVivo && fila.fin ? fila.fin : ahoraISO(),
+});
 // hilos: con quién acaba de hablar AletaBot (id de Twitch → cuándo le contestó, en milisegundos)
 // juego: el juego en marcha (trivia, adivinanzas o historia), si lo hay
 // vida: lo que AletaBot recuerda de sí misma, su ánimo de hoy y lo que sabe del canal
@@ -119,28 +139,34 @@ export async function directoActual(db: any, fila: Directo | null, ctx: Contexto
   if (!preguntar) return fila!.enVivo ? { id: fila!.id, enVivo: true } : fuera;
   const v = await ctx.enVivo();
   if (v === undefined) return fila?.enVivo ? { id: fila.id, enVivo: true } : fuera; // Twitch no contestó: se queda lo que había
-  const nueva: Directo = {
-    id: v ? v.id : (fila?.id || "ninguno"), inicio: v ? v.inicio : (fila?.inicio || ahoraISO()),
-    enVivo: !!v, fuente: fila?.fuente === "eventsub" ? "eventsub" : "helix", visto: ahoraISO(),
-  };
+  const fuente = fila?.fuente === "eventsub" ? "eventsub" : "helix";
+  const nueva: Directo = v ? filaOnline(fila, v.id, v.inicio, fuente) : filaOffline(fila, fuente);
   // se guarda y se actualiza lo recordado en memoria (sin obligar a releer los ajustes)
   await db.from("kyo_ajustes").upsert({ id: "directo", datos: nueva, updated_at: ahoraISO() });
   if (_estado) _estado.e.directo = nueva;
-  return v ? { id: v.id, enVivo: true } : fuera;
+  return v ? { id: nueva.id, enVivo: true } : fuera;
 }
 
 // Avisos de Twitch: empieza o termina el directo (los recibe twitch-bot-events)
-export async function eventoDirecto(db: any, tipo: string, ev: any) {
+// Devuelve cómo queda el directo (null si el aviso no era de empezar ni de terminar).
+export async function eventoDirecto(db: any, tipo: string, ev: any): Promise<Directo | null> {
   if (tipo === "stream.online") {
-    await guardarFila(db, "directo", { id: String(ev?.id || "directo-" + Date.now()), inicio: ev?.started_at || ahoraISO(), enVivo: true, fuente: "eventsub", visto: ahoraISO() });
+    const { directo } = await leerEstado(db, true);
+    const nueva = filaOnline(directo, String(ev?.id || "directo-" + Date.now()), ev?.started_at || ahoraISO(), "eventsub");
+    await guardarFila(db, "directo", nueva);
     // de paso, borra conversaciones y registros viejos, y los perfiles de quien no viene desde hace un año
     await db.rpc("kyo_ia_limpiar");
     await db.rpc("kyo_viewer_limpiar");
     await db.rpc("kyo_juego_limpiar");
-  } else if (tipo === "stream.offline") {
-    const { directo } = await leerEstado(db, true);
-    await guardarFila(db, "directo", { id: directo?.id || "ninguno", inicio: directo?.inicio || ahoraISO(), enVivo: false, fuente: "eventsub", visto: ahoraISO() });
+    return nueva;
   }
+  if (tipo === "stream.offline") {
+    const { directo } = await leerEstado(db, true);
+    const nueva = filaOffline(directo, "eventsub");
+    await guardarFila(db, "directo", nueva);
+    return nueva;
+  }
+  return null;
 }
 
 // ---------- Gasto ----------

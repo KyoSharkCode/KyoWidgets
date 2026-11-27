@@ -894,5 +894,109 @@ const enDirecto = (db, min = 30) => db.t.kyo_ajustes.push({ id: "directo", datos
   Date.now = real;
 }
 
+console.log("12) Después del primer directo con vida: hilos, repeticiones, apodos largos y directo reanudado");
+const E = await import(base + "estado.ts");
+{
+  // ¿Va para otra persona?
+  const canal = (texto, o = {}) => ({ ...mensaje(texto, o), broadcaster_user_login: "kyosumivt" });
+  igual("'Kyo, …' va para Kyo", T.vaParaOtro(canal("Kyo , zapato eso recomiendo yo"), "300"), true);
+  igual("'kyosumi' también", T.vaParaOtro(canal("jajaja KyoSumi qué haces"), "300"), true);
+  igual("un mensaje cualquiera no", T.vaParaOtro(canal("el Assassins creo(?)"), "300"), false);
+  igual("contestar a otra persona sí", T.vaParaOtro(canal("jaja", { reply: { parent_user_id: "555" } }), "300"), true);
+  igual("contestarle a ella no", T.vaParaOtro(canal("jaja", { reply: { parent_user_id: "300" } }), "300"), false);
+  igual("etiquetar a otra persona sí", T.vaParaOtro(canal("@luis mira", { fragments: [{ type: "mention", text: "@luis", mention: { user_id: "201" } }, { type: "text", text: " mira" }] }), "300"), true);
+  igual("un emote del canal no cuenta como nombrar a Kyo", T.vaParaOtro(canal("kyosum1Cheerleader", { fragments: [{ type: "emote", text: "kyosum1Cheerleader" }] }), "300"), false);
+
+  const db = baseFalsa({ memoria: false, iniciativa: false }), ctx = contexto();
+  await turno(db, ctx, canal("@AletaBot hola!!"));
+  const antes = guion.llamadas.length;
+  await turno(db, ctx, canal("Kyo, zapato eso recomiendo yo"));
+  igual("si estaba hablando con ella pero ahora le habla a Kyo, no se mete (ni gasta el filtro)", [ctx.dicho.length, guion.llamadas.length - antes], [1, 0]);
+  await turno(db, ctx, canal("pues a mí me gustan los tiburones"));
+  prueba("en un hilo, el filtro ve lo último que ella dijo", guion.llamadas.findLast((l) => l.tarea === "filtro").contenido.includes("<ultimo>H-hola"), guion.llamadas.findLast((l) => l.tarea === "filtro").contenido);
+  await turno(db, ctx, canal("Kyo, aletabot te está ganando"));
+  igual("si va para Kyo pero la nombran, sí puede reaccionar", ctx.dicho.length, 3);
+  prueba("las instrucciones le explican cómo contestar cuando solo la nombran", P.instrucciones("").includes("hablan de ti, no contigo"));
+}
+{
+  // Repeticiones
+  const datos = ["Su personaje favorito de DB Legends es Gogeta fase 4 LR", "Le gustan los calamares crocantes con salsita"];
+  const propios = [
+    "@Nero Bueno, mientras sigas de pie en las remontadas, Gogeta aprueba.",
+    "Bueno, mientras sigas de pie en las remontadas, Gogeta aprueba.",
+    "Quédate hasta el final, que ni Gogeta remonta con ojeras",
+    "Ve pensando en esos calamares que me debes",
+    "Con salsita y bien calientes, los calamares",
+    "Su personaje favorito soy yo",
+  ];
+  const ya = T.yaDicho(datos, propios);
+  prueba("avisa de lo que ya nombró en varios mensajes", ya.includes("Gogeta") && ya.includes("calamares"), ya);
+  prueba("sin contar dos veces el mismo mensaje ni las palabras vacías", !ya.includes("salsita") && !ya.includes("favorito") && !ya.includes("personaje"), ya);
+  igual("si no se repite, no hay aviso", T.yaDicho(datos, propios.slice(0, 2)), []);
+  const m = P.mensajesChat([], [], { nombre: "Nero", rol: "viewer" }, "hola", "", "", ya).at(-1).content;
+  prueba("el aviso llega al modelo como <ya_dijiste>", m.includes("<ya_dijiste>") && m.includes("Gogeta") && P.instrucciones("").includes("<ya_dijiste>"), m);
+
+  const db = baseFalsa({ iniciativa: false }), ctx = contexto();
+  db.t.kyo_ajustes.push({ id: "aleta_canon", datos: { lista: ["Le gustan los calamares crocantes con salsita"] } });
+  db.t.kyo_chat.push({ id: 1, usuario: "aletabot", texto: "@luis Yo solo pienso en calamares calientes" }, { id: 2, usuario: "aletabot", texto: "@ana Tráeme calamares y hablamos" });
+  await turno(db, ctx, mensaje("@AletaBot qué haces"));
+  prueba("en el chat de verdad también se le avisa", guion.llamadas.at(-1).contenido.at(-1).content.includes("<ya_dijiste>calamares"), guion.llamadas.at(-1).contenido.at(-1).content);
+
+  // Su memoria no se llena de variantes de lo mismo
+  let canon = V.sumarCanon(["Prefiere a Gogeta antes que a Vegito", "Le gustan los calamares crocantes con salsita"], "Los calamares crocantes solo valen si están calientes");
+  igual("otra variante del mismo tema sustituye a la anterior", canon, ["Prefiere a Gogeta antes que a Vegito", "Los calamares crocantes solo valen si están calientes"]);
+  canon = V.sumarCanon(canon, "Los makos no pueden quedarse quietos, ni siquiera para una boda");
+  igual("un tema distinto se añade", canon.length, 3);
+  igual("lo que Kyo escribe en el Estudio no se junta", V.sumarCanon(["Le gustan los calamares crocantes con salsita"], "Los calamares crocantes solo valen si están calientes", false).length, 2);
+  prueba("el ánimo se nota sin decirlo", V.memoriaPropia({ canon: [], diario: [], animo: { texto: V.ANIMOS[0], manual: false, directo: "x" }, canal: null }).includes("no digas con qué ánimo estás"));
+}
+{
+  // Un apodo que no cabe se rechaza en vez de guardarse cortado
+  const db = baseFalsa(), ctx = contexto();
+  conReloj(db);
+  await IA.comandoMemoria(db, mensaje("!llamame Alex el SEÑOR DE LAS galletas", { id: "502", login: "alex", nombre: "Alex" }), "!llamame Alex el SEÑOR DE LAS galletas", ctx);
+  Date.now = real;
+  prueba("apodo demasiado largo: avisa y no lo guarda", ctx.dicho.at(-1).m.includes("muy largo") && !db.t.kyo_viewer.find((v) => v.user_id === "502")?.apodo, ctx.dicho.at(-1).m);
+  igual("uno de 20 letras sí cabe", [T.apodoLargo("Alex el SEÑOR DE LAS"), T.apodoLargo("Alex el SEÑOR DE LAS g")], [false, true]);
+}
+{
+  // El directo se cae y vuelve antes de una hora: es el mismo directo
+  const t0 = Date.parse("2026-11-26T20:00:00Z"), iso = (min) => new Date(t0 + min * 60000).toISOString();
+  const viva = { id: "A", inicio: iso(0), enVivo: true, fuente: "eventsub", visto: iso(20) };
+  const caida = { ...viva, enVivo: false, visto: iso(25), fin: iso(25) };
+  const vuelve = E.filaOnline(caida, "B", iso(27), "eventsub", t0 + 27 * 60000);
+  igual("vuelve a los 2 minutos: mismo directo, con el id nuevo de Twitch como alias", [vuelve.id, vuelve.inicio, vuelve.enVivo, vuelve.alias, vuelve.reanudado], ["A", iso(0), true, "B", iso(27)]);
+  igual("Twitch pregunta por el id nuevo: sigue siendo el mismo", E.filaOnline(vuelve, "B", iso(27), "helix", t0 + 30 * 60000).id, "A");
+  igual("vuelve a las 2 horas: es otro directo", E.filaOnline(caida, "C", iso(145), "eventsub", t0 + 145 * 60000).id, "C");
+  igual("si el anterior no llegó a cerrarse, es otro directo", E.filaOnline(viva, "D", iso(27), "eventsub", t0 + 27 * 60000).id, "D");
+
+  const db = baseFalsa({ memoria: false, iniciativa: false }), ctx = contexto();
+  enDirecto(db, 25);
+  for (let i = 0; i < 20; i++) db.t.kyo_chat.push({ id: i + 1, usuario: i % 3 ? "nero" : "ana", texto: "primera parte " + i, ts: "" });
+  conReloj(db);
+  const antes = guion.llamadas.filter((l) => l.tarea === "diario").length;
+  await IA.eventoDirecto(db, "stream.offline", {});
+  db.avanzar(120);
+  await IA.eventoDirecto(db, "stream.online", { id: "dir-V2", started_at: new Date(db.ahora()).toISOString() });
+  igual("al volver sigue en el mismo directo", [fila(db, "directo").id, fila(db, "directo").enVivo, fila(db, "directo").alias], ["dir-V", true, "dir-V2"]);
+  igual("y no escribe otro diario al volver", guion.llamadas.filter((l) => l.tarea === "diario").length - antes, 1);
+  Date.now = real;
+  await turno(db, ctx, mensaje("@AletaBot ya volvimos"));
+  igual("las respuestas se siguen contando en el mismo directo", db.t.kyo_directo.map((d) => d.id), ["dir-V"]);
+  conReloj(db);
+  for (let i = 0; i < 20; i++) db.t.kyo_chat.push({ id: 100 + i, usuario: "luis", texto: "segunda parte " + i, ts: "" });
+  db.avanzar(50 * 60);
+  guion.diario = () => "El directo se cortó, volvió y al final todo salió bien.";
+  await IA.eventoDirecto(db, "stream.offline", {});
+  const diario = fila(db, "aleta_diario").lista;
+  igual("al terminar de verdad, un solo diario que cubre todo", [diario.length, diario[0].directo, diario[0].texto], [1, "dir-V", "El directo se cortó, volvió y al final todo salió bien."]);
+  prueba("para rehacerlo recibe lo que ya había escrito", guion.llamadas.findLast((l) => l.tarea === "diario").contenido.includes("<antes>Hoy el chat estuvo imparable"));
+  db.avanzar(3 * 3600);
+  await IA.eventoDirecto(db, "stream.online", { id: "dir-Z", started_at: new Date(db.ahora()).toISOString() });
+  igual("tres horas después es un directo nuevo", [fila(db, "directo").id, fila(db, "aleta_diario").lista.length], ["dir-Z", 1]);
+  Date.now = real;
+  guion.diario = () => "Hoy el chat estuvo imparable y Kyo se estrelló dos veces. Me lo pasé bien, aunque no pienso decírselo.";
+}
+
 console.log(mal ? `\n❌ ${mal} pruebas fallaron (${ok} bien)` : `\n✅ Las ${ok} pruebas pasan`);
 process.exit(mal ? 1 : 0);

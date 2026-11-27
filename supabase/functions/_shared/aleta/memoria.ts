@@ -12,7 +12,7 @@
 // Tabla y funciones SQL: sql/10_viewers.sql.
 
 import {
-  aPerfil, detectar, fusionarDatos, leerOrdenMemoria, limpiarApodo, limpiarNombre, limpiarSalida, nombreDe, rolDe,
+  aPerfil, apodoLargo, detectar, fusionarDatos, leerOrdenMemoria, limpiarApodo, limpiarNombre, limpiarSalida, nombreDe, rolDe,
   saludoDeRepuesto, textoMisDatos, trozosSecretos, TXT_MEMORIA, type Perfil,
 } from "./texto.ts";
 import { instruccionesSaludo, mensajeSaludo } from "./prompt.ts";
@@ -115,6 +115,7 @@ export async function comandoMemoria(db: any, ev: any, texto: string, ctx: Conte
     if (turno.estado === "sin_memoria") { await responder(TXT_MEMORIA.sinMemoria(nombre)); return true; }
     const apodo = limpiarApodo(o.valor);
     if (!apodo) { await responder(TXT_MEMORIA.apodoAyuda()); return true; }
+    if (apodoLargo(o.valor)) { await responder(TXT_MEMORIA.apodoLargo()); return true; }
     if (est.ajustes.estado === "apagada" || !hayClave() || await gastoMes(db) >= est.ajustes.topeMes) { await responder(TXT_MEMORIA.apodoAhoraNo()); return true; }
     const directo = await directoActual(db, est.directo, ctx);
     const r = await revisarApodo(apodo);

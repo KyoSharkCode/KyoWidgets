@@ -18,7 +18,7 @@
 
 import {
   aplicarOrden, detectar, esperaPara, HILO_SIGUE, hiloNuevo, hiloSigue, hiloVivo, leerOrden, limpiarEntrada, limpiarSalida,
-  perfilTexto, rolDe, trozosSecretos, type Disparo, type Hilo, type Perfil,
+  perfilTexto, rolDe, TEMAS_FICHA, trozosSecretos, vaParaOtro, yaDicho, type Disparo, type Hilo, type Perfil,
 } from "./texto.ts";
 import { instrucciones, mensajeFiltro, mensajesChat, type Linea, type Quien, type Veredicto } from "./prompt.ts";
 import { conversar, filtrar, hayClave } from "./claude.ts";
@@ -54,15 +54,16 @@ async function leerHilo(db: any, userId: string): Promise<Hilo> {
 type Pensado = { veredicto: Veredicto | null; respuesta: string; sobreMi: string; coste: number; error?: string };
 async function pensar(db: any, o: {
   directo: string; chat: Linea[]; hilo: Hilo; q: Quien; texto: string; disparo: Disparo; personalidad: string;
-  perfil?: string; memoria?: string; directoTxt?: string; tarea?: string;
+  perfil?: string; memoria?: string; directoTxt?: string; tarea?: string; repetido?: string[];
 }): Promise<Pensado> {
-  const f = await filtrar(mensajeFiltro(o.chat, o.q, o.texto, o.disparo, o.perfil));
+  const turnos = hiloVivo(o.hilo) ? o.hilo!.turnos : [];
+  const f = await filtrar(mensajeFiltro(o.chat, o.q, o.texto, o.disparo, o.perfil, turnos.findLast((t) => t.r === "a")?.t || ""));
   await apuntar(db, o.directo, "filtro", f);
   if (!f.ok) return { veredicto: null, respuesta: "", sobreMi: "", coste: 0, error: f.error };
   if (!f.valor?.responder) return { veredicto: f.valor, respuesta: "", sobreMi: "", coste: f.coste };
 
   const sistema = instrucciones(o.personalidad);
-  const r = await conversar(sistema, o.memoria || "", mensajesChat(o.chat, hiloVivo(o.hilo) ? o.hilo!.turnos : [], o.q, o.texto, o.perfil, o.directoTxt));
+  const r = await conversar(sistema, o.memoria || "", mensajesChat(o.chat, turnos, o.q, o.texto, o.perfil, o.directoTxt, o.repetido));
   await apuntar(db, o.directo, o.tarea || "chat", r);
   await apuntarAvisoForma(db);
   if (!r.ok) return { veredicto: f.valor, respuesta: "", sobreMi: "", coste: f.coste, error: r.error };
@@ -97,6 +98,8 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Pro
     await quizaIniciativa(db, ctx, est).catch(() => {});
     return;
   }
+  // Sin nombrarla, solo puede ser continuación de lo que hablaban; y si el mensaje va para Kyo o para otra persona, no se mete
+  if (!disparo && vaParaOtro(ev, ctx.idBot)) return;
   const hilo = await leerHilo(db, userId);
   if (!disparo) { if (!hiloSigue(hilo)) return; disparo = "hilo"; }
 
@@ -128,8 +131,12 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Pro
 
   const q: Quien = { nombre: ev.chatter_user_name || login, rol };
   const texto = limpiarEntrada(bruto);
+  const chat = await chatReciente(db, login, bruto);
+  // ¿Se está repitiendo? Lo que recuerda (de esta persona y de sí misma) y ya nombró varias veces en sus últimos mensajes
+  const propios = [...chat.filter((l) => aj.nombres.includes(l.usuario.toLowerCase())).map((l) => l.texto), ...(hiloVivo(hilo) ? hilo!.turnos.filter((t) => t.r === "a").map((t) => t.t) : [])];
+  const repetido = yaDicho([...(perfil?.datos || []), ...est.vida.canon, TEMAS_FICHA], propios);
   const p = await pensar(db, {
-    directo: directo.id, chat: await chatReciente(db, login, bruto), hilo, q, texto, disparo,
+    directo: directo.id, chat, hilo, q, texto, disparo, repetido,
     personalidad: est.personalidad, perfil: perfilTexto(perfil, nuevo), memoria: vivo.memoria, directoTxt: vivo.directo,
   });
   if (aj.memoria && p.veredicto?.responder) await guardarRecuerdo(db, ev, p.veredicto).catch(() => {});
@@ -151,12 +158,13 @@ export async function atenderIA(db: any, ev: any, ctx: Contexto, presencia?: Pro
 // ---------- Avisos de Twitch: empieza o termina el directo ----------
 // Además de apuntar el estado del directo, al terminar uno AletaBot escribe su diario (también al empezar
 // el siguiente, por si el aviso de fin no llegó).
+// Si el directo se cortó y vuelve antes de una hora, sigue siendo el mismo: no hay diario nuevo hasta que acabe de verdad.
 export async function eventoDirecto(db: any, tipo: string, ev: any) {
   const antes = await leerEstado(db, true);
-  await avisoDirecto(db, tipo, ev);
-  const anterior = antes.directo?.id;
-  if (anterior && (tipo === "stream.offline" || (tipo === "stream.online" && String(ev?.id || "") !== anterior))) {
-    await escribirDiarioDe(db, anterior, antes.ajustes).catch(() => {});
+  const ahora = await avisoDirecto(db, tipo, ev);
+  const anterior = antes.directo;
+  if (anterior?.id && (tipo === "stream.offline" || (tipo === "stream.online" && ahora?.id !== anterior.id))) {
+    await escribirDiarioDe(db, anterior.id, antes.ajustes, anterior.reanudado || "").catch(() => {});
   }
 }
 

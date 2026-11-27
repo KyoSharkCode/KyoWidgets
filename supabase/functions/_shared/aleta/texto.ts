@@ -127,6 +127,50 @@ export function detectar(ev: any, idBot: string, nombres: string[]): Disparo | n
   return null;
 }
 
+// ¿El mensaje va claramente para otra persona? Contesta a otro, etiqueta a otro o nombra a la streamer
+// ("Kyo, mira esto"). Sirve para no meterse cuando alguien que hablaba con AletaBot pasa a hablar con Kyo.
+export function vaParaOtro(ev: any, idBot: string): boolean {
+  const padre = ev?.reply?.parent_user_id;
+  if (padre && padre !== idBot) return true;
+  const frag = Array.isArray(ev?.message?.fragments) ? ev.message.fragments : [];
+  if (frag.some((f: any) => f?.type === "mention" && f?.mention?.user_id && f.mention.user_id !== idBot)) return true;
+  const canal = normalizar(ev?.broadcaster_user_login || "").replace(/[^a-z0-9_]/g, "");
+  if (canal.length < 3) return false;
+  // sin los emotes (los del canal suelen empezar por su nombre)
+  const texto = frag.length ? frag.filter((f: any) => f?.type === "text").map((f: any) => f?.text || "").join(" ") : String(ev?.message?.text || "");
+  return normalizar(texto).split(/[^a-z0-9_]+/).some((w) => w.length >= 3 && (canal.startsWith(w) || w.startsWith(canal)));
+}
+
+// ---------- Repeticiones ----------
+const VACIAS = new Set(("para pero como esta este esto estan tiene tienes casi entre sobre desde hasta cuando donde porque aunque mucho mucha muy solo todo toda " +
+  "siempre nunca tambien algo alguien cosa mismo misma favorito favorita personaje gusta gustan quiere prefiere llama antes despues mientras " +
+  "pueda puede pueden estuvo esta estaba tiene tenia dijo dice hace hizo").split(" "));
+// Las palabras con contenido de una frase, sin acentos ni plurales ("Calamares crocantes" → ["calamar", "crocant"])
+export function claves(s: string): string[] {
+  return normalizar(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !VACIAS.has(w)).map((w) => (w.length > 4 ? w.replace(/(es|s)$/, "") : w));
+}
+// Los temas de su ficha que más tienden a volverse muletilla
+export const TEMAS_FICHA = "calamares velocidad rápida medusas brillantes";
+// De lo que AletaBot recuerda (de la persona o de sí misma), qué palabras ha usado ya en varios de sus últimos mensajes.
+// No es para que las olvide: es para avisarle de que se está repitiendo.
+export function yaDicho(fuentes: string[], propios: string[], min = 2, max = 5): string[] {
+  const vistos = new Set<string>();
+  const ultimos = propios.map((m) => m.replace(/^@\S+\s*/, "").trim()).filter((m) => {
+    const k = normalizar(m).slice(0, 60);
+    return k && !vistos.has(k) && vistos.add(k); // el mismo mensaje puede venir del chat y de la conversación
+  }).slice(-8).map((m) => new Set(claves(m)));
+  const salen = new Map<string, { palabra: string; n: number }>();
+  for (const f of fuentes) {
+    for (const palabra of String(f || "").split(/[^\p{L}\p{N}]+/u)) {
+      const k = claves(palabra)[0];
+      if (!k || salen.has(k)) continue;
+      const n = ultimos.filter((s) => s.has(k)).length;
+      if (n >= min) salen.set(k, { palabra, n });
+    }
+  }
+  return [...salen.values()].sort((a, b) => b.n - a.n).slice(0, max).map((x) => x.palabra);
+}
+
 export function rolDe(badges: string[]): "streamer" | "mod" | "vip" | "sub" | "viewer" {
   if (badges.includes("broadcaster")) return "streamer";
   if (badges.includes("moderator")) return "mod";
@@ -274,10 +318,13 @@ export function aPerfil(f: any): Perfil | null {
 }
 
 // Un apodo: letras, números y poco más, corto. "" si no vale.
+export const APODO_MAX = 20;
+const apodoEntero = (s: unknown) => String(s ?? "").replace(/^@+/, "").replace(/[^\p{L}\p{N}_ .-]/gu, "").replace(/\s+/g, " ").trim();
 export function limpiarApodo(s: unknown): string {
-  const t = String(s ?? "").replace(/^@+/, "").replace(/[^\p{L}\p{N}_ .-]/gu, "").replace(/\s+/g, " ").trim();
-  return cortar(t, 20).trim();
+  return cortar(apodoEntero(s), APODO_MAX).trim();
 }
+// Un apodo que no cabe se rechaza en vez de guardarse cortado por la mitad
+export const apodoLargo = (s: unknown) => Array.from(apodoEntero(s)).length > APODO_MAX;
 
 // Un dato recordado: una frase corta, en una línea. "" si no vale.
 export function limpiarDato(s: unknown): string {
@@ -337,6 +384,7 @@ export const TXT_MEMORIA = {
   apodo: (a: string) => "📝 Anotado: de ahora en adelante te llamo " + a + ".",
   apodoAyuda: () => "📝 Para decirme cómo llamarte: !llamame TuApodo (hasta 20 letras).",
   apodoNo: () => "💢 Ese apodo no me sirve. Intenta con otro.",
+  apodoLargo: () => "🫧 Ese apodo es muy largo: caben " + APODO_MAX + " letras como máximo. Intenta con uno más corto.",
   apodoAhoraNo: () => "🫧 Ahora mismo no puedo cambiar apodos. Intenta más tarde.",
   sinMemoria: (n: string) => "🫧 " + n + ": me pediste que no guardara nada de ti. Si quieres que vuelva a acordarme: !recuerdame",
 };
