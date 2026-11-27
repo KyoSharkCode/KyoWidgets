@@ -948,7 +948,11 @@ const E = await import(base + "estado.ts");
   canon = V.sumarCanon(canon, "Los makos no pueden quedarse quietos, ni siquiera para una boda");
   igual("un tema distinto se añade", canon.length, 3);
   igual("lo que Kyo escribe en el Estudio no se junta", V.sumarCanon(["Le gustan los calamares crocantes con salsita"], "Los calamares crocantes solo valen si están calientes", false).length, 2);
-  prueba("el ánimo se nota sin decirlo", V.memoriaPropia({ canon: [], diario: [], animo: { texto: V.ANIMOS[0], manual: false, directo: "x" }, canal: null }).includes("no digas con qué ánimo estás"));
+  {
+    const m = V.memoriaPropia({ canon: [], diario: [], animo: { texto: V.ANIMOS[0], manual: false, directo: "x" }, canal: null });
+    prueba("el ánimo no se anuncia, pero puede contarlo si le preguntan", m.includes("no lo anuncies por tu cuenta") && m.includes("Si alguien te pregunta cómo estás"), m);
+  }
+  prueba("de entrada ignora a SoundAlerts y a otros bots conocidos", ["soundalerts", "streamelements", "nightbot"].every((b) => T.AJUSTES_IA.ignorar.includes(b)) && T.AJUSTES_IA.ignorar.length <= 30);
 }
 {
   // Un apodo que no cabe se rechaza en vez de guardarse cortado

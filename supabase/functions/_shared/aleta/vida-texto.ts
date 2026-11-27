@@ -100,7 +100,7 @@ export function memoriaPropia(v: Vida, zona = ""): string {
       return "- " + (cuando ? "(" + cuando + ") " : "") + d.texto;
     }).join("\n"));
   }
-  if (v.animo?.texto) partes.push("Cómo estás hoy: " + v.animo.texto + " Que se note de fondo en cómo hablas, sin anunciarlo: no digas con qué ánimo estás ni uses esa palabra.");
+  if (v.animo?.texto) partes.push("Cómo estás hoy: " + v.animo.texto + " Que se note de fondo en cómo hablas; no lo anuncies por tu cuenta. Si alguien te pregunta cómo estás o cómo te sientes hoy, ahí sí puedes contarlo con tus palabras, si quieres: como cualquier persona, a veces lo dices y a veces te haces la dura.");
   if (!partes.length) return "";
   return "# Tu memoria\nEsto es tuyo: lo que has contado de ti y lo que has vivido. Úsalo como quien se acuerda de su propia vida, cuando venga a cuento; no lo recites ni lo saques en cada mensaje.\n\n" + partes.join("\n\n");
 }
